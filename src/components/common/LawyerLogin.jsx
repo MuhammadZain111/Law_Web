@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
-function Login({ onSwitchToSignup, expectedUserType = 'user' }) {
+function LawyerLogin({ onSwitchToSignup }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -58,7 +58,7 @@ function Login({ onSwitchToSignup, expectedUserType = 'user' }) {
         password: formData.password
       };
 
-      console.log('Sending login data:', loginData);
+      console.log('Sending lawyer login data:', loginData);
 
       const response = await fetch('http://localhost:5000/api/v1/user/login', {
         method: 'POST',
@@ -71,9 +71,9 @@ function Login({ onSwitchToSignup, expectedUserType = 'user' }) {
       const result = await response.json();
 
       if (response.ok) {
-        // Check if user type matches expected type
-        if (result.userType !== expectedUserType) {
-          alert(`Access denied. This login is only for ${expectedUserType}s. Please use the correct login portal.`);
+        // Check if user type is lawyer
+        if (result.userType !== 'lawyer') {
+          alert('Access denied. This login is only for lawyers. Please use the user login portal.');
           return;
         }
 
@@ -82,13 +82,7 @@ function Login({ onSwitchToSignup, expectedUserType = 'user' }) {
         localStorage.setItem('userType', result.userType);
         
         alert('Login successful!');
-        
-        // Redirect based on user type
-        if (result.userType === 'lawyer') {
-          navigate('/lawyerDashboard');
-        } else {
-          navigate('/');
-        }
+        navigate('/lawyerDashboard');
       } else {
         alert(result.message || 'Login failed. Please check your credentials.');
       }
@@ -114,9 +108,9 @@ function Login({ onSwitchToSignup, expectedUserType = 'user' }) {
             className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
               errors.email 
                 ? 'border-red-300 focus:border-red-500' 
-                : 'border-gray-200 focus:border-blue-500'
+                : 'border-gray-200 focus:border-green-500'
             }`}
-            placeholder="john@example.com"
+            placeholder="lawyer@example.com"
           />
         </div>
         {errors.email && (
@@ -138,7 +132,7 @@ function Login({ onSwitchToSignup, expectedUserType = 'user' }) {
             className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
               errors.password 
                 ? 'border-red-300 focus:border-red-500' 
-                : 'border-gray-200 focus:border-blue-500'
+                : 'border-gray-200 focus:border-green-500'
             }`}
             placeholder="Enter your password"
           />
@@ -162,7 +156,7 @@ function Login({ onSwitchToSignup, expectedUserType = 'user' }) {
       <button
         type="submit"
         onClick={handleSubmit}
-        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
+        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
       >
         Sign In
       </button>
@@ -172,7 +166,7 @@ function Login({ onSwitchToSignup, expectedUserType = 'user' }) {
           Don't have an account?{" "}
           <button
             onClick={onSwitchToSignup}
-            className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+            className="text-green-600 hover:text-green-700 font-semibold transition-colors"
           >
             Create Account
           </button>
@@ -182,4 +176,4 @@ function Login({ onSwitchToSignup, expectedUserType = 'user' }) {
   );
 }
 
-export default Login;
+export default LawyerLogin;
