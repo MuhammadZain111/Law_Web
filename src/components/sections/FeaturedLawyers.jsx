@@ -6,6 +6,7 @@ import { Star, MapPin, ArrowRight } from "../../assets/icons/Icons.jsx"
 import IMAGES from "../../constants/Images.js"
 
 // Mock data for lawyers
+
 const FEATURED_LAWYERS = [
   {
     id: 1,
