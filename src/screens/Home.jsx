@@ -4,7 +4,7 @@ import OurAreas from '../components/sections/OurAreas.jsx'
 import WhyChooseUs from '../components/sections/WhyChooseUs.jsx'
 import About from '../components/sections/About.jsx'
 import  Footer  from '../components/sections/Footer.jsx'
-import FeaturedLawyers from '../components/sections/FeaturesLawyers.jsx'
+import FeaturedLawyers from '../components/sections/FeaturedLawyers.jsx'
 import HowItWorks from '../components/sections/HowItWorks.jsx'
 
 function Home() {
