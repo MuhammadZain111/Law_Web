@@ -95,7 +95,7 @@ function RegisterLawyer() {
       console.log('Sending lawyer registration data:', lawyerData);
 
       // Make API call to backend
-      const response = await fetch('http://localhost:5000/api/v1/user/register', {
+      const response = await fetch('http://localhost:3000/api/v1/user/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +106,38 @@ function RegisterLawyer() {
       const result = await response.json();
 
       if (response.ok) {
-        alert('Lawyer registration successful! You can now login.');
+        // After successful user registration, create a lawyer profile
+        try {
+          const lawyerProfileData = {
+            userId: result.user?._id || result.user?.id,
+            fullName: `${formData.firstname} ${formData.lastname}`,
+            barNumber: `BAR${Date.now()}`, // Temporary bar number - should be provided by user
+            specialization: 'General Practice', // Default - should be provided by user
+            yearsOfExperience: 0, // Default - should be provided by user
+            city: '',
+            state: '',
+            country: '',
+            status: 'pending'
+          };
+
+          const profileResponse = await fetch('http://localhost:3000/api/lawyers/profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(lawyerProfileData),
+          });
+
+          if (profileResponse.ok) {
+            alert('Lawyer registration successful! Your profile is pending admin approval. You can now login.');
+          } else {
+            alert('User account created but profile creation failed. Please contact support.');
+          }
+        } catch (profileError) {
+          console.error('Profile creation error:', profileError);
+          alert('User account created but profile creation failed. Please contact support.');
+        }
+
         // Reset form
         setFormData({
           firstname: '',
@@ -142,7 +173,7 @@ function RegisterLawyer() {
 
       console.log('Sending lawyer login data:', loginData);
 
-      const response = await fetch('http://localhost:5000/api/v1/user/login', {
+      const response = await fetch('http://localhost:3000/api/v1/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 import React from "react"
 import * as ProgressPrimitive from "@radix-ui/react-progress"
-import { cn } from "../lib/utils" // adjust the path as needed
+import { cn } from "../../../lib/utils.js"
 
 function Progress({ className, value, ...props }) {
   return (

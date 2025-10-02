@@ -1,23 +1,23 @@
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { api, setAuthToken } from "../../shared/api.js";
 import {
     Alert,
     AlertDescription,
     AlertTitle,
-} from "../../components/ui/alert.jsx";
-import { Button } from "../../components/ui/button.jsx";
+} from "../Lawyer/ui/alert.jsx";
+import { Button } from "../Lawyer/ui/button.jsx";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "../../components/ui/card.jsx";
-import { Checkbox } from "../../components/ui/checkbox.jsx";
-import { Input } from "../../components/ui/input.jsx";
-import { Label } from "../../components/ui/label.jsx";
-import { api, setAuthToken } from "../../shared/api.js";
+} from "../Lawyer/ui/card.jsx";
+import { Checkbox } from "../Lawyer/ui/checkbox.jsx";
+import { Input } from "../Lawyer/ui/input.jsx";
+import { Label } from "../Lawyer/ui/label.jsx";
 
 // Text color for inline validation errors
 const ERROR_TEXT_CLASS =

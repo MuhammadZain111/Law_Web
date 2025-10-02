@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:4000/api';
+const BASE_URL = 'http://localhost:3000/api';
 
 async function request(path, { method = 'GET', body, headers = {} } = {}) {
   const token = localStorage.getItem('token');
@@ -27,6 +27,14 @@ export const api = {
   patch: (path, body, options) => request(path, { method: 'PATCH', body, ...(options || {}) }),
   delete: (path, options) => request(path, { method: 'DELETE', ...(options || {}) }),
 };
+
+export function setAuthToken(token) {
+  if (token) {
+    try { localStorage.setItem('token', token); } catch (_e) {}
+  } else {
+    try { localStorage.removeItem('token'); } catch (_e) {}
+  }
+}
 
 export default api;
 

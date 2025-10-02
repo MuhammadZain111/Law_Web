@@ -1,6 +1,5 @@
-import React from 'react';
 import { Button, Navbar, NavbarBrand, NavbarCollapse, NavbarLink, NavbarToggle } from "flowbite-react";
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 function CustomNavbar() {
   const customTheme = {
@@ -15,6 +14,10 @@ function CustomNavbar() {
 
   const goToRegister = () => {
     navigate('/registration-selection');
+  };
+
+  const goToLogin = () => {
+    navigate('/login');
   };
 
   return (
@@ -35,7 +38,7 @@ function CustomNavbar() {
       </NavbarCollapse>
 
       <div className="flex md:order-2 gap-2">
-        <Button className="!bg-lightbrown !text-white cursor-pointer">Login</Button>
+        <Button className="!bg-lightbrown !text-white cursor-pointer" onClick={goToLogin}>Login</Button>
         <Button className="!bg-lightbrown cursor-pointer !hover:bg-darkbrown text-white" onClick={goToRegister}>Register</Button>
       </div>
     </Navbar>

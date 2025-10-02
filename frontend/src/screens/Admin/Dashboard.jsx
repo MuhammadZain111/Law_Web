@@ -1,17 +1,17 @@
 import { Activity, AlertCircle, BarChart3, Bell, Calendar, FileText, Search, Settings, Shield, UserCheck, Users } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert.jsx"
-import { Button } from "../../components/ui/button.jsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card.jsx"
-import { Skeleton } from "../../components/ui/skeleton.jsx"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table.jsx"
+import { mockAppointments, mockDisputes, mockLogs, mockPendingLawyerRegistrations, mockUsers } from "../../data/mockData.js"
 import { api, setAuthToken } from "../../shared/api.js"
-import { mockAppointments, mockDisputes, mockLogs, mockPendingLawyerRegistrations, mockUsers } from "../data/mockData.js"
+import { Button } from "../Lawyer/ui/button.jsx"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Lawyer/ui/card.jsx"
+import { Skeleton } from "../Lawyer/ui/skeleton.jsx"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../Lawyer/ui/table.jsx"
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const [lawyers, setLawyers] = useState([])
+  const [pendingLawyers, setPendingLawyers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -35,8 +35,12 @@ export default function Dashboard() {
     setAuthToken(token)
     ;(async () => {
       try {
-        const res = await api.get("/lawyers/registered")
-        setLawyers(res.data || [])
+        // Load approved list for table
+        const approved = await api.get("/lawyers?status=approved")
+        setLawyers(approved.data || [])
+        // Load pending list for approvals
+        const pending = await api.get("/lawyers?status=pending")
+        setPendingLawyers(pending.data || [])
       } catch (e) {
         if (e?.response?.status === 401) {
           localStorage.removeItem('token')
@@ -165,14 +169,7 @@ export default function Dashboard() {
     )
   }
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Failed to load</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )
-  }
+  // If an error occurred, continue rendering with mock data instead of showing an alert
 
   
   const total = lawyers.length
@@ -187,15 +184,15 @@ export default function Dashboard() {
   };
 
   return (
-      <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-white text-gray-900">
         {/* Sidebar */}
-        <aside className="w-64 border-r bg-white flex flex-col">
-          <div className="p-6 border-b">
+        <aside className="w-64 border-r border-gray-800 bg-[#111111] flex flex-col">
+          <div className="p-6 border-b border-gray-800">
             <div className="flex items-center gap-2">
-              <Shield className="h-8 w-8 text-blue-600" />
+              <Shield className="h-8 w-8 text-blue-400" />
               <div>
                 <h1 className="text-xl font-bold">Law Sphere</h1>
-                <p className="text-xs text-gray-500">Admin Dashboard</p>
+                <p className="text-xs text-gray-400">Admin Dashboard</p>
               </div>
             </div>
           </div>
@@ -204,7 +201,7 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("overview")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                activeSection === "overview" ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                activeSection === "overview" ? "bg-blue-500/15 text-blue-300" : "hover:bg-white/5 text-gray-300"
               }`}
             >
               <BarChart3 className="h-5 w-5" /> Overview
@@ -213,7 +210,7 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("users")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                activeSection === "users" ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                activeSection === "users" ? "bg-blue-500/15 text-blue-300" : "hover:bg-white/5 text-gray-300"
               }`}
             >
               <Users className="h-5 w-5" /> User Management
@@ -222,13 +219,13 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("lawyers")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                activeSection === "lawyers" ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                activeSection === "lawyers" ? "bg-blue-500/15 text-blue-300" : "hover:bg-white/5 text-gray-300"
               }`}
             >
               <UserCheck className="h-5 w-5" />
               Lawyer Verification
               {mockPendingLawyerRegistrations.length > 0 && (
-                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                <span className="ml-auto bg-red-600 text-white text-xs px-2 py-1 rounded-full">
                   {mockPendingLawyerRegistrations.length}
                 </span>
               )}
@@ -237,13 +234,13 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("appointments")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                activeSection === "appointments" ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                activeSection === "appointments" ? "bg-blue-500/15 text-blue-300" : "hover:bg-white/5 text-gray-300"
               }`}
             >
               <Calendar className="h-5 w-5" />
               Appointments
               {stats.pendingAppointments > 0 && (
-                <span className="ml-auto bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+                <span className="ml-auto bg-white/10 text-gray-200 text-xs px-2 py-1 rounded-full">
                   {stats.pendingAppointments}
                 </span>
               )}
@@ -252,7 +249,7 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("reports")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                activeSection === "reports" ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                activeSection === "reports" ? "bg-blue-500/15 text-blue-300" : "hover:bg-white/5 text-gray-300"
               }`}
             >
               <FileText className="h-5 w-5" /> Reports & Analytics
@@ -261,13 +258,13 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("disputes")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                activeSection === "disputes" ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                activeSection === "disputes" ? "bg-blue-500/15 text-blue-300" : "hover:bg-white/5 text-gray-300"
               }`}
             >
               <AlertCircle className="h-5 w-5" />
               Financial Disputes
               {stats.openDisputes > 0 && (
-                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                <span className="ml-auto bg-red-600 text-white text-xs px-2 py-1 rounded-full">
                   {stats.openDisputes}
                 </span>
               )}
@@ -276,7 +273,7 @@ export default function Dashboard() {
             <button
               onClick={() => setActiveSection("logs")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                activeSection === "logs" ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                activeSection === "logs" ? "bg-blue-500/15 text-blue-300" : "hover:bg-white/5 text-gray-300"
               }`}
             >
               <Activity className="h-5 w-5" /> System Logs
@@ -298,7 +295,7 @@ export default function Dashboard() {
   
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
-          <header className="border-b bg-white sticky top-0 z-10">
+          <header className="border-b border-gray-200 bg-white sticky top-0 z-10">
             <div className="flex items-center justify-between px-8 py-4">
               <div className="flex-1 max-w-xl relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -306,14 +303,14 @@ export default function Dashboard() {
                   placeholder="Search users, lawyers, appointments..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-3 py-2 w-full border rounded-lg text-sm"
+                  className="pl-10 pr-3 py-2 w-full border border-gray-300 bg-white rounded-lg text-sm text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               <div className="flex items-center gap-4">
-                <button className="p-2 rounded-full hover:bg-gray-100">
+                <button className="p-2 rounded-full hover:bg-white/10">
                   <Bell className="h-5 w-5" />
                 </button>
-                <button className="p-2 rounded-full hover:bg-gray-100">
+                <button className="p-2 rounded-full hover:bg-white/10">
                   <Settings className="h-5 w-5" />
                 </button>
               </div>
@@ -328,24 +325,25 @@ export default function Dashboard() {
                   <p className="text-gray-500 mt-1">Monitor platform performance and key metrics</p>
                 </div>
 
-                {/* Pending Lawyer Verification appears at the top */}
+                {/* Pending Lawyer Verification appears at the top */
+                }
                 <Card>
                   <CardHeader>
                     <CardTitle>Pending Profile Registrations</CardTitle>
                     <CardDescription>New lawyer registrations awaiting admin approval before profile creation</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {mockPendingLawyerRegistrations.length === 0 ? (
-                      <div className="text-gray-500">No pending registrations.</div>
+                    {pendingLawyers.length === 0 ? (
+                      <div className="text-gray-400">No pending registrations.</div>
                     ) : (
                       <div className="space-y-4">
-                        {mockPendingLawyerRegistrations.map((l) => (
-                          <div key={l.id} className="border rounded-lg p-4 bg-white">
+                        {pendingLawyers.map((l) => (
+                          <div key={l._id || l.id} className="border border-gray-200 rounded-lg p-4 bg-white">
                             <div className="flex items-start justify-between gap-4">
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
                                 <div>
-                                  <div className="text-lg font-semibold">{l.name}</div>
-                                  <div className="text-sm text-gray-500">{l.email}</div>
+                                  <div className="text-lg font-semibold">{l.fullName || l.name}</div>
+                                  <div className="text-sm text-gray-500">{l.userId?.email || l.email}</div>
                                   <div className="mt-3">
                                     <div className="text-xs uppercase text-gray-500">Specialization</div>
                                     <div className="font-medium">{l.specialization}</div>
@@ -357,29 +355,63 @@ export default function Dashboard() {
                                 </div>
                                 <div>
                                   <div className="text-xs uppercase text-gray-500">Experience</div>
-                                  <div className="font-medium">{l.experience}</div>
+                                  <div className="font-medium">{l.yearsOfExperience ?? l.experience ?? '-'}</div>
                                   <div className="mt-3">
                                     <div className="text-xs uppercase text-gray-500">Phone</div>
-                                    <div className="font-medium">{l.phone}</div>
+                                    <div className="font-medium">{l.phone || '-'}</div>
                                   </div>
                                   <div className="mt-3">
                                     <div className="text-xs uppercase text-gray-500">Submitted on</div>
-                                    <div className="font-medium">{l.submitted}</div>
+                                    <div className="font-medium">{l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '-'}</div>
                                   </div>
                                 </div>
                                 <div>
                                   <div className="text-xs uppercase text-gray-500">Submitted Documents</div>
                                   <div className="mt-2 flex flex-wrap gap-2">
-                                    {l.documents.map((d, i) => (
-                                      <span key={i} className="inline-flex items-center rounded-md border px-2 py-1 text-xs">{d}</span>
+                                    {(l.documents || []).map((d, i) => (
+                                      <span key={i} className="inline-flex items-center rounded-md border px-2 py-1 text-xs">{d.name || d}</span>
                                     ))}
                                   </div>
                                 </div>
                               </div>
                               <div className="flex flex-col gap-2 shrink-0">
-                                <Button className="bg-green-600 hover:bg-green-700">Approve & Create Profile</Button>
+                                <Button
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={async () => {
+                                    try {
+                                      const id = l._id || l.id
+                                      if (!id) return
+                                      await api.post(`/lawyers/${id}/approve`)
+                                      const [approved, pending] = await Promise.all([
+                                        api.get('/lawyers?status=approved'),
+                                        api.get('/lawyers?status=pending'),
+                                      ])
+                                      setLawyers(approved.data || [])
+                                      setPendingLawyers(pending.data || [])
+                                    } catch (err) {
+                                      console.error(err)
+                                    }
+                                  }}
+                                >
+                                  Approve & Create Profile
+                                </Button>
                                 <Button variant="outline">Review Documents</Button>
-                                <Button variant="destructive">Reject</Button>
+                                <Button
+                                  variant="destructive"
+                                  onClick={async () => {
+                                    try {
+                                      const id = l._id || l.id
+                                      if (!id) return
+                                      await api.post(`/lawyers/${id}/reject`, { reason: 'Insufficient documents' })
+                                      const pending = await api.get('/lawyers?status=pending')
+                                      setPendingLawyers(pending.data || [])
+                                    } catch (err) {
+                                      console.error(err)
+                                    }
+                                  }}
+                                >
+                                  Reject
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -397,9 +429,9 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     {lawyers.length === 0 ? (
-                      <div className="text-gray-500">No registered lawyers yet.</div>
+                      <div className="text-gray-400">No registered lawyers yet.</div>
                     ) : (
-                      <div className="rounded-md border overflow-x-auto">
+                      <div className="rounded-md border border-gray-800 overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -469,31 +501,101 @@ export default function Dashboard() {
             {activeSection === "lawyers" && (
               <div className="space-y-6">
                 <h2 className="text-3xl font-bold">Lawyer Verification</h2>
-                <p className="text-gray-500">Review and approve lawyer registrations</p>
+                <p className="text-gray-400">Review and approve lawyer registrations</p>
 
-                <Card>
+                {/* Pending Lawyer Registrations - dark, compact, with action buttons */}
+                <Card className="border border-gray-200 bg-white">
                   <CardHeader>
                     <CardTitle>Pending Registrations</CardTitle>
                     <CardDescription>New lawyer registrations awaiting approval</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {mockPendingLawyerRegistrations.length === 0 ? (
-                      <div className="text-gray-500">No pending registrations.</div>
+                      <div className="text-gray-400">No pending registrations.</div>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {mockPendingLawyerRegistrations.map((l) => (
-                          <div key={l.id} className="flex items-center justify-between border rounded-lg p-4">
-                            <div>
-                              <div className="font-semibold">{l.name}</div>
-                              <div className="text-sm text-gray-500">{l.email}</div>
-                              <div className="text-sm text-gray-500">{l.specialization} • {l.experience}</div>
+                          <div key={l.id} className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr_1fr_auto] items-start gap-4 border border-gray-200 rounded-lg p-4 bg-white">
+                            <div className="space-y-1">
+                                <div className="font-semibold text-gray-900">{l.name}</div>
+                              <div className="text-sm text-gray-400">{l.email}</div>
+                              <div className="text-sm text-gray-400">Bar: {l.barNumber}</div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button size="sm">Approve</Button>
+                            <div className="space-y-1">
+                              <div className="text-xs uppercase text-gray-500">Specialization</div>
+                              <div className="text-sm text-gray-200">{l.specialization}</div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-xs uppercase text-gray-500">Experience</div>
+                              <div className="text-sm text-gray-200">{l.experience}</div>
+                            </div>
+                            <div className="flex flex-col gap-2 lg:justify-center">
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={async () => {
+                                  try {
+                                    // For demo, assume pending list fetched separately; here you should have id
+                                    // Map mock to real when API is wired
+                                    if (!l._id && !l.id) return;
+                                    const id = l._id || l.id;
+                                    await api.post(`/lawyers/${id}/approve`);
+                                    // Refresh lists
+                                    const approved = await api.get("/lawyers?status=approved");
+                                    setLawyers(approved.data || []);
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }}
+                              >
+                                Approve & Create Profile
+                              </Button>
+                              <Button size="sm" variant="outline">Review Documents</Button>
                               <Button size="sm" variant="destructive">Reject</Button>
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Registered (approved) lawyers table */}
+                <Card className="border border-gray-200 bg-white">
+                  <CardHeader>
+                    <CardTitle>Registered Lawyers</CardTitle>
+                    <CardDescription>Approved lawyers visible on the platform</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {lawyers.length === 0 ? (
+                      <div className="text-gray-400">No registered lawyers yet.</div>
+                    ) : (
+                      <div className="rounded-md border border-gray-800 overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="min-w-[180px]">Name</TableHead>
+                              <TableHead className="min-w-[220px]">Email</TableHead>
+                              <TableHead className="min-w-[160px]">Specialization</TableHead>
+                              <TableHead className="min-w-[120px]">Experience</TableHead>
+                              <TableHead className="min-w-[200px]">Location</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {lawyers.slice(0, 10).map((l) => {
+                              const loc = [l.city, l.state, l.country].filter(Boolean).join(', ')
+                              return (
+                                <TableRow key={l._id || l.id}>
+                                  <TableCell className="font-medium">{l.fullName || l.name}</TableCell>
+                                  <TableCell>{l.userId?.email || l.email}</TableCell>
+                                  <TableCell>{l.specialization}</TableCell>
+                                  <TableCell>{(l.yearsOfExperience ?? l.experience ?? 0) + ' yrs'}</TableCell>
+                                  <TableCell>{loc}</TableCell>
+                                </TableRow>
+                              )
+                            })}
+                          </TableBody>
+                        </Table>
                       </div>
                     )}
                   </CardContent>

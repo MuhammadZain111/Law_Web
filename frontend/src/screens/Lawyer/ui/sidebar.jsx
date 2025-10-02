@@ -1,7 +1,7 @@
 import React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
-import { cn } from "../lib/utils"   // adjust path as needed
+import { cn } from "../../../lib/utils.js"
 
 function Sheet(props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />

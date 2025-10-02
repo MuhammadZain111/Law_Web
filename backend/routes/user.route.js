@@ -1,6 +1,6 @@
-import express from "express"
-import { getAllUsers, login, logout, register, updateProfile } from "../controllers/user.controller.js"
+import express from "express";
 import ImageKit from "imagekit";
+import { getUserById, login, logout, register } from "../controllers/user.controller.js";
 // import { isAuthenticated } from "../middleware/isAuthenticated.js"
 // import { singleUpload } from "../middleware/multer.js"
 
@@ -9,6 +9,7 @@ const router = express.Router()
 router.route("/register").post(register)
  router.route("/login").post(login)
  router.route("/logout").get(logout)
+ router.route("/:id").get(getUserById)
 
 // ImageKit signature endpoint (for client-side direct uploads)
 router.get("/imagekit-auth", async (_req, res) => {

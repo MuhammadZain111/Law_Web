@@ -1,13 +1,13 @@
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { Card, CardContent } from "../common/Card.jsx"
+import { ArrowRight, MapPin, Star } from "../../assets/icons/Icons.jsx"
+import IMAGES from "../../constants/Images.js"
+import { api } from "../../shared/api.js"
 import Badge from "../common/Badge.jsx"
 import Button from "../common/Button.jsx"
-import { Star, MapPin, ArrowRight } from "../../assets/icons/Icons.jsx"
-import IMAGES from "../../constants/Images.js"
+import { Card, CardContent } from "../common/Card.jsx"
 
-// Mock data for lawyers
-
-const FEATURED_LAWYERS = [
+const FEATURED_LAWYERS_FALLBACK = [
   {
     id: "68d7f1ff1e02e40f102331f7",
     name: "Test Lawyer",
@@ -51,6 +51,29 @@ const FEATURED_LAWYERS = [
 ]
 
 const FeaturedLawyers = () => {
+  const [lawyers, setLawyers] = useState(FEATURED_LAWYERS_FALLBACK)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get('/lawyers?status=approved')
+        const list = (res.data || []).map(l => ({
+          id: l._id,
+          name: l.fullName || l.name,
+          specialization: l.specialization,
+          rating: 4.8,
+          reviews: 100,
+          location: [l.city, l.state, l.country].filter(Boolean).join(', ') || 'N/A',
+          image: IMAGES.lawyer,
+          areas: [],
+        }))
+        if (list.length) setLawyers(list)
+      } catch (_e) {
+        // keep fallback mock data
+      }
+    })()
+  }, [])
+
   return (
    
     <section className="py-16  px-40 bg-gray-50">
@@ -69,7 +92,7 @@ const FeaturedLawyers = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {FEATURED_LAWYERS.map((lawyer) => (
+        {lawyers.map((lawyer) => (
           <Card key={lawyer.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
             <div className="aspect-square relative overflow-hidden">
               <img

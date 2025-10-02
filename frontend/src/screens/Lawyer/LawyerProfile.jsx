@@ -1,12 +1,11 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { lawyers } from "@/data/Lawyers"; // adjust path if needed
-import { lawyerAPI } from "@/services/api";
-import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Star, MapPin, Phone, Mail, Briefcase } from "lucide-react";
+import { Briefcase, Mail, MapPin, Phone, Star } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { api } from "../../shared/api.js";
+import { Badge } from "./ui/badge.jsx";
+import { Button } from "./ui/button.jsx";
+import { Card } from "./ui/card.jsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs.jsx";
 
 export default function LawyerProfile() {
   const { id } = useParams();
@@ -14,37 +13,55 @@ export default function LawyerProfile() {
   const [lawyer, setLawyer] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Try to find lawyer in static data first, then fetch from API
   useEffect(() => {
-    const staticLawyer = lawyers.find((l) => l.id.toString() === id);
-    if (staticLawyer) {
-      setLawyer(staticLawyer);
-      setLoading(false);
-    } else {
-      // If not found in static data, try to fetch from API
-      fetchLawyerFromAPI();
-    }
+    fetchLawyerFromAPI();
   }, [id]);
 
   const fetchLawyerFromAPI = async () => {
     try {
-      const response = await lawyerAPI.getLawyerById(id);
-      if (response.success && response.lawyer) {
+      // First try to get from approved lawyers list
+      const response = await api.get('/lawyers?status=approved');
+      const lawyers = response.data || [];
+      const foundLawyer = lawyers.find(l => l._id === id || l.userId === id);
+      
+      if (foundLawyer) {
         // Transform API data to match our component structure
         const apiLawyer = {
-          id: response.lawyer._id,
-          name: `${response.lawyer.firstname} ${response.lawyer.lastname}`,
-          expertise: response.lawyer.occupation || "General Law",
-          specialization: response.lawyer.occupation || "General Law",
+          id: foundLawyer._id || foundLawyer.userId,
+          name: foundLawyer.fullName || `${foundLawyer.firstname || ''} ${foundLawyer.lastname || ''}`,
+          expertise: foundLawyer.specialization || "General Law",
+          specialization: foundLawyer.specialization || "General Law",
           rating: 4.5,
           reviews: 50,
-          location: "Pakistan",
-          experience: "5+ years",
-          about: response.lawyer.bio || "Experienced lawyer providing quality legal services.",
-          areas: ["General Law"],
+          location: [foundLawyer.city, foundLawyer.state, foundLawyer.country].filter(Boolean).join(', ') || "Pakistan",
+          experience: `${foundLawyer.yearsOfExperience || 0}+ years`,
+          about: foundLawyer.bio || "Experienced lawyer providing quality legal services.",
+          areas: [foundLawyer.specialization || "General Law"],
           languages: ["English", "Urdu"],
+          email: foundLawyer.email,
         };
         setLawyer(apiLawyer);
+      } else {
+        // If not found in approved list, try to get user directly
+        const userResponse = await api.get(`/user/${id}`);
+        if (userResponse.data && userResponse.data.userType === 'lawyer') {
+          const user = userResponse.data;
+          const apiLawyer = {
+            id: user._id,
+            name: `${user.firstname} ${user.lastname}`,
+            expertise: user.occupation || "General Law",
+            specialization: user.occupation || "General Law",
+            rating: 4.5,
+            reviews: 50,
+            location: "Pakistan",
+            experience: "5+ years",
+            about: user.bio || "Experienced lawyer providing quality legal services.",
+            areas: ["General Law"],
+            languages: ["English", "Urdu"],
+            email: user.email,
+          };
+          setLawyer(apiLawyer);
+        }
       }
     } catch (error) {
       console.error("Error fetching lawyer:", error);

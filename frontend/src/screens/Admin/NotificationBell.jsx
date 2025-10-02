@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { api } from '../../shared/api.js';
 
@@ -15,7 +15,7 @@ export default function NotificationsBell() {
   useEffect(() => {
     load();
     const token = localStorage.getItem('token');
-    const socket = io('http://localhost:4000', { withCredentials: true, auth: { token } });
+    const socket = io('http://localhost:3000', { withCredentials: true, auth: { token } });
     socket.on('notification', (payload) => {
       setNotes((prev) => [payload, ...prev]);
       setCount((c) => c + 1);

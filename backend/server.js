@@ -1,23 +1,20 @@
 // server.js
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
-import helmet from "helmet";
-import hpp from "hpp";
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
+// import rateLimit from "express-rate-limit";
 import http from "http";
 import createError from "http-errors";
 import mongoose from "mongoose";
 import morgan from "morgan";
 import { Server as SocketIOServer } from "socket.io";
-import xssClean from "xss-clean";
 
 // Import routes
-import userRoute from "./routes/user.route.js";
 import appointmentRoute from "./routes/appointments.js";
 import authRoutes from "./routes/auth.routes.js";
 import lawyerRoutes from "./routes/lawyer.routes.js";
+import userRoute from "./routes/user.route.js";
 import { registerSocket } from "./socket.js";
 
 // Load env
@@ -35,34 +32,21 @@ const app = express();
 
 // Security & middleware
 app.set("trust proxy", 1);
-app.use(helmet());
 app.use(cors({
-  origin: (origin, cb) => {
-    const allowed = (process.env.CORS_ORIGIN?.split(",") || [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:3000",
-    ]).map(o => o.trim());
-
-    if (!origin || allowed.includes(origin)) return cb(null, true);
-    return cb(new Error("CORS blocked"));
-  },
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(xssClean());
-app.use(hpp());
 app.use(cookieParser());
 if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
 
-// Rate limiting
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
-app.use("/api/", limiter);
+// Rate limiting disabled temporarily for Express v5 compatibility
+// const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
+// app.use("/api/", limiter);
 
 // Routes
+app.get("/", (_req, res) => res.json({ ok: true }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/appointments", appointmentRoute);
@@ -92,7 +76,7 @@ registerSocket(io);
 
 // DB connection
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://127.0.0.1:27017/lawyer_admin";
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Debug: print which DB URI will be used
 console.log("Attempting to connect to MongoDB at:", MONGO_URI);

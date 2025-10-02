@@ -1,7 +1,7 @@
 import React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { ChevronRight, MoreHorizontal } from "lucide-react"
-import { cn } from "../lib/utils"  // adjust path if needed
+import { cn } from "../../../lib/utils.js"
 
 // Breadcrumb wrapper
 function Breadcrumb(props) {

@@ -1,6 +1,6 @@
-import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import User from "../models/user.model.js";
 
 // Register
 export const register = async (req, res) => {
@@ -45,7 +45,8 @@ export const register = async (req, res) => {
       username,
       email,
       password: hashedPassword,
-      userType: userType || 'user'
+      userType: userType || 'user',
+      status: userType === 'lawyer' ? 'pending' : 'approved' // Lawyers need approval, users are auto-approved
     };
 
     // Add ID card fields if provided
@@ -53,9 +54,16 @@ export const register = async (req, res) => {
     if (nationalIdFrontUrl) userData.nationalIdFrontUrl = nationalIdFrontUrl;
     if (nationalIdBackUrl) userData.nationalIdBackUrl = nationalIdBackUrl;
 
-    await User.create(userData);
+    const newUser = await User.create(userData);
 
-    return res.status(201).json({ success: true, message: "Account Created Successfully" });
+    // Remove password from response
+    const { password: _, ...userResponse } = newUser.toObject();
+
+    return res.status(201).json({ 
+      success: true, 
+      message: "Account Created Successfully",
+      user: userResponse
+    });
 
   } catch (error) {
     console.log(error);
@@ -158,5 +166,22 @@ export const getAllUsers = async (req, res) => {
   } catch (error) {
     console.error("Error fetching user list:", error);
     res.status(500).json({ success: false, message: "Failed to fetch users" });
+  }
+};
+
+// Get User by ID
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select("-password");
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    
+    res.status(200).json({ success: true, message: "User fetched successfully", user });
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch user" });
   }
 };

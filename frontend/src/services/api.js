@@ -1,5 +1,5 @@
 // API service for lawyer dashboard
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+const API_BASE_URL = 'http://localhost:3000/api/v1';
 
 // Helper function to get auth token
 const getAuthToken = () => {

@@ -1,5 +1,5 @@
 import React from "react"
-import { cn } from "../lib/utils"   // adjust the path if needed
+import { cn } from "../../../lib/utils.js"
 
 function Skeleton({ className, ...props }) {
   return (
