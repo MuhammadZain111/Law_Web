@@ -1,7 +1,10 @@
 // controllers/appointment.controller.js
 import Appointment from "../models/appointment.model.js";
 import mongoose from "mongoose";
+<<<<<<< HEAD
 import { sendEmail, buildStatusEmail } from "../utils/mailer.js";
+=======
+>>>>>>> origin/UI
 
 export const createAppointment = async (req, res) => {
   try {
@@ -47,6 +50,7 @@ export const createAppointment = async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
     // If user is authenticated and didn't provide email/phone, fallback to their profile
     let effectiveClientEmail = clientEmail;
     let effectiveClientName = clientName;
@@ -67,6 +71,13 @@ export const createAppointment = async (req, res) => {
       lawyerId: new mongoose.Types.ObjectId(lawyerId),
       clientName: effectiveClientName,
       clientEmail: effectiveClientEmail,
+=======
+    const appointment = await Appointment.create({
+      clientId,
+      lawyerId: new mongoose.Types.ObjectId(lawyerId),
+      clientName,
+      clientEmail,
+>>>>>>> origin/UI
       clientPhone,
       caseType,
       caseDescription,
@@ -85,7 +96,11 @@ export const createAppointment = async (req, res) => {
       appointment 
     });
   } catch (err) {
+<<<<<<< HEAD
     console.error("createAppointment error:", err?.message || err, { body: req.body });
+=======
+    console.error("createAppointment:", err);
+>>>>>>> origin/UI
     res.status(500).json({ 
       success: false, 
       message: "Server error" 
@@ -105,11 +120,19 @@ export const listAppointments = async (req, res) => {
     const appointments = await Appointment.find(q)
       .populate("clientId", "name email")
       .populate("lawyerId", "name email")
+<<<<<<< HEAD
       .sort({ createdAt: -1 });
 
     res.json({ appointments });
   } catch (err) {
     console.error("listAppointments error:", err?.message || err);
+=======
+      .sort({ datetime: -1 });
+
+    res.json({ appointments });
+  } catch (err) {
+    console.error("listAppointments:", err);
+>>>>>>> origin/UI
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -162,6 +185,7 @@ export const updateAppointmentStatus = async (req, res) => {
 
     appt.status = status;
     await appt.save();
+<<<<<<< HEAD
 
     // Notify client via email if SMTP is configured
     try {
@@ -183,6 +207,8 @@ export const updateAppointmentStatus = async (req, res) => {
       console.warn("📧 Email notification threw:", notifyErr?.message || notifyErr);
     }
 
+=======
+>>>>>>> origin/UI
     res.json({ appointment: appt });
   } catch (err) {
     console.error("updateAppointmentStatus:", err);
@@ -222,6 +248,7 @@ export const getLawyerById = async (req, res) => {
   try {
     const { lawyerId } = req.params;
     const User = (await import("../models/user.model.js")).default;
+<<<<<<< HEAD
     if (!mongoose.Types.ObjectId.isValid(lawyerId)) {
       return res.status(400).json({
         success: false,
@@ -232,6 +259,12 @@ export const getLawyerById = async (req, res) => {
     const lawyer = await User.findOne({
       _id: lawyerId,
       userType: 'lawyer'
+=======
+    
+    const lawyer = await User.findOne({ 
+      _id: lawyerId, 
+      userType: 'lawyer' 
+>>>>>>> origin/UI
     }).select('-password');
 
     if (!lawyer) {
@@ -247,7 +280,11 @@ export const getLawyerById = async (req, res) => {
       lawyer
     });
   } catch (error) {
+<<<<<<< HEAD
     console.error("getLawyerById error:", error?.message || error);
+=======
+    console.error("getLawyerById:", error);
+>>>>>>> origin/UI
     res.status(500).json({
       success: false,
       message: "Server error"
