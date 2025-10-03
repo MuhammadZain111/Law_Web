@@ -1,8 +1,14 @@
+<<<<<<< HEAD
 import express from "express"
 import { getAllUsers, getAllLawyers, getProfile, login, logout, register, updateProfile } from "../controllers/user.controller.js"
 import auth from "../middleware/auth.js";
 import { sendEmail } from "../utils/mailer.js";
 import ImageKit from "imagekit";
+=======
+import express from "express";
+import ImageKit from "imagekit";
+import { getUserById, login, logout, register } from "../controllers/user.controller.js";
+>>>>>>> origin/UI
 // import { isAuthenticated } from "../middleware/isAuthenticated.js"
 // import { singleUpload } from "../middleware/multer.js"
 
@@ -11,6 +17,7 @@ const router = express.Router()
 router.route("/register").post(register)
  router.route("/login").post(login)
  router.route("/logout").get(logout)
+<<<<<<< HEAD
  router.route("/lawyers").get(getAllLawyers)
  router.route("/profile").get(auth(), getProfile)
  router.get('/email-test', async (req, res) => {
@@ -23,6 +30,9 @@ router.route("/register").post(register)
     res.status(500).json({ success: false, message: e?.message || 'Failed to send test email' });
   }
  })
+=======
+ router.route("/:id").get(getUserById)
+>>>>>>> origin/UI
 
 // ImageKit signature endpoint (for client-side direct uploads)
 router.get("/imagekit-auth", async (_req, res) => {
