@@ -18,8 +18,8 @@ export const isAuthenticated = () => {
 // Mock authentication for testing
 export const mockLogin = () => {
   // Use a real JWT token from the backend for testing
-  // This token was obtained by logging in with testlawyer789@example.com (Test Lawyer with appointment)
-  const realToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGQ3ZjFmZjFlMDJlNDBmMTAyMzMxZjciLCJpYXQiOjE3NTkwNTA2NDUsImV4cCI6MTc1OTEzNzA0NX0.XRtIRy_G7_PSH83wxszSoWhO7k5N_-L9rAeO2EP1zow';
+  // This token was obtained by logging in with testlawyer123@example.com (Test Lawyer)
+  const realToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGUwZjU4MGE1ZTVlYTE1MDdlZWYxNmMiLCJpYXQiOjE3NTk1NzMzNzYsImV4cCI6MTc1OTY1OTc3Nn0.A-HkqQUm-84LEiq57caQ0Fk-8QkNfBGueaUoUlraUtI';
   setAuthToken(realToken);
   return realToken;
 };
