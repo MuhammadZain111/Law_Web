@@ -5,19 +5,21 @@ import User from "../models/user.model.js";
 // Register
 export const register = async (req, res) => {
   try {
-    const { 
-      firstname, 
-      lastname, 
-      username, 
-      email, 
-      password, 
-      userType, 
-      nationalIdNumber, 
-      nationalIdFrontUrl, 
-      nationalIdBackUrl 
+    console.log("Registration request body:", req.body);
+    
+    const {
+      firstname,
+      lastname,
+      username,
+      email,
+      password,
+      userType,
+      nationalIdNumber,
+      nationalIdFrontUrl,
+      nationalIdBackUrl,
     } = req.body;
 
-    if (!firstname || !lastname || !username || !email || !password) {
+    if (!firstname || !lastname || !email || !password) {
       return res.status(400).json({ success: false, message: "All required fields must be provided" });
     }
 
@@ -25,16 +27,17 @@ export const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
     }
 
-    // Check if email already exists
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
       return res.status(400).json({ success: false, message: "Email already exists" });
     }
 
-    // Check if username already exists
-    const existingUsername = await User.findOne({ username });
-    if (existingUsername) {
-      return res.status(400).json({ success: false, message: "Username already exists" });
+    // Check username only if provided
+    if (username) {
+      const existingUsername = await User.findOne({ username });
+      if (existingUsername) {
+        return res.status(400).json({ success: false, message: "Username already exists" });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -42,32 +45,36 @@ export const register = async (req, res) => {
     const userData = {
       firstname,
       lastname,
-      username,
       email,
       password: hashedPassword,
-      userType: userType || 'user',
-      status: userType === 'lawyer' ? 'pending' : 'approved' // Lawyers need approval, users are auto-approved
+      userType: userType || "user",
+      status: userType === "lawyer" ? "pending" : "approved",
     };
 
-    // Add ID card fields if provided
+    // Add username only if provided
+    if (username) {
+      userData.username = username;
+    }
+
     if (nationalIdNumber) userData.nationalIdNumber = nationalIdNumber;
     if (nationalIdFrontUrl) userData.nationalIdFrontUrl = nationalIdFrontUrl;
     if (nationalIdBackUrl) userData.nationalIdBackUrl = nationalIdBackUrl;
 
     const newUser = await User.create(userData);
+    const { password: _pw, ...userResponse } = newUser.toObject();
 
-    // Remove password from response
-    const { password: _, ...userResponse } = newUser.toObject();
-
-    return res.status(201).json({ 
-      success: true, 
+    return res.status(201).json({
+      success: true,
       message: "Account Created Successfully",
-      user: userResponse
+      user: userResponse,
     });
-
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ success: false, message: "Failed to register" });
+    console.error("Registration error:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to register",
+      error: error.message 
+    });
   }
 };
 
@@ -79,7 +86,6 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    // Explicitly select password
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       return res.status(400).json({ success: false, message: "Incorrect email or password" });
@@ -90,27 +96,24 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid Credentials" });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
-
-    // remove password before sending
-    const { password: _, ...userData } = user.toObject();
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || "dev_secret", { expiresIn: "1d" });
+    const { password: _pw, ...userData } = user.toObject();
 
     return res
       .status(200)
-      .cookie("token", token, { 
-        maxAge: 24 * 60 * 60 * 1000, 
-        httpOnly: true, 
+      .cookie("token", token, {
+        maxAge: 24 * 60 * 60 * 1000,
+        httpOnly: true,
         sameSite: "strict",
-        secure: process.env.NODE_ENV === "production"
+        secure: process.env.NODE_ENV === "production",
       })
       .json({
         success: true,
         message: `Welcome back ${user.firstname}`,
-        token: token,
+        token,
         userType: user.userType,
-        user: userData
+        user: userData,
       });
-
   } catch (error) {
     console.log(error);
     return res.status(500).json({ success: false, message: "Failed to Login" });
@@ -118,14 +121,32 @@ export const login = async (req, res) => {
 };
 
 // Logout
-export const logout = async (_, res) => {
+export const logout = async (_req, res) => {
   try {
     return res.status(200).cookie("token", "", { maxAge: 0 }).json({
       message: "Logged out successfully.",
-      success: true
+      success: true,
     });
   } catch (error) {
     console.log(error);
+  }
+};
+
+// Get current user profile (requires auth, uses req.user)
+export const getProfile = async (req, res) => {
+  try {
+    const id = req.user?.id || req.user?.userId;
+    if (!id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    const user = await User.findById(id).select("-password");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("getProfile:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch profile" });
   }
 };
 
@@ -151,7 +172,6 @@ export const updateProfile = async (req, res) => {
 
     await user.save();
     return res.status(200).json({ message: "Profile updated successfully", success: true, user });
-
   } catch (error) {
     console.log(error);
     return res.status(500).json({ success: false, message: "Failed to update profile" });
@@ -159,7 +179,7 @@ export const updateProfile = async (req, res) => {
 };
 
 // Get All Users
-export const getAllUsers = async (req, res) => {
+export const getAllUsers = async (_req, res) => {
   try {
     const users = await User.find().select("-password");
     res.status(200).json({ success: true, message: "User list fetched successfully", total: users.length, users });
@@ -169,19 +189,34 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
+// Get All Lawyers
+export const getAllLawyers = async (_req, res) => {
+  try {
+    const lawyers = await User.find({ userType: "lawyer" }).select("-password");
+    return res
+      .status(200)
+      .json({ success: true, message: "Lawyer list fetched successfully", total: lawyers.length, lawyers });
+  } catch (error) {
+    console.error("Error fetching lawyer list:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch lawyers" });
+  }
+};
+
 // Get User by ID
 export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
     const user = await User.findById(id).select("-password");
-    
+
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    
+
     res.status(200).json({ success: true, message: "User fetched successfully", user });
   } catch (error) {
     console.error("Error fetching user:", error);
     res.status(500).json({ success: false, message: "Failed to fetch user" });
   }
 };
+
+

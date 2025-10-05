@@ -2,47 +2,59 @@
 import Appointment from "../models/appointment.model.js";
 import mongoose from "mongoose";
 
+// Create appointment
 export const createAppointment = async (req, res) => {
   try {
-    const { 
-      lawyerId, 
-      clientName, 
-      clientEmail, 
-      clientPhone, 
-      caseType, 
-      caseDescription, 
-      appointmentDate, 
-      timeSlot, 
-      consultationFee, 
-      paymentMethod, 
-      paymentScreenshot 
+    const {
+      lawyerId,
+      clientName,
+      clientEmail,
+      clientPhone,
+      caseType,
+      caseDescription,
+      appointmentDate,
+      timeSlot,
+      consultationFee,
+      paymentMethod,
+      paymentScreenshot,
     } = req.body;
 
     // Validate required fields
-    if (!lawyerId || !clientName || !clientEmail || !clientPhone || !caseType || !caseDescription || !appointmentDate || !timeSlot || !consultationFee || !paymentMethod) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Missing required fields" 
+    if (
+      !lawyerId ||
+      !clientName ||
+      !clientEmail ||
+      !clientPhone ||
+      !caseType ||
+      !caseDescription ||
+      !appointmentDate ||
+      !timeSlot ||
+      !consultationFee ||
+      !paymentMethod
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
       });
     }
 
     // Validate date
     const dt = new Date(appointmentDate);
     if (isNaN(dt.getTime())) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid appointment date" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid appointment date",
       });
     }
 
-    // Get client ID from token (if available) or create without it
-    const clientId = req.user?.id || null;
+    // Get client ID from token (if available)
+    const clientId = req.user?.id || req.user?.userId || null;
 
     // Validate lawyerId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(lawyerId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid lawyer ID"
+        message: "Invalid lawyer ID",
       });
     }
 
@@ -59,37 +71,38 @@ export const createAppointment = async (req, res) => {
       consultationFee,
       paymentMethod,
       paymentScreenshot,
-      status: 'pending',
-      paymentStatus: 'unpaid'
+      status: "pending",
+      paymentStatus: "unpaid",
     });
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Appointment created successfully",
-      appointment 
+      appointment,
     });
   } catch (err) {
     console.error("createAppointment:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Server error" 
+    res.status(500).json({
+      success: false,
+      message: "Server error",
     });
   }
 };
 
+// List appointments (role-aware)
 export const listAppointments = async (req, res) => {
   try {
     const q = {};
-    const userId = req.user.userId || req.user.id; // Handle both userId and id
-    const userRole = req.user.role || req.user.userType; // Handle both role and userType
-    
+    const userId = req.user?.userId || req.user?.id;
+    const userRole = req.user?.role || req.user?.userType;
+
     if (userRole === "client") q.clientId = userId;
     if (userRole === "lawyer") q.lawyerId = userId;
 
     const appointments = await Appointment.find(q)
       .populate("clientId", "name email")
       .populate("lawyerId", "name email")
-      .sort({ datetime: -1 });
+      .sort({ createdAt: -1 });
 
     res.json({ appointments });
   } catch (err) {
@@ -98,22 +111,27 @@ export const listAppointments = async (req, res) => {
   }
 };
 
+// Get single appointment with access control
 export const getAppointment = async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID" });
     }
+
     const appt = await Appointment.findById(id)
       .populate("clientId", "name email")
       .populate("lawyerId", "name email");
 
     if (!appt) return res.status(404).json({ message: "Not found" });
 
-    if (req.user.role === "client" && appt.clientId._id.toString() !== req.user.id) {
+    const role = req.user?.role || req.user?.userType;
+    const me = (req.user?.id || req.user?.userId || "").toString();
+
+    if (role === "client" && appt.clientId?._id?.toString() !== me) {
       return res.status(403).json({ message: "Forbidden" });
     }
-    if (req.user.role === "lawyer" && appt.lawyerId._id.toString() !== req.user.id) {
+    if (role === "lawyer" && appt.lawyerId?._id?.toString() !== me) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -124,6 +142,7 @@ export const getAppointment = async (req, res) => {
   }
 };
 
+// Update appointment status (lawyer/client rules)
 export const updateAppointmentStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -135,8 +154,8 @@ export const updateAppointmentStatus = async (req, res) => {
     const appt = await Appointment.findById(id);
     if (!appt) return res.status(404).json({ message: "Not found" });
 
-    const userId = req.user.userId || req.user.id; // Handle both userId and id
-    const userRole = req.user.role || req.user.userType; // Handle both role and userType
+    const userId = req.user?.userId || req.user?.id;
+    const userRole = req.user?.role || req.user?.userType;
     if (userRole === "lawyer" && appt.lawyerId.toString() !== userId) {
       return res.status(403).json({ message: "Forbidden" });
     }
@@ -146,6 +165,7 @@ export const updateAppointmentStatus = async (req, res) => {
 
     appt.status = status;
     await appt.save();
+
     res.json({ appointment: appt });
   } catch (err) {
     console.error("updateAppointmentStatus:", err);
@@ -158,24 +178,24 @@ export const cancelAppointment = async (req, res) => {
   return updateAppointmentStatus(req, res);
 };
 
-// Get all lawyers
+// Get all lawyers (simple)
 export const getAllLawyers = async (req, res) => {
   try {
     const User = (await import("../models/user.model.js")).default;
-    const lawyers = await User.find({ userType: 'lawyer' })
-      .select('-password')
+    const lawyers = await User.find({ userType: "lawyer" })
+      .select("-password")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
       message: "Lawyers fetched successfully",
-      lawyers
+      lawyers,
     });
   } catch (error) {
     console.error("getAllLawyers:", error);
     res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Server error",
     });
   }
 };
@@ -184,35 +204,41 @@ export const getAllLawyers = async (req, res) => {
 export const getLawyerById = async (req, res) => {
   try {
     const { lawyerId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(lawyerId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lawyer ID",
+      });
+    }
+
     const User = (await import("../models/user.model.js")).default;
-    
-    const lawyer = await User.findOne({ 
-      _id: lawyerId, 
-      userType: 'lawyer' 
-    }).select('-password');
+    const lawyer = await User.findOne({
+      _id: lawyerId,
+      userType: "lawyer",
+    }).select("-password");
 
     if (!lawyer) {
       return res.status(404).json({
         success: false,
-        message: "Lawyer not found"
+        message: "Lawyer not found",
       });
     }
 
     res.status(200).json({
       success: true,
       message: "Lawyer fetched successfully",
-      lawyer
+      lawyer,
     });
   } catch (error) {
     console.error("getLawyerById:", error);
     res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Server error",
     });
   }
 };
 
-// Get available time slots for a lawyer on a specific date
+// Get available time slots
 export const getAvailableTimeSlots = async (req, res) => {
   try {
     const { lawyerId } = req.params;
@@ -221,7 +247,7 @@ export const getAvailableTimeSlots = async (req, res) => {
     if (!date) {
       return res.status(400).json({
         success: false,
-        message: "Date parameter is required"
+        message: "Date parameter is required",
       });
     }
 
@@ -229,45 +255,45 @@ export const getAvailableTimeSlots = async (req, res) => {
     if (isNaN(requestedDate.getTime())) {
       return res.status(400).json({
         success: false,
-        message: "Invalid date format"
+        message: "Invalid date format",
       });
     }
 
     // Get existing appointments for this lawyer on this date
+    const start = new Date(requestedDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(requestedDate);
+    end.setHours(23, 59, 59, 999);
+
     const existingAppointments = await Appointment.find({
       lawyerId,
-      appointmentDate: {
-        $gte: new Date(requestedDate.setHours(0, 0, 0, 0)),
-        $lt: new Date(requestedDate.setHours(23, 59, 59, 999))
-      },
-      status: { $in: ['pending', 'confirmed'] }
+      appointmentDate: { $gte: start, $lt: end },
+      status: { $in: ["pending", "confirmed"] },
     });
 
-    // Define available time slots
     const allTimeSlots = [
-      '09:00 - 10:00',
-      '10:00 - 11:00',
-      '11:00 - 12:00',
-      '14:00 - 15:00',
-      '15:00 - 16:00',
-      '16:00 - 17:00'
+      "09:00 - 10:00",
+      "10:00 - 11:00",
+      "11:00 - 12:00",
+      "14:00 - 15:00",
+      "15:00 - 16:00",
+      "16:00 - 17:00",
     ];
 
-    // Filter out booked time slots
-    const bookedSlots = existingAppointments.map(apt => apt.timeSlot);
-    const availableSlots = allTimeSlots.filter(slot => !bookedSlots.includes(slot));
+    const bookedSlots = existingAppointments.map((apt) => apt.timeSlot);
+    const availableSlots = allTimeSlots.filter((slot) => !bookedSlots.includes(slot));
 
     res.status(200).json({
       success: true,
       message: "Available time slots fetched successfully",
       availableSlots,
-      date: date
+      date,
     });
   } catch (error) {
     console.error("getAvailableTimeSlots:", error);
     res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Server error",
     });
   }
 };

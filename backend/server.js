@@ -32,18 +32,21 @@ const app = express();
 
 // Security & middleware
 app.set("trust proxy", 1);
-app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
-  credentials: true,
-}));
+// Permissive CORS for local development (5173/5174 Vite, 3000 backend)
+app.use(
+  cors({
+    origin: (origin, cb) => cb(null, true),
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.options("*", cors());
+
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
-
-// Rate limiting disabled temporarily for Express v5 compatibility
-// const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
-// app.use("/api/", limiter);
 
 // Routes
 app.get("/", (_req, res) => res.json({ ok: true }));
@@ -68,14 +71,20 @@ app.use((err, _req, res, _next) => {
 const server = http.createServer(app);
 export const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173"],
+    origin: process.env.CORS_ORIGIN?.split(",") || [
+      "http://localhost:5173",
+      "http://localhost:5174",
+    ],
     credentials: true,
   },
 });
 registerSocket(io);
 
 // DB connection
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://127.0.0.1:27017/lawyer_admin";
+const MONGO_URI =
+  process.env.MONGODB_URI ||
+  process.env.MONGO_URI ||
+  "mongodb://127.0.0.1:27017/lawyer_admin";
 const PORT = process.env.PORT || 3000;
 
 // Debug: print which DB URI will be used

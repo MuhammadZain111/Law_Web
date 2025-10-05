@@ -11,16 +11,18 @@ import Services from './screens/Services';
 
  import AppointmentBooking from '@/screens/AppointmentBooking';
 import LawyerProfile from '@/screens/Lawyer/LawyerProfile';
+import UserLogin from './components/common/Login.jsx';
 import AdminLayout from './screens/Admin/AdminLayout';
 import Dashboard from './screens/Admin/Dashboard';
+import AdminLogin from './screens/Admin/Login';
 import NotificationBell from './screens/Admin/NotificationBell';
 import ProfileForm from './screens/Admin/ProfileForm';
 import LoginSelection from './screens/LoginSelection.jsx';
 
 const App = () => {
-  const RequireAuth = ({ children }) => {
+  const RequireAdminAuth = ({ children }) => {
     const token = localStorage.getItem('token');
-    if (!token) return <Navigate to="/login" replace />;
+    if (!token) return <Navigate to="/admin/login" replace />;
     return children;
   };
   return (
@@ -54,15 +56,22 @@ const App = () => {
       <Route path="/lawyerDashboard" element={<LawyerDashboard />} />
       <Route path="/services" element={<Services />} />
       <Route path="/login" element={<LoginSelection />} />
+      <Route path="/user/login" element={<UserLogin />} />
+      <Route path="/lawyer/login" element={<AdminLogin />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
       {/* optional dedicated login routes if you have separate pages */}
       {/* <Route path="/user/login" element={<UserLogin />} /> */}
       {/* <Route path="/lawyer/login" element={<LawyerLogin />} /> */}
-      <Route path="/admin" element={<RequireAuth><AdminLayout /></RequireAuth>}>
+      <Route path="/admin" element={<RequireAdminAuth><AdminLayout /></RequireAdminAuth>}>
         <Route index element={<Dashboard />} />
       </Route>
       {/* <Route path="/lawyers" element={<LawyersPage />} /> */}
       <Route path="/lawyers/:id" element={<LawyerProfile />} />
       <Route path="/lawyers/:id/book" element={<AppointmentBooking />} />
+
+
+
+
 
 
 

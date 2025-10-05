@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 
 function RegisterUser() {
   const navigate = useNavigate();
@@ -83,7 +83,7 @@ function RegisterUser() {
       console.log('Sending user registration data:', userData);
 
       // Make API call to backend
-      const response = await fetch('http://localhost:5000/api/v1/user/register', {
+      const response = await fetch('http://localhost:3000/api/v1/user/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,6 +92,7 @@ function RegisterUser() {
       });
 
       const result = await response.json();
+      console.log('Registration response:', result);
 
       if (response.ok) {
         alert('User registration successful! You can now login.');
@@ -106,7 +107,8 @@ function RegisterUser() {
         // Switch to login mode
         setIsRegistering(false);
       } else {
-        alert(result.message || 'Registration failed. Please try again.');
+        console.error('Registration failed:', result);
+        alert(result.message || result.error || 'Registration failed. Please try again.');
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -129,7 +131,7 @@ function RegisterUser() {
 
       console.log('Sending login data:', loginData);
 
-      const response = await fetch('http://localhost:5000/api/v1/user/login', {
+      const response = await fetch('http://localhost:3000/api/v1/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

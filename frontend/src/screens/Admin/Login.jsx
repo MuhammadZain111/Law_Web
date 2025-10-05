@@ -90,14 +90,27 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted px-4">
-      <Card className="w-full max-w-md border-border bg-card text-card-foreground shadow">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-lg">Welcome back</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Use your admin credentials to sign in
-          </CardDescription>
-        </CardHeader>
+    <div className="min-h-screen bg-gradient-to-b from-white to-blue-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Lawyer Portal</h1>
+          <p className="text-gray-600">Access your professional dashboard</p>
+        </div>
+
+        {/* Login Form */}
+        <Card className="w-full border-border bg-card text-card-foreground shadow">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg">Welcome back</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Use your lawyer credentials to sign in
+            </CardDescription>
+          </CardHeader>
 
         <CardContent>
           {serverError ? (
@@ -207,7 +220,20 @@ export default function Login() {
             ) : null}
           </form>
         </CardContent>
-      </Card>
+        </Card>
+
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => navigate('/login')}
+            className="inline-flex items-center text-gray-600 hover:text-gray-800"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Registration Options
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -4,12 +4,14 @@ import { getUserById, login, logout, register } from "../controllers/user.contro
 // import { isAuthenticated } from "../middleware/isAuthenticated.js"
 // import { singleUpload } from "../middleware/multer.js"
 
-const router = express.Router()
+const router = express.Router();
 
-router.route("/register").post(register)
- router.route("/login").post(login)
- router.route("/logout").get(logout)
- router.route("/:id").get(getUserById)
+router.route("/register").post(register);
+router.route("/login").post(login);
+router.route("/logout").get(logout);
+
+// Fetch single user by id (used by profile/booking lookups)
+router.route("/:id").get(getUserById);
 
 // ImageKit signature endpoint (for client-side direct uploads)
 router.get("/imagekit-auth", async (_req, res) => {
@@ -26,6 +28,5 @@ router.get("/imagekit-auth", async (_req, res) => {
     return res.status(500).json({ message: "Failed to create ImageKit signature" });
   }
 });
-
 
 export default router;
