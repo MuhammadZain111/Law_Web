@@ -18,69 +18,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Calendar, Clock, User, Phone, Mail, CheckCircle, XCircle, RotateCcw, Filter } from "lucide-react";
 
-const mockAppointments = [
-  {
-    id: "1",
-    clientName: "Sarah Mitchell",
-    clientEmail: "sarah.mitchell@email.com",
-    clientPhone: "(555) 123-4567",
-    appointmentType: "Initial Consultation",
-    requestedDate: "2024-01-15",
-    requestedTime: "09:00",
-    status: "pending",
-    notes: "Divorce case consultation",
-    createdAt: "2024-01-10",
-  },
-  {
-    id: "2",
-    clientName: "Robert Chen",
-    clientEmail: "robert.chen@email.com",
-    clientPhone: "(555) 234-5678",
-    appointmentType: "Case Review",
-    requestedDate: "2024-01-15",
-    requestedTime: "11:30",
-    status: "confirmed",
-    notes: "Contract dispute follow-up",
-    createdAt: "2024-01-08",
-  },
-  {
-    id: "3",
-    clientName: "Maria Rodriguez",
-    clientEmail: "maria.rodriguez@email.com",
-    clientPhone: "(555) 345-6789",
-    appointmentType: "Document Review",
-    requestedDate: "2024-01-15",
-    requestedTime: "14:00",
-    status: "confirmed",
-    notes: "Real estate contract review",
-    createdAt: "2024-01-09",
-  },
-  {
-    id: "4",
-    clientName: "James Wilson",
-    clientEmail: "james.wilson@email.com",
-    clientPhone: "(555) 456-7890",
-    appointmentType: "Legal Advice",
-    requestedDate: "2024-01-12",
-    requestedTime: "10:00",
-    status: "completed",
-    notes: "Business incorporation consultation",
-    createdAt: "2024-01-05",
-  },
-  {
-    id: "5",
-    clientName: "Emily Davis",
-    clientEmail: "emily.davis@email.com",
-    clientPhone: "(555) 567-8901",
-    appointmentType: "Initial Consultation",
-    requestedDate: "2024-01-14",
-    requestedTime: "15:30",
-    status: "rejected",
-    notes: "Conflict of interest",
-    createdAt: "2024-01-07",
-  },
-];
-
 export function AppointmentManagement({ appointments = [], onUpdate }) {
   const [localAppointments, setLocalAppointments] = useState(appointments);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -90,6 +27,8 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
 
   // Sync local appointments with prop changes
   useEffect(() => {
+    console.log('📋 AppointmentManagement received appointments:', appointments.length);
+    console.log('📋 Appointments data:', appointments);
     setLocalAppointments(appointments);
   }, [appointments]);
 

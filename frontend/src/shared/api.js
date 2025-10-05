@@ -1,4 +1,5 @@
-const BASE_URL = 'http://localhost:3000/api';
+const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:5000';
+const BASE_URL = `${API_BASE}/api`;
 
 async function request(path, { method = 'GET', body, headers = {} } = {}) {
   const token = localStorage.getItem('token');

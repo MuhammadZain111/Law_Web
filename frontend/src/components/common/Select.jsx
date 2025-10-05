@@ -45,7 +45,7 @@ export const SelectValue = ({ placeholder, className = "", children, ...props })
 
   return (
     <span className={className} {...props}>
-      {value ? children : placeholder}
+      {value || placeholder}
     </span>
   )
 }

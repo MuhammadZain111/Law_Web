@@ -1,6 +1,7 @@
 import React from 'react'
 import { useState, useEffect } from "react"
-import { appointmentAPI } from '@/services/api'
+import { appointmentAPI, userAPI } from '@/services/api'
+import { api } from '@/shared/api'
 import { mockLogin } from '@/utils/auth'
 import { LawyerSidebar } from "./Lawyer/lawyer-sidebar"
 import { DashboardOverview } from "./Lawyer/dashboard-overview"
@@ -20,39 +21,68 @@ export default function LawyerDashboard() {
   const [appointments, setAppointments] = useState([])
   const [pendingAppointments, setPendingAppointments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
 
   // Fetch appointments on component mount
   useEffect(() => {
-    // Mock login for testing
-    mockLogin()
+    // Use real auth token already stored by login flow
+    fetchProfile()
     fetchAppointments()
     
-    // Set up polling to check for new appointments every 30 seconds
-    const interval = setInterval(fetchAppointments, 30000)
+    // Set up polling to check for new appointments every 10 seconds (for testing)
+    const interval = setInterval(fetchAppointments, 10000)
     
     return () => clearInterval(interval)
   }, [])
 
   const fetchAppointments = async () => {
     try {
+      console.log('🔍 Fetching appointments...')
       const response = await appointmentAPI.getAppointments()
+      console.log('📋 API Response:', response)
+      
       if (response.appointments) {
+        console.log('✅ Appointments found:', response.appointments.length)
         setAppointments(response.appointments)
         // Filter pending appointments for notifications
         const pending = response.appointments.filter(apt => apt.status === 'pending')
+        console.log('⏳ Pending appointments:', pending.length)
         setPendingAppointments(pending)
+      } else {
+        console.log('❌ No appointments in response')
       }
     } catch (error) {
-      console.error('Error fetching appointments:', error)
+      console.error('❌ Error fetching appointments:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchProfile = async () => {
+    try {
+      const res = await userAPI.getProfile()
+      setUser(res.user)
+    } catch (e) {
+      console.error('❌ Error fetching profile:', e)
+      // Fallback: decode JWT and fetch public user endpoint
+      try {
+        const token = localStorage.getItem('token')
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1] || ''))
+          const userId = payload.userId || payload.id
+          if (userId) {
+            const resp = await api.get(`/v1/user/${userId}`)
+            if (resp?.data?.user) setUser(resp.data.user)
+          }
+        }
+      } catch (_ignored) {}
     }
   }
 
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardOverview appointments={appointments} pendingCount={pendingAppointments.length} />
+        return <DashboardOverview user={user} appointments={appointments} pendingCount={pendingAppointments.length} />
       case "appointments":
         return <AppointmentManagement appointments={appointments} onUpdate={fetchAppointments} />
       case "cases":
@@ -68,7 +98,7 @@ export default function LawyerDashboard() {
       case "profile":
         return <ProfileManagement />
       default:
-        return <DashboardOverview appointments={appointments} pendingCount={pendingAppointments.length} />
+        return <DashboardOverview user={user} appointments={appointments} pendingCount={pendingAppointments.length} />
     }
   }
 
@@ -94,6 +124,15 @@ export default function LawyerDashboard() {
 
           <div className="flex items-center space-x-4">
             <button
+              onClick={fetchAppointments}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              title="Refresh Appointments"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -115,9 +154,17 @@ export default function LawyerDashboard() {
 
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">JD</span>
+                {(() => {
+                  const first = (user?.firstname || user?.firstName || (user?.fullName || user?.name || '').split(' ')[0] || '').trim()
+                  const last = (user?.lastname || user?.lastName || (user?.fullName || user?.name || '').split(' ')[1] || '').trim()
+                  const initials = `${first?.[0] || ''}${last?.[0] || ''}` || (user?.username?.slice(0,2) || user?.email?.slice(0,2) || '').toUpperCase()
+                  return <span className="text-white text-sm font-medium">{initials}</span>
+                })()}
               </div>
-              <span className="text-sm font-medium">John Doe, Esq.</span>
+              {(() => {
+                const display = (user?.fullName || user?.name || [user?.firstname || user?.firstName, user?.lastname || user?.lastName].filter(Boolean).join(' ') || user?.username || user?.email || '')
+                return <span className="text-sm font-medium">{display || '...'}</span>
+              })()}
             </div>
           </div>
         </header>

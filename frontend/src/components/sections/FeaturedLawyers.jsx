@@ -64,7 +64,7 @@ const FeaturedLawyers = () => {
           rating: 4.8,
           reviews: 100,
           location: [l.city, l.state, l.country].filter(Boolean).join(', ') || 'N/A',
-          image: IMAGES.lawyer,
+          image: l.photoUrl || IMAGES.lawyer,
           areas: [],
         }))
         if (list.length) setLawyers(list)

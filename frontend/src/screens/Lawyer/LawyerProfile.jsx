@@ -39,13 +39,14 @@ export default function LawyerProfile() {
           areas: [foundLawyer.specialization || "General Law"],
           languages: ["English", "Urdu"],
           email: foundLawyer.email,
+          photoUrl: foundLawyer.photoUrl || "",
         };
         setLawyer(apiLawyer);
       } else {
         // If not found in approved list, try to get user directly
         const userResponse = await api.get(`/user/${id}`);
-        if (userResponse.data && userResponse.data.userType === 'lawyer') {
-          const user = userResponse.data;
+        const user = userResponse.data?.user || userResponse.data
+        if (user && user.userType === 'lawyer') {
           const apiLawyer = {
             id: user._id,
             name: `${user.firstname} ${user.lastname}`,
@@ -59,6 +60,7 @@ export default function LawyerProfile() {
             areas: ["General Law"],
             languages: ["English", "Urdu"],
             email: user.email,
+            photoUrl: user.photoUrl || "",
           };
           setLawyer(apiLawyer);
         }
@@ -94,8 +96,12 @@ export default function LawyerProfile() {
     <div className="flex flex-col md:flex-row gap-6 p-6 max-w-6xl mx-auto">
       {/* Left Sidebar */}
       <Card className="w-full md:w-1/3 p-6 flex flex-col items-center text-center">
-        <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center mb-4">
-          <span className="text-gray-400">No Image</span>
+        <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-4">
+          {lawyer.photoUrl ? (
+            <img src={lawyer.photoUrl} alt={lawyer.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-gray-400">No Image</span>
+          )}
         </div>
         <h2 className="text-xl font-semibold">{lawyer.name}</h2>
         <p className="text-gray-600">{lawyer.expertise}</p>

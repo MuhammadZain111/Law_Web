@@ -1,5 +1,6 @@
 // API service for lawyer dashboard
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:5000';
+const API_BASE_URL = `${API_BASE}/api/v1`;
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -15,6 +16,7 @@ const apiRequest = async (endpoint, options = {}) => {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
     },
+    credentials: 'include',
     ...options,
   };
 
