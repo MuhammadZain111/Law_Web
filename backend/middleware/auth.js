@@ -5,32 +5,21 @@ const auth = (roles = []) => {
   return async (req, res, next) => {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "No token" });
-<<<<<<< HEAD
-    try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = payload || {};
-      // Normalize id field for downstream consumers
-      req.user.id = req.user.id || req.user.userId;
-
-      // Ensure role/userType is available on req.user.
-      // If token doesn't carry it, fetch minimal user info from DB.
-=======
 
     try {
       const payload = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
       req.user = payload || {};
 
-      // Normalize id field
+      // Normalize id field for downstream consumers
       req.user.id = req.user.id || req.user.userId;
 
-      // Ensure role/userType is available on req.user
->>>>>>> origin/UI
+      // Ensure role/userType is available on req.user.
+      // If token doesn't carry it, fetch minimal user info from DB.
       if (!req.user.role && !req.user.userType && req.user.id) {
         try {
           const User = (await import("../models/user.model.js")).default;
           const userDoc = await User.findById(req.user.id).select("userType");
           if (userDoc) {
-<<<<<<< HEAD
             req.user.userType = userDoc.userType; // e.g., 'lawyer' | 'client' | 'admin'
           }
         } catch (fetchErr) {
@@ -40,35 +29,18 @@ const auth = (roles = []) => {
       }
 
       // If specific roles were required, enforce them using either role or userType
-=======
-            req.user.userType = userDoc.userType; // 'lawyer' | 'client' | 'admin'
-          }
-        } catch (_err) {
-          // Ignore fetch errors, let route handle missing role
-        }
-      }
-
-      // If specific roles were required, enforce them
->>>>>>> origin/UI
       const effectiveRole = req.user.role || req.user.userType;
       if (roles.length && !roles.includes(effectiveRole)) {
         return res.status(403).json({ message: "Forbidden" });
       }
-<<<<<<< HEAD
-      next();
-    } catch (err) {
-=======
 
       next();
-    } catch (_err) {
->>>>>>> origin/UI
+    } catch (err) {
       res.status(401).json({ message: "Invalid token" });
     }
   };
 };
 
-<<<<<<< HEAD
-=======
 // Standalone middleware
 export function requireAuth(req, res, next) {
   try {
@@ -96,5 +68,4 @@ export function signJwt(payload) {
   });
 }
 
->>>>>>> origin/UI
 export default auth;

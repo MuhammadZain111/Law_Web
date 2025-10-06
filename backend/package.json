@@ -14,17 +14,6 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
-<<<<<<< HEAD
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
-    "express": "^5.1.0",
-    "imagekit": "^6.0.0",
-    "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.19.0",
-    "mongoose": "^8.18.2",
-    "nodemailer": "^7.0.6",
-    "nodemon": "^3.1.10"
-=======
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -38,9 +27,9 @@
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.3",
     "morgan": "^1.10.1",
+    "nodemailer": "^7.0.6",
     "nodemon": "^3.1.10",
     "socket.io": "^4.8.1",
     "xss-clean": "^0.1.4"
->>>>>>> origin/UI
   }
 }
