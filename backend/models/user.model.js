@@ -31,14 +31,11 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'lawyer'],
       default: 'user',
     },
-<<<<<<< HEAD
-=======
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
       default: 'approved', // Regular users are approved by default
     },
->>>>>>> origin/UI
     password: {
       type: String,
       required: true,

@@ -36,7 +36,7 @@ const AppointmentSchema = new mongoose.Schema({
   consultationFee: { type: Number, required: true },
   paymentMethod: { 
     type: String, 
-    enum: ['easypaisa', 'jazzcash', 'bank'],
+    enum: ['EasyPaisa', 'JazzCash', 'Bank Transfer', 'Cash on Meeting', 'Credit Card', 'easypaisa', 'jazzcash', 'bank'],
     required: true 
   },
   paymentScreenshot: { type: String }, // File path or URL
