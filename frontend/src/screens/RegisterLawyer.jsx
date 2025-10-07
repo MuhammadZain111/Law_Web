@@ -1,11 +1,12 @@
 "use client"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { Eye, EyeOff, User, Mail, Lock, Scale } from "lucide-react"
 import { api } from "../shared/api.js"
 
 function RegisterLawyer() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const goToDashboard = () => {
     navigate("/lawyerDashboard")
@@ -15,7 +16,9 @@ function RegisterLawyer() {
     navigate("/registration-selection")
   }
 
-  const [isRegistering, setIsRegistering] = useState(false)
+  // Default to signup mode on /registerLawyer, and login mode on /lawyer/login
+  const initialRegistering = location?.pathname?.includes('/lawyer/login') ? false : true
+  const [isRegistering, setIsRegistering] = useState(initialRegistering)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     firstname: "",

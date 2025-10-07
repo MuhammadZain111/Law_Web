@@ -55,6 +55,8 @@ const App = () => {
       <Route path="/lawyerDashboard" element={<LawyerDashboard />} />
       <Route path="/services" element={<Services />} />
       <Route path="/login" element={<LoginSelection />} />
+      <Route path="/user/login" element={<RegisterUser />} />
+      <Route path="/lawyer/login" element={<RegisterLawyer />} />
       {/* optional dedicated login routes if you have separate pages */}
       {/* <Route path="/user/login" element={<UserLogin />} /> */}
       {/* <Route path="/lawyer/login" element={<LawyerLogin />} /> */}
