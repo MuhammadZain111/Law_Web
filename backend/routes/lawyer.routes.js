@@ -65,6 +65,7 @@ router.get("/", async (req, res) => {
         city: profile?.city || '',
         state: profile?.state || '',
         country: profile?.country || '',
+        photoUrl: profile?.photoUrl || user.photoUrl || '',
         status: user.status,
         rejectionReason: profile?.rejectionReason || '',
         createdAt: user.createdAt,

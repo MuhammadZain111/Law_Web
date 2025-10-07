@@ -11,6 +11,7 @@ import Services from './screens/Services';
 
  import AppointmentBooking from '@/screens/AppointmentBooking';
 import LawyerProfile from '@/screens/Lawyer/LawyerProfile';
+import Lawyers from './screens/Lawyers.jsx';
 import AdminLayout from './screens/Admin/AdminLayout';
 import Dashboard from './screens/Admin/Dashboard';
 import NotificationBell from './screens/Admin/NotificationBell';
@@ -60,7 +61,7 @@ const App = () => {
       <Route path="/admin" element={<RequireAuth><AdminLayout /></RequireAuth>}>
         <Route index element={<Dashboard />} />
       </Route>
-      {/* <Route path="/lawyers" element={<LawyersPage />} /> */}
+      <Route path="/lawyers" element={<Lawyers />} />
       <Route path="/lawyers/:id" element={<LawyerProfile />} />
       <Route path="/lawyers/:id/book" element={<AppointmentBooking />} />
 

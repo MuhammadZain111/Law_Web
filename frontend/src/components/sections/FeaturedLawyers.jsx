@@ -24,7 +24,7 @@ const FeaturedLawyers = () => {
           image: l.photoUrl || IMAGES.lawyer,
           areas: [],
         }))
-        if (list.length) setLawyers(list)
+        if (list.length) setLawyers(list.slice(0, 4))
       } catch (_e) {
         // silently ignore; no fallback data
       }
