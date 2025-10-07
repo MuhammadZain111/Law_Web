@@ -6,17 +6,17 @@ const AboutUs = () => {
     {
       title: 'Client-Centered Experience',
       desc: 'Foster meaningful client relationships with real-time updates, secure messaging, and task reminders.',
-      image: 'https://source.unsplash.com/featured/?law,client',
+      image: '/banner.png',
     },
     {
       title: 'Smart Legal Automation',
       desc: 'Automate reminders, court tracking, and case progress. Let us handle the tech while you handle justice.',
-      image: 'https://source.unsplash.com/featured/?law,technology',
+      image: '/Law5.jpeg',
     },
     {
       title: 'Mission-Focused Innovation',
       desc: 'We aim to make law accessible and efficient with design-first solutions tailored for legal professionals.',
-      image: 'https://source.unsplash.com/featured/?law,innovation',
+      image: '/logoo.png',
     },
   ];
 

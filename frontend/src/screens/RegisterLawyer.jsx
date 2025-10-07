@@ -20,6 +20,36 @@ function RegisterLawyer() {
   const initialRegistering = location?.pathname?.includes('/lawyer/login') ? false : true
   const [isRegistering, setIsRegistering] = useState(initialRegistering)
   const [showPassword, setShowPassword] = useState(false)
+  // Options for selects
+  const specializations = [
+    "Criminal Law",
+    "Civil Law",
+    "Family Law",
+    "Corporate Law",
+    "Tax Law",
+    "Labor/Employment",
+    "Intellectual Property",
+    "Real Estate",
+    "Immigration",
+    "Constitutional",
+    "Banking/Finance",
+    "Cyber/IT Law",
+  ]
+  const experienceYears = Array.from({ length: 41 }, (_, i) => i) // 0 - 40
+  const cities = [
+    "Karachi",
+    "Lahore",
+    "Islamabad",
+    "Rawalpindi",
+    "Peshawar",
+    "Quetta",
+    "Multan",
+    "Faisalabad",
+    "Hyderabad",
+    "Sialkot",
+    "Gujranwala",
+    "Bahawalpur",
+  ]
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
@@ -28,6 +58,15 @@ function RegisterLawyer() {
     password: "",
     confirmPassword: "",
     photoUrl: "",
+    specialization: "",
+    yearsOfExperience: "",
+    barNumber: "",
+    firmName: "",
+    city: "",
+    cnicNumber: "",
+    licenseUrl: "",
+    phoneCountryCode: "+92",
+    phone: "",
   })
   const [errors, setErrors] = useState({})
 
@@ -48,25 +87,25 @@ function RegisterLawyer() {
 
   const validateForm = () => {
     const newErrors = {}
-
+    
     if (isRegistering) {
       if (!formData.firstname.trim()) newErrors.firstname = "First name is required"
       if (!formData.lastname.trim()) newErrors.lastname = "Last name is required"
       if (!formData.username.trim()) newErrors.username = "Username is required"
     }
-
+    
     if (!formData.email.trim()) {
       newErrors.email = "Email is required"
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Please enter a valid email"
     }
-
+    
     if (!formData.password) {
       newErrors.password = "Password is required"
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters"
     }
-
+    
     if (isRegistering) {
       if (!formData.confirmPassword) {
         newErrors.confirmPassword = "Please confirm your password"
@@ -81,7 +120,7 @@ function RegisterLawyer() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
+    
     if (!validateForm()) {
       return
     }
@@ -96,6 +135,14 @@ function RegisterLawyer() {
         password: formData.password,
         userType: "lawyer",
         photoUrl: formData.photoUrl,
+        specialization: formData.specialization,
+        yearsOfExperience: Number(formData.yearsOfExperience || 0),
+        barNumber: formData.barNumber,
+        firmName: formData.firmName,
+        phoneCountryCode: formData.phoneCountryCode,
+        phone: formData.phone,
+        city: formData.city,
+        cnicNumber: formData.cnicNumber,
       }
 
       console.log("Sending lawyer registration data:", lawyerData)
@@ -109,13 +156,18 @@ function RegisterLawyer() {
           const lawyerProfileData = {
             userId: result.user?._id || result.user?.id,
             fullName: `${formData.firstname} ${formData.lastname}`,
-            barNumber: `BAR${Date.now()}`, // Temporary bar number - should be provided by user
-            specialization: "General Practice", // Default - should be provided by user
-            yearsOfExperience: 0, // Default - should be provided by user
-            city: "",
+            barNumber: formData.barNumber,
+            specialization: formData.specialization || "General Practice",
+            yearsOfExperience: Number(formData.yearsOfExperience || 0),
+            city: formData.city,
+            phoneCountryCode: formData.phoneCountryCode,
+            phone: formData.phone,
             state: "",
             country: "",
             status: "pending",
+            firmName: formData.firmName,
+            cnicNumber: formData.cnicNumber,
+            licenses: formData.licenseUrl ? [{ name: 'license', url: formData.licenseUrl }] : [],
           }
 
           const { data: profileCreated } = await api.post("/lawyers/profile", lawyerProfileData)
@@ -138,6 +190,15 @@ function RegisterLawyer() {
           password: "",
           confirmPassword: "",
           photoUrl: "",
+          specialization: "",
+          yearsOfExperience: "",
+          barNumber: "",
+          firmName: "",
+          city: "",
+          phoneCountryCode: "+92",
+          phone: "",
+          cnicNumber: "",
+          licenseUrl: "",
         })
         // Switch to login mode
         setIsRegistering(false)
@@ -152,7 +213,7 @@ function RegisterLawyer() {
 
   const handleLogin = async (e) => {
     e.preventDefault()
-
+    
     if (!validateForm()) {
       return
     }
@@ -182,41 +243,44 @@ function RegisterLawyer() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative bg-gradient-to-b from-white via-emerald-50/40 to-white flex items-center justify-center px-4 py-8">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -left-24 -top-24 h-64 w-64 bg-emerald-100 rounded-full blur-3xl opacity-40"></div>
+        <div className="absolute -right-24 bottom-0 h-72 w-72 bg-emerald-50 rounded-full blur-3xl opacity-60"></div>
+      </div>
+      <div className="relative w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-            <Scale className="w-8 h-8 text-green-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {isRegistering ? "Join as Lawyer" : "Lawyer Portal"}
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium mb-3">
+            <Scale className="w-4 h-4" /> Lawyer Portal
+          </span>
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
+            {isRegistering ? "Create Lawyer Account" : "Welcome Back"}
           </h1>
           <p className="text-gray-600">
-            {isRegistering ? "Connect with clients and grow your legal practice" : "Access your professional dashboard"}
+            {isRegistering ? "Connect with clients and grow your legal practice" : "Sign in to manage your profile and appointments"}
           </p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+        <div className="relative bg-white/90 backdrop-blur rounded-2xl shadow-xl ring-1 ring-gray-100 p-8 transition-all hover:shadow-2xl hover:ring-emerald-200">
+          <div className="absolute inset-x-0 -top-[1px] h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400 rounded-t-2xl" />
           <form onSubmit={isRegistering ? handleSubmit : handleLogin} className="space-y-6">
             {isRegistering && (
-              <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <div className="relative group">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
                     <input
                       type="text"
                       name="firstname"
                       value={formData.firstname}
                       onChange={handleInputChange}
-                      className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                        errors.firstname
-                          ? "border-red-300 focus:border-red-500"
-                          : "border-gray-200 focus:border-green-500"
-                      }`}
-                      placeholder="John"
+                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors duration-150 ${
+                      errors.firstname ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-emerald-500"
+                    } group-hover:border-emerald-300`}
+                      placeholder=""
                     />
                   </div>
                   {errors.firstname && <p className="mt-1 text-sm text-red-600">{errors.firstname}</p>}
@@ -224,19 +288,17 @@ function RegisterLawyer() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <div className="relative group">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
                     <input
                       type="text"
                       name="lastname"
                       value={formData.lastname}
                       onChange={handleInputChange}
-                      className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                        errors.lastname
-                          ? "border-red-300 focus:border-red-500"
-                          : "border-gray-200 focus:border-green-500"
-                      }`}
-                      placeholder="Smith"
+                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors duration-150 ${
+                      errors.lastname ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-emerald-500"
+                    } group-hover:border-emerald-300`}
+                      placeholder=""
                     />
                   </div>
                   {errors.lastname && <p className="mt-1 text-sm text-red-600">{errors.lastname}</p>}
@@ -244,16 +306,178 @@ function RegisterLawyer() {
               </div>
             )}
 
-            {isRegistering && (
+          {isRegistering && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Profile Photo (optional)</label>
-                <div className="flex items-center gap-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Lawyer Type / Specialization</label>
+                <select
+                  name="specialization"
+                  value={formData.specialization}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
+                    errors.specialization ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                  }`}
+                >
+                  <option value="" disabled>Select specialization</option>
+                  {specializations.map((sp) => (
+                    <option key={sp} value={sp}>{sp}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Experience (in years)</label>
+                <select
+                  name="yearsOfExperience"
+                  value={formData.yearsOfExperience}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
+                    errors.yearsOfExperience ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                  }`}
+                >
+                  {experienceYears.map((yr) => (
+                    <option key={yr} value={yr}>{yr} {yr === 1 ? 'year' : 'years'}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Bar Council Registration Number</label>
+                <input
+                  type="text"
+                  name="barNumber"
+                  inputMode="numeric"
+                  value={formData.barNumber}
+                  onChange={(e) => {
+                    const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 13)
+                    setFormData((prev) => ({ ...prev, barNumber: onlyDigits }))
+                  }}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
+                    errors.barNumber ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                  }`}
+                  placeholder="13-digit number"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Law Firm / Office Name</label>
+                <input
+                  type="text"
+                  name="firmName"
+                  value={formData.firmName}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
+                    errors.firmName ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                  }`}
+                  placeholder="e.g. Alpha Law Associates"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">City / Location</label>
+                <select
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
+                    errors.city ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                  }`}
+                >
+                  <option value="" disabled>Select city</option>
+                  {cities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+                <div className="flex gap-2">
+                  <select
+                    name="phoneCountryCode"
+                    value={formData.phoneCountryCode}
+                    onChange={handleInputChange}
+                    className={`px-3 py-3 border-2 rounded-lg focus:outline-none ${
+                      errors.phoneCountryCode ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
+                    }`}
+                  >
+                    {['+92', '+91', '+971', '+1', '+44'].map((cc) => (
+                      <option key={cc} value={cc}>{cc}</option>
+                    ))}
+                  </select>
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={(e) => {
+                      const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 11)
+                      setFormData((prev) => ({ ...prev, phone: onlyDigits }))
+                    }}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
+                      errors.phone ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                    }`}
+                    placeholder="3001234567 (11 digits)"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">CNIC / ID Number</label>
+                <input
+                  type="text"
+                  name="cnicNumber"
+                  inputMode="numeric"
+                  value={formData.cnicNumber}
+                  onChange={(e) => {
+                    const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 13)
+                    setFormData((prev) => ({ ...prev, cnicNumber: onlyDigits }))
+                  }}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
+                    errors.cnicNumber ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                  }`}
+                  placeholder="13-digit number"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">License / Certificate Upload</label>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    try {
+                      // reuse ImageKit upload flow
+                      const { data: sig } = await api.get('/v1/user/imagekit-auth')
+                      const form = new FormData()
+                      form.append('file', file)
+                      form.append('publicKey', sig.publicKey)
+                      form.append('signature', sig.signature)
+                      form.append('expire', sig.expire)
+                      form.append('token', sig.token)
+                      form.append('fileName', file.name)
+                      const folder = (import.meta.env.VITE_IMAGEKIT_FOLDER || 'lawyer-licenses').replace(/^\/+/, '')
+                      form.append('folder', folder)
+                      form.append('useUniqueFileName', 'true')
+                      const uploadUrl = 'https://upload.imagekit.io/api/v1/files/upload'
+                      const resp = await fetch(uploadUrl, { method: 'POST', body: form })
+                      const json = await resp.json()
+                      if (!resp.ok || !json?.url) throw new Error(json?.message || 'Upload failed')
+                      setFormData((prev) => ({ ...prev, licenseUrl: json.url }))
+                    } catch (err) {
+                      alert('License upload failed')
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                />
+                </div>
+              </div>
+            )}
+
+        {isRegistering && (
+          <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Profile Photo (optional)</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
 
                       console.log("[v0] File selected:", file.name, file.size, "bytes")
 
@@ -276,7 +500,7 @@ function RegisterLawyer() {
                           }
 
                           console.log("[v0] Building ImageKit upload form...")
-                          const form = new FormData()
+                    const form = new FormData()
                           form.append("file", file)
                           form.append("publicKey", sig.publicKey)
                           form.append("signature", sig.signature)
@@ -308,7 +532,7 @@ function RegisterLawyer() {
                             throw new Error(`ImageKit error: ${message}`)
                           }
 
-                          if (json?.url) {
+                    if (json?.url) {
                             uploadedUrl = json.url
                             console.log("[v0] ImageKit upload successful:", uploadedUrl)
                           }
@@ -353,13 +577,13 @@ function RegisterLawyer() {
                           console.log("[v0] Setting photoUrl:", uploadedUrl)
                           setFormData((prev) => ({ ...prev, photoUrl: uploadedUrl }))
                           alert("Image uploaded successfully!")
-                        } else {
+                    } else {
                           console.error("[v0] No URL returned from upload")
                           alert(
                             "Failed to upload image. Please verify ImageKit keys and endpoint, or use local fallback.",
                           )
-                        }
-                      } catch (err) {
+                    }
+                  } catch (err) {
                         console.error("[v0] Image upload error:", err)
                         const message = err?.message || ""
                         if (message?.toLowerCase().includes("not configured")) {
@@ -369,27 +593,25 @@ function RegisterLawyer() {
                         } else {
                           alert(`Image upload failed: ${message}`)
                         }
-                      }
-                    }}
-                    className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                  />
-                  {formData.photoUrl && (
+                  }
+                }}
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+              />
+              {formData.photoUrl && (
                     <img
                       src={formData.photoUrl || "/placeholder.svg"}
                       alt="preview"
                       className="w-12 h-12 rounded-full object-cover border"
                     />
-                  )}
-                </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Images are uploaded to ImageKit. Check browser console for upload details.
-                </p>
-              </div>
-            )}
+              )}
+            </div>
+            <p className="mt-2 text-xs text-gray-500">We host via ImageKit. Max 2MB, JPG/PNG recommended.</p>
+          </div>
+        )}
 
-            {isRegistering && formData.photoUrl && (
-              <div className="flex items-center gap-3 text-sm text-gray-600">
-                <span>Preview:</span>
+        {isRegistering && formData.photoUrl && (
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <span>Preview:</span>
                 <img
                   src={formData.photoUrl || "/placeholder.svg"}
                   alt="preview"
@@ -398,10 +620,10 @@ function RegisterLawyer() {
                     e.currentTarget.style.display = "none"
                   }}
                 />
-              </div>
-            )}
+          </div>
+        )}
 
-            {isRegistering && (
+        {isRegistering && (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
                 <div className="relative">
@@ -475,7 +697,7 @@ function RegisterLawyer() {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                      errors.confirmPassword
+                      errors.confirmPassword 
                         ? "border-red-300 focus:border-red-500"
                         : "border-gray-200 focus:border-green-500"
                     }`}
@@ -488,8 +710,9 @@ function RegisterLawyer() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="relative w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-semibold transform hover:scale-[1.01] transition-all duration-150 shadow-lg hover:shadow-xl overflow-hidden"
             >
+              <span className="absolute inset-0 opacity-0 hover:opacity-10 bg-white transition-opacity"></span>
               {isRegistering ? "Create Lawyer Account" : "Sign In"}
             </button>
           </form>

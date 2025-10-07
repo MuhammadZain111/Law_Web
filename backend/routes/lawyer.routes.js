@@ -65,7 +65,11 @@ router.get("/", async (req, res) => {
         city: profile?.city || '',
         state: profile?.state || '',
         country: profile?.country || '',
+        phone: profile?.phone || '',
         photoUrl: profile?.photoUrl || user.photoUrl || '',
+        firmName: profile?.firmName || '',
+        cnicNumber: profile?.cnicNumber || '',
+        submittedDocuments: (profile?.licenses?.length || 0) + (profile?.documents?.length || 0),
         status: user.status,
         rejectionReason: profile?.rejectionReason || '',
         createdAt: user.createdAt,
@@ -80,11 +84,57 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get a lawyer's full profile for review (including documents)
+router.get("/:id/review", async (req, res) => {
+  try {
+    const { id } = req.params; // userId
+    const profile = await Lawyer.findOne({ userId: id }).lean();
+    if (!profile) return res.status(404).json({ error: "Profile not found" });
+    const payload = {
+      userId: id,
+      fullName: profile.fullName,
+      barNumber: profile.barNumber,
+      specialization: profile.specialization,
+      yearsOfExperience: profile.yearsOfExperience,
+      firmName: profile.firmName,
+      city: profile.city,
+      cnicNumber: profile.cnicNumber,
+      licenses: profile.licenses || [],
+      documents: profile.documents || [],
+    };
+    return res.json(payload);
+  } catch (e) {
+    console.error("Lawyer documents fetch error:", e);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Approve a lawyer profile
 router.post("/:id/approve", async (req, res) => {
   try {
     const { id } = req.params;
-    
+    // Ensure profile has sufficient information before approval
+    const profile = await Lawyer.findOne({ userId: id }).lean();
+    if (!profile) return res.status(404).json({ error: "Lawyer profile not found" });
+
+    const missing = [];
+    if (!profile.fullName) missing.push("fullName");
+    if (!profile.barNumber) missing.push("barNumber");
+    if (!profile.specialization) missing.push("specialization");
+    if (profile.yearsOfExperience === undefined || profile.yearsOfExperience === null) missing.push("yearsOfExperience");
+    if (!profile.city) missing.push("city");
+    if (!profile.cnicNumber) missing.push("cnicNumber");
+    if (!profile.phone || !/^\d{11}$/.test(profile.phone)) missing.push("phone (11 digits)");
+    const totalDocs = (profile.licenses?.length || 0) + (profile.documents?.length || 0);
+    if (totalDocs === 0) missing.push("documents/licenses");
+
+    if (missing.length) {
+      return res.status(400).json({
+        error: "Profile is incomplete. Cannot approve.",
+        missing,
+      });
+    }
+
     // Update user status to approved
     const updatedUser = await User.findByIdAndUpdate(id, { status: "approved" }, { new: true }).select('-password');
     if (!updatedUser) return res.status(404).json({ error: "Lawyer not found" });
