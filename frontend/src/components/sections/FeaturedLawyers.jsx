@@ -7,51 +7,8 @@ import Badge from "../common/Badge.jsx"
 import Button from "../common/Button.jsx"
 import { Card, CardContent } from "../common/Card.jsx"
 
-const FEATURED_LAWYERS_FALLBACK = [
-  {
-    id: "68d7f1ff1e02e40f102331f7",
-    name: "Test Lawyer",
-    specialization: "Family Law",
-    rating: 4.8,
-    reviews: 124,
-    location: "Pakistan",
-    image: IMAGES.lawyer,
-    areas: ["Divorce", "Child Custody"],
-  },
-  {
-    id: "68d7e2fa45738163aa72a24a",
-    name: "Test Lawyer 2",
-    specialization: "Corporate Law",
-    rating: 4.9,
-    reviews: 89,
-    location: "Pakistan",
-    image: IMAGES.lawyer,
-    areas: ["Contracts", "Business Formation"],
-  },
-  {
-    id: "68d7dffa45738163aa72a246",
-    name: "Test Lawyer 3",
-    specialization: "Criminal Defense",
-    rating: 4.7,
-    reviews: 156,
-    location: "Pakistan",
-    image: IMAGES.lawyer,
-    areas: ["DUI Defense", "Felony Cases"],
-  },
-  {
-    id: "68d7c06f983b8c352af85060",
-    name: "Test Lawyer 4",
-    specialization: "Real Estate Law",
-    rating: 4.6,
-    reviews: 78,
-    location: "Pakistan",
-    image: IMAGES.lawyer,
-    areas: ["Property Transactions", "Landlord-Tenant"],
-  },
-]
-
 const FeaturedLawyers = () => {
-  const [lawyers, setLawyers] = useState(FEATURED_LAWYERS_FALLBACK)
+  const [lawyers, setLawyers] = useState([])
 
   useEffect(() => {
     (async () => {
@@ -69,7 +26,7 @@ const FeaturedLawyers = () => {
         }))
         if (list.length) setLawyers(list)
       } catch (_e) {
-        // keep fallback mock data
+        // silently ignore; no fallback data
       }
     })()
   }, [])

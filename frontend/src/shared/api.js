@@ -1,4 +1,16 @@
-const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:5000';
+// Normalize API base: accept values like ":5000" or "localhost:5000" and add protocol/host
+let API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:5000';
+console.log("API_BASE", API_BASE);
+if (!/^https?:\/\//i.test(API_BASE)) {
+  if (API_BASE.startsWith(':')) {
+    API_BASE = `http://localhost${API_BASE}`;
+  } else {
+    API_BASE = `http://${API_BASE}`;
+  }
+}
+API_BASE = API_BASE.replace(/\/$/, '');
+// If someone set VITE_API_BASE to include /api, strip it to avoid /api/api duplication
+API_BASE = API_BASE.replace(/\/(api)$/, '');
 const BASE_URL = `${API_BASE}/api`;
 
 async function request(path, { method = 'GET', body, headers = {} } = {}) {
