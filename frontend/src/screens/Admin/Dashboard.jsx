@@ -365,12 +365,22 @@ export default function Dashboard() {
                                     <div className="font-medium">{l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '-'}</div>
                                   </div>
                                 </div>
-                                <div>
-                                  <div className="text-xs uppercase text-gray-500">Submitted Documents</div>
-                                  <div className="mt-2 flex flex-wrap gap-2">
-                                    {(l.documents || []).map((d, i) => (
-                                      <span key={i} className="inline-flex items-center rounded-md border px-2 py-1 text-xs">{d.name || d}</span>
-                                    ))}
+                                <div className="space-y-2">
+                                  <div>
+                                    <div className="text-xs uppercase text-gray-500">Firm / Office</div>
+                                    <div className="font-medium">{l.firmName || '-'}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs uppercase text-gray-500">City</div>
+                                    <div className="font-medium">{l.city || '-'}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs uppercase text-gray-500">CNIC / ID</div>
+                                    <div className="font-medium">{l.cnicNumber || '-'}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs uppercase text-gray-500">Submitted Documents</div>
+                                    <div className="font-medium">{l.submittedDocuments ?? 0}</div>
                                   </div>
                                 </div>
                               </div>
@@ -395,7 +405,33 @@ export default function Dashboard() {
                                 >
                                   Approve & Create Profile
                                 </Button>
-                                <Button variant="outline">Review Documents</Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      const id = l._id || l.id
+                                      if (!id) return
+                                      const { data } = await api.get(`/lawyers/${id}/review`)
+                                      const lines = [
+                                        `Name: ${data.fullName}`,
+                                        `Email: ${l.userId?.email || l.email || ''}`,
+                                        `Bar #: ${data.barNumber}`,
+                                        `Specialization: ${data.specialization}`,
+                                        `Experience: ${data.yearsOfExperience} years`,
+                                        `Firm: ${data.firmName || '-'}`,
+                                        `City: ${data.city || '-'}`,
+                                        `CNIC: ${data.cnicNumber || '-'}`,
+                                        `Licenses: ${(data.licenses || []).length}`,
+                                        `Documents: ${(data.documents || []).length}`,
+                                      ]
+                                      alert(lines.join('\n'))
+                                    } catch (err) {
+                                      console.error(err)
+                                    }
+                                  }}
+                                >
+                                  Review Documents
+                                </Button>
                                 <Button
                                   variant="destructive"
                                   onClick={async () => {

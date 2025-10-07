@@ -78,6 +78,7 @@ export default function AppointmentBooking() {
             areas: [foundLawyer.specialization || "General Law"],
             languages: ["English", "Urdu"],
             email: foundLawyer.email,
+            photoUrl: foundLawyer.photoUrl || '',
           };
           setLawyer(apiLawyer);
         } else {
@@ -99,6 +100,7 @@ export default function AppointmentBooking() {
               areas: ["General Law"],
               languages: ["English", "Urdu"],
               email: user.email,
+              photoUrl: user.photoUrl || '',
             };
             setLawyer(apiLawyer);
           }
@@ -322,8 +324,12 @@ export default function AppointmentBooking() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center">
-                <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-3">
-                  <span className="text-gray-400 text-sm">No Image</span>
+                <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-3 overflow-hidden">
+                  {lawyer.photoUrl ? (
+                    <img src={lawyer.photoUrl} alt={lawyer.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-gray-400 text-sm">No Image</span>
+                  )}
                 </div>
                 <h3 className="font-semibold text-lg">{lawyer.name}</h3>
                 <p className="text-gray-600">{lawyer.expertise}</p>
