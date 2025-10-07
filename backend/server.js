@@ -1,14 +1,19 @@
 // server.js
+import express from "express";
+
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
-import express from "express";
+dotenv.config();
 // import rateLimit from "express-rate-limit";
 import http from "http";
 import createError from "http-errors";
 import mongoose from "mongoose";
 import morgan from "morgan";
 import { Server as SocketIOServer } from "socket.io";
+
 
 // Import routes
 import appointmentRoute from "./routes/appointments.js";
@@ -32,6 +37,13 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
+
+// Static uploads dir
+const uploadsDir = path.resolve("uploads");
+if (!fs.existsSync(uploadsDir)) {
+  try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch (_) {}
+}
+app.use("/uploads", express.static(uploadsDir));
 
 // Routes
 app.get("/", (_req, res) => res.json({ ok: true }));
@@ -62,8 +74,8 @@ export const io = new SocketIOServer(server, {
 });
 registerSocket(io);
 
-// DB connection
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://127.0.0.1:27017/lawyer_admin";
+  // DB connection
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://localhost:27017/lawSphere";
 let PORT = Number(process.env.PORT) || 5000;
 
 mongoose

@@ -82,7 +82,7 @@ export default function AppointmentBooking() {
           setLawyer(apiLawyer);
         } else {
           // If not found in approved list, try to get user directly
-          const userResponse = await api.get(`/v1/user/${id}`);
+          const userResponse = await api.get(`/api/v1/user/${id}`);
           const userPayload = userResponse?.data?.user;
           if (userPayload && userPayload.userType === 'lawyer') {
             const user = userPayload;

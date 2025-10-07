@@ -1,86 +1,86 @@
-import React from 'react'
-import { useState } from "react";
-import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, Scale } from 'lucide-react';
-import { api } from '../shared/api.js'
+"use client"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Eye, EyeOff, User, Mail, Lock, Scale } from "lucide-react"
+import { api } from "../shared/api.js"
 
 function RegisterLawyer() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const goToDashboard = () => {
-    navigate('/lawyerDashboard');  
-  };
+    navigate("/lawyerDashboard")
+  }
 
   const goBack = () => {
-    navigate('/registration-selection');
-  };
+    navigate("/registration-selection")
+  }
 
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
-    firstname: '',
-    lastname: '',
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    photoUrl: ''
-  });
-  const [errors, setErrors] = useState({});
+    firstname: "",
+    lastname: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    photoUrl: "",
+  })
+  const [errors, setErrors] = useState({})
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+    const { name, value } = e.target
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }));
+      [name]: value,
+    }))
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
-      }));
+        [name]: "",
+      }))
     }
-  };
+  }
 
   const validateForm = () => {
-    const newErrors = {};
-    
+    const newErrors = {}
+
     if (isRegistering) {
-      if (!formData.firstname.trim()) newErrors.firstname = 'First name is required';
-      if (!formData.lastname.trim()) newErrors.lastname = 'Last name is required';
-      if (!formData.username.trim()) newErrors.username = 'Username is required';
+      if (!formData.firstname.trim()) newErrors.firstname = "First name is required"
+      if (!formData.lastname.trim()) newErrors.lastname = "Last name is required"
+      if (!formData.username.trim()) newErrors.username = "Username is required"
     }
-    
+
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required"
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email"
     }
-    
+
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required"
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = "Password must be at least 6 characters"
     }
-    
+
     if (isRegistering) {
       if (!formData.confirmPassword) {
-        newErrors.confirmPassword = 'Please confirm your password';
+        newErrors.confirmPassword = "Please confirm your password"
       } else if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
+        newErrors.confirmPassword = "Passwords do not match"
       }
     }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (!validateForm()) {
-      return;
+      return
     }
 
     try {
@@ -91,116 +91,92 @@ function RegisterLawyer() {
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        userType: 'lawyer',
-        photoUrl: formData.photoUrl
-      };
+        userType: "lawyer",
+        photoUrl: formData.photoUrl,
+      }
 
-      console.log('Sending lawyer registration data:', lawyerData);
+      console.log("Sending lawyer registration data:", lawyerData)
 
       // Make API call to backend
-      const response = await fetch('http://localhost:5000/api/v1/user/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(lawyerData),
-      });
+    const { data: result } = await api.post("/v1/user/register", lawyerData)
 
-      const result = await response.json();
-
-      if (response.ok) {
-        // After successful user registration, create a lawyer profile
+    if (result?.user) {
+        
         try {
           const lawyerProfileData = {
             userId: result.user?._id || result.user?.id,
             fullName: `${formData.firstname} ${formData.lastname}`,
             barNumber: `BAR${Date.now()}`, // Temporary bar number - should be provided by user
-            specialization: 'General Practice', // Default - should be provided by user
+            specialization: "General Practice", // Default - should be provided by user
             yearsOfExperience: 0, // Default - should be provided by user
-            city: '',
-            state: '',
-            country: '',
-            status: 'pending'
-          };
+            city: "",
+            state: "",
+            country: "",
+            status: "pending",
+          }
 
-          const profileResponse = await fetch('http://localhost:5000/api/lawyers/profile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(lawyerProfileData),
-          });
-
-          if (profileResponse.ok) {
-            alert('Lawyer registration successful! Your profile is pending admin approval. You can now login.');
+          const { data: profileCreated } = await api.post("/lawyers/profile", lawyerProfileData)
+          if (profileCreated) {
+            alert("Lawyer registration successful! Your profile is pending admin approval. You can now login.")
           } else {
-            alert('User account created but profile creation failed. Please contact support.');
+            alert("User account created but profile creation failed. Please contact support.")
           }
         } catch (profileError) {
-          console.error('Profile creation error:', profileError);
-          alert('User account created but profile creation failed. Please contact support.');
+          console.error("Profile creation error:", profileError)
+          alert("User account created but profile creation failed. Please contact support.")
         }
 
         // Reset form
         setFormData({
-          firstname: '',
-          lastname: '',
-          username: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          photoUrl: ''
-        });
+          firstname: "",
+          lastname: "",
+          username: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          photoUrl: "",
+        })
         // Switch to login mode
-        setIsRegistering(false);
+        setIsRegistering(false)
       } else {
-        alert(result.message || 'Registration failed. Please try again.');
+        alert(result?.message || "Registration failed. Please try again.")
       }
     } catch (error) {
-      console.error('Registration error:', error);
-      alert('Network error. Please check your connection and try again.');
+      console.error("Registration error:", error)
+      alert("Network error. Please check your connection and try again.")
     }
-  };
+  }
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (!validateForm()) {
-      return;
+      return
     }
 
     try {
       const loginData = {
         email: formData.email,
-        password: formData.password
-      };
+        password: formData.password,
+      }
 
-      console.log('Sending lawyer login data:', loginData);
+      console.log("Sending lawyer login data:", loginData)
 
-      const response = await fetch('http://localhost:5000/api/v1/user/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(loginData),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
+      const { data: result } = await api.post("/v1/user/login", loginData)
+      if (result?.token) {
         // Store token in localStorage
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('userType', result.userType || 'lawyer');
-        alert('Login successful!');
-        goToDashboard();
+        localStorage.setItem("token", result.token)
+        localStorage.setItem("userType", result.userType || "lawyer")
+        alert("Login successful!")
+        goToDashboard()
       } else {
-        alert(result.message || 'Login failed. Please check your credentials.');
+        alert(result.message || "Login failed. Please check your credentials.")
       }
     } catch (error) {
-      console.error('Login error:', error);
-      alert('Network error. Please check your connection and try again.');
+      console.error("Login error:", error)
+      alert("Network error. Please check your connection and try again.")
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center px-4 py-8">
@@ -224,9 +200,7 @@ function RegisterLawyer() {
             {isRegistering && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    First Name
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
@@ -235,22 +209,18 @@ function RegisterLawyer() {
                       value={formData.firstname}
                       onChange={handleInputChange}
                       className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                        errors.firstname 
-                          ? 'border-red-300 focus:border-red-500' 
-                          : 'border-gray-200 focus:border-green-500'
+                        errors.firstname
+                          ? "border-red-300 focus:border-red-500"
+                          : "border-gray-200 focus:border-green-500"
                       }`}
                       placeholder="John"
                     />
                   </div>
-                  {errors.firstname && (
-                    <p className="mt-1 text-sm text-red-600">{errors.firstname}</p>
-                  )}
+                  {errors.firstname && <p className="mt-1 text-sm text-red-600">{errors.firstname}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Last Name
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
@@ -259,80 +229,178 @@ function RegisterLawyer() {
                       value={formData.lastname}
                       onChange={handleInputChange}
                       className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                        errors.lastname 
-                          ? 'border-red-300 focus:border-red-500' 
-                          : 'border-gray-200 focus:border-green-500'
+                        errors.lastname
+                          ? "border-red-300 focus:border-red-500"
+                          : "border-gray-200 focus:border-green-500"
                       }`}
                       placeholder="Smith"
                     />
                   </div>
-                  {errors.lastname && (
-                    <p className="mt-1 text-sm text-red-600">{errors.lastname}</p>
-                  )}
+                  {errors.lastname && <p className="mt-1 text-sm text-red-600">{errors.lastname}</p>}
                 </div>
               </div>
             )}
 
-        {isRegistering && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Profile Photo (optional)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
-                  try {
-                    // Get ImageKit auth params
-                    const { data: sig } = await api.get('/v1/user/imagekit-auth')
-                    if (!sig?.signature || !sig?.token || !sig?.expire) {
-                      throw new Error('ImageKit not configured')
-                    }
-                    const form = new FormData()
-                    form.append('file', file)
-                    form.append('publicKey', import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY || '')
-                    form.append('signature', sig.signature)
-                    form.append('expire', sig.expire)
-                    form.append('token', sig.token)
-                    form.append('fileName', file.name)
-                    const base = (import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT || '').replace(/\/$/, '')
-                    const resp = await fetch(`${base}/api/v1/files/upload`, { method: 'POST', body: form })
-                    const json = await resp.json()
-                    if (json?.url) {
-                      setFormData(prev => ({ ...prev, photoUrl: json.url }))
-                    } else {
-                      alert('Failed to upload image')
-                    }
-                  } catch (err) {
-                    console.error('Image upload error', err)
-                    alert('Image upload failed')
-                  }
-                }}
-                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-              />
-              {formData.photoUrl && (
-                <img src={formData.photoUrl} alt="preview" className="w-12 h-12 rounded-full object-cover border" />
-              )}
-            </div>
-            <p className="mt-2 text-xs text-gray-500">We host via ImageKit. You can change this later.</p>
-          </div>
-        )}
-
-        {isRegistering && formData.photoUrl && (
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <span>Preview:</span>
-            <img src={formData.photoUrl} alt="preview" className="w-12 h-12 rounded-full object-cover border" onError={(e)=>{e.currentTarget.style.display='none'}} />
-          </div>
-        )}
-
-        {isRegistering && (
+            {isRegistering && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Username
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Profile Photo (optional)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+
+                      console.log("[v0] File selected:", file.name, file.size, "bytes")
+
+                      try {
+                        let uploadedUrl = ""
+
+                        try {
+                          console.log("[v0] Requesting ImageKit auth...")
+                          const { data: sig } = await api.get("/v1/user/imagekit-auth")
+
+                          console.log("[v0] ImageKit auth response:", {
+                            hasSignature: !!sig?.signature,
+                            hasToken: !!sig?.token,
+                            hasExpire: !!sig?.expire,
+                            hasPublicKey: !!sig?.publicKey,
+                          })
+
+                          if (!sig?.signature || !sig?.token || !sig?.expire || !sig?.publicKey) {
+                            throw new Error("ImageKit not configured - missing auth parameters")
+                          }
+
+                          console.log("[v0] Building ImageKit upload form...")
+                          const form = new FormData()
+                          form.append("file", file)
+                          form.append("publicKey", sig.publicKey)
+                          form.append("signature", sig.signature)
+                          form.append("expire", sig.expire)
+                          form.append("token", sig.token)
+                          form.append("fileName", file.name)
+
+                          const folder = (import.meta.env.VITE_IMAGEKIT_FOLDER || "lawyer-profiles").replace(/^\/+/, "")
+                          form.append("folder", folder)
+                          form.append("useUniqueFileName", "true")
+
+                          console.log("[v0] Uploading to ImageKit...")
+                          const uploadUrl = "https://upload.imagekit.io/api/v1/files/upload"
+                          const resp = await fetch(uploadUrl, { method: "POST", body: form })
+
+                          console.log("[v0] ImageKit response status:", resp.status)
+
+                          let json
+                          try {
+                            json = await resp.json()
+                            console.log("[v0] ImageKit response:", json)
+                          } catch (_e) {
+                            console.error("[v0] Failed to parse ImageKit response")
+                            json = {}
+                          }
+
+                          if (!resp.ok) {
+                            const message = json?.message || json?.error || "Upload failed"
+                            throw new Error(`ImageKit error: ${message}`)
+                          }
+
+                          if (json?.url) {
+                            uploadedUrl = json.url
+                            console.log("[v0] ImageKit upload successful:", uploadedUrl)
+                          }
+                        } catch (_ikErr) {
+                          console.error("[v0] ImageKit upload failed:", _ikErr)
+
+                          const disableFallback =
+                            (import.meta.env?.VITE_IMAGEKIT_DISABLE_FALLBACK || "").toString().toLowerCase() === "true"
+
+                          if (!disableFallback) {
+                            console.log("[v0] Attempting local upload fallback...")
+                            const formLocal = new FormData()
+                            formLocal.append("file", file)
+                            const apiBase = (import.meta.env?.VITE_API_BASE || "http://localhost:5000").replace(
+                              /\/$/,
+                              "",
+                            )
+                            const respLocal = await fetch(`${apiBase}/api/v1/user/upload-local`, {
+                              method: "POST",
+                              body: formLocal,
+                            })
+
+                            console.log("[v0] Local upload response status:", respLocal.status)
+                            const jsonLocal = await respLocal.json()
+                            console.log("[v0] Local upload response:", jsonLocal)
+
+                            if (jsonLocal?.url) {
+                              uploadedUrl = jsonLocal.url
+                              console.log("[v0] Local upload successful:", uploadedUrl)
+                            }
+                          } else {
+                            const msg =
+                              _ikErr && _ikErr.message
+                                ? _ikErr.message
+                                : "Network or CORS error while uploading to ImageKit"
+                            alert(`ImageKit upload failed: ${msg}`)
+                            throw _ikErr
+                          }
+                        }
+
+                        if (uploadedUrl) {
+                          console.log("[v0] Setting photoUrl:", uploadedUrl)
+                          setFormData((prev) => ({ ...prev, photoUrl: uploadedUrl }))
+                          alert("Image uploaded successfully!")
+                        } else {
+                          console.error("[v0] No URL returned from upload")
+                          alert(
+                            "Failed to upload image. Please verify ImageKit keys and endpoint, or use local fallback.",
+                          )
+                        }
+                      } catch (err) {
+                        console.error("[v0] Image upload error:", err)
+                        const message = err?.message || ""
+                        if (message?.toLowerCase().includes("not configured")) {
+                          alert(
+                            "Image upload failed: ImageKit is not configured on the server. Please set IMAGEKIT_* env vars and restart the server.",
+                          )
+                        } else {
+                          alert(`Image upload failed: ${message}`)
+                        }
+                      }
+                    }}
+                    className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                  {formData.photoUrl && (
+                    <img
+                      src={formData.photoUrl || "/placeholder.svg"}
+                      alt="preview"
+                      className="w-12 h-12 rounded-full object-cover border"
+                    />
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Images are uploaded to ImageKit. Check browser console for upload details.
+                </p>
+              </div>
+            )}
+
+            {isRegistering && formData.photoUrl && (
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <span>Preview:</span>
+                <img
+                  src={formData.photoUrl || "/placeholder.svg"}
+                  alt="preview"
+                  className="w-12 h-12 rounded-full object-cover border"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none"
+                  }}
+                />
+              </div>
+            )}
+
+            {isRegistering && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -341,23 +409,17 @@ function RegisterLawyer() {
                     value={formData.username}
                     onChange={handleInputChange}
                     className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                      errors.username 
-                        ? 'border-red-300 focus:border-red-500' 
-                        : 'border-gray-200 focus:border-green-500'
+                      errors.username ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
                     }`}
                     placeholder="johndoe123"
                   />
                 </div>
-                {errors.username && (
-                  <p className="mt-1 text-sm text-red-600">{errors.username}</p>
-                )}
+                {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email Address
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -366,22 +428,16 @@ function RegisterLawyer() {
                   value={formData.email}
                   onChange={handleInputChange}
                   className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.email 
-                      ? 'border-red-300 focus:border-red-500' 
-                      : 'border-gray-200 focus:border-green-500'
+                    errors.email ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
                   }`}
                   placeholder="lawyer@example.com"
                 />
               </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -390,9 +446,7 @@ function RegisterLawyer() {
                   value={formData.password}
                   onChange={handleInputChange}
                   className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.password 
-                      ? 'border-red-300 focus:border-red-500' 
-                      : 'border-gray-200 focus:border-green-500'
+                    errors.password ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
                   }`}
                   placeholder="Enter your password"
                 />
@@ -401,23 +455,15 @@ function RegisterLawyer() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
+              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
             </div>
 
             {isRegistering && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Confirm Password
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -426,16 +472,14 @@ function RegisterLawyer() {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                      errors.confirmPassword 
-                        ? 'border-red-300 focus:border-red-500' 
-                        : 'border-gray-200 focus:border-green-500'
+                      errors.confirmPassword
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-green-500"
                     }`}
                     placeholder="Confirm your password"
                   />
                 </div>
-                {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-                )}
+                {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
               </div>
             )}
 
@@ -474,7 +518,7 @@ function RegisterLawyer() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default RegisterLawyer;
+export default RegisterLawyer
