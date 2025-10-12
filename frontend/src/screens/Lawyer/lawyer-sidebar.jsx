@@ -33,6 +33,7 @@ export function LawyerSidebar({ activeTab, setActiveTab, collapsed, setCollapsed
     { id: "chat", label: "Live Chat", icon: "💬" },
     { id: "consultation", label: "Virtual Consultation", icon: "🎥" },
     { id: "payments", label: "Payments", icon: "💳" },
+    { id: "upgrade", label: "Upgrade Profile", icon: "⭐" },
     { id: "records", label: "Records", icon: "📋" },
     { id: "profile", label: "Profile", icon: "👤" },
   ];

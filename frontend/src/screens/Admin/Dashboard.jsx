@@ -37,10 +37,10 @@ export default function Dashboard() {
       try {
         // Load approved list for table
         const approved = await api.get("/appointments/lawyers?status=approved")
-        setLawyers(approved.data || [])
+        setLawyers(approved.data?.lawyers || approved.data || [])
         // Load pending list for approvals
         const pending = await api.get("/appointments/lawyers?status=pending")
-        setPendingLawyers(pending.data || [])
+        setPendingLawyers(pending.data?.lawyers || pending.data || [])
       } catch (e) {
         if (e?.response?.status === 401) {
           localStorage.removeItem('token')
@@ -424,8 +424,8 @@ export default function Dashboard() {
                                         api.get('/appointments/lawyers?status=approved'),
                                         api.get('/appointments/lawyers?status=pending'),
                                       ])
-                                      setLawyers(approved.data || [])
-                                      setPendingLawyers(pending.data || [])
+                                      setLawyers(approved.data?.lawyers || approved.data || [])
+                                      setPendingLawyers(pending.data?.lawyers || pending.data || [])
                                     } catch (err) {
                                       console.error(err)
                                       
@@ -481,7 +481,7 @@ export default function Dashboard() {
                                       if (!id) return
                                       await api.post(`/lawyers/${id}/reject`, { reason: 'Insufficient documents' })
                                       const pending = await api.get('/appointments/lawyers?status=pending')
-                                      setPendingLawyers(pending.data || [])
+                                      setPendingLawyers(pending.data?.lawyers || pending.data || [])
                                     } catch (err) {
                                       console.error(err)
                                     }
@@ -619,7 +619,7 @@ export default function Dashboard() {
                                     await api.post(`/lawyers/${id}/approve`);
                                     // Refresh lists
                                     const approved = await api.get("/appointments/lawyers?status=approved");
-                                    setLawyers(approved.data || []);
+                                    setLawyers(approved.data?.lawyers || approved.data || []);
                                   } catch (err) {
                                     console.error(err);
                                     alert(err?.message || 'Failed to approve lawyer. Please check profile completeness.');

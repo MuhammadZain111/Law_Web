@@ -11,6 +11,7 @@ export default function LawyerProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [lawyer, setLawyer] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState(null);
   const [loading, setLoading] = useState(true);
 
   console.log('🔍 Debug - LawyerProfile component mounted with ID:', id);
@@ -52,6 +53,11 @@ export default function LawyerProfile() {
           photoUrl: foundLawyer.photoUrl || "",
         };
         setLawyer(apiLawyer);
+        
+        // Set payment methods if available
+        if (foundLawyer.paymentMethods) {
+          setPaymentMethods(foundLawyer.paymentMethods);
+        }
       } else {
         console.log('🔍 Debug - Lawyer not found in approved list, trying direct user fetch...');
         // If not found in approved list, try to get user directly
@@ -184,10 +190,11 @@ export default function LawyerProfile() {
       {/* Right Section */}
       <Card className="w-full md:w-2/3 p-6">
         <Tabs defaultValue="about">
-          <TabsList className="grid grid-cols-4 w-full mb-4">
+          <TabsList className="grid grid-cols-5 w-full mb-4">
             <TabsTrigger value="about">About</TabsTrigger>
             <TabsTrigger value="expertise">Expertise</TabsTrigger>
             <TabsTrigger value="credentials">Credentials</TabsTrigger>
+            <TabsTrigger value="payment">Payment</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
           </TabsList>
 
@@ -221,6 +228,90 @@ export default function LawyerProfile() {
           <TabsContent value="credentials">
             <p className="text-gray-600">Credentials details go here...</p>
           </TabsContent>
+          
+          {/* Payment Methods Section */}
+          <TabsContent value="payment">
+            <h3 className="text-lg font-semibold mb-4 flex items-center">
+              <span className="mr-2">💳</span>
+              Payment Methods
+            </h3>
+            
+            {paymentMethods ? (
+              <div className="space-y-4">
+                {/* JazzCash */}
+                {paymentMethods.jazzcash?.enabled && (
+                  <div className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">📱</span>
+                      <h4 className="font-semibold text-gray-900">JazzCash</h4>
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p><span className="font-medium">Number:</span> {paymentMethods.jazzcash.accountNumber}</p>
+                      <p><span className="font-medium">Account Name:</span> {paymentMethods.jazzcash.accountName}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* EasyPaisa */}
+                {paymentMethods.easypaisa?.enabled && (
+                  <div className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">💳</span>
+                      <h4 className="font-semibold text-gray-900">EasyPaisa</h4>
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p><span className="font-medium">Number:</span> {paymentMethods.easypaisa.accountNumber}</p>
+                      <p><span className="font-medium">Account Name:</span> {paymentMethods.easypaisa.accountName}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Bank Transfer */}
+                {paymentMethods.bankTransfer?.enabled && (
+                  <div className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">🏦</span>
+                      <h4 className="font-semibold text-gray-900">Bank Transfer</h4>
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p><span className="font-medium">Bank:</span> {paymentMethods.bankTransfer.bankName}</p>
+                      <p><span className="font-medium">Account Number:</span> {paymentMethods.bankTransfer.accountNumber}</p>
+                      <p><span className="font-medium">Account Name:</span> {paymentMethods.bankTransfer.accountName}</p>
+                      {paymentMethods.bankTransfer.iban && (
+                        <p><span className="font-medium">IBAN:</span> {paymentMethods.bankTransfer.iban}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Cash on Meeting - Always Available */}
+                <div className="p-4 border border-green-200 rounded-lg bg-green-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">💵</span>
+                    <h4 className="font-semibold text-green-900">Cash on Meeting</h4>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    You can also pay in cash when you meet the lawyer in person.
+                  </p>
+                </div>
+                
+                {!paymentMethods.jazzcash?.enabled && !paymentMethods.easypaisa?.enabled && !paymentMethods.bankTransfer?.enabled && (
+                  <div className="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+                    <p className="text-sm text-yellow-700">
+                      This lawyer currently only accepts cash payments. You can pay when you meet in person.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <p className="text-gray-600 text-sm">
+                  Payment methods information is not available. Please contact the lawyer directly for payment details.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+          
           <TabsContent value="reviews">
             <p className="text-gray-600">Reviews go here...</p>
           </TabsContent>

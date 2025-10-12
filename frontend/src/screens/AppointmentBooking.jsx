@@ -34,6 +34,29 @@ const PAYMENT_METHODS = [
   "Credit Card"
 ];
 
+// Function to get available payment methods based on lawyer's settings
+const getAvailablePaymentMethods = (lawyerPaymentMethods) => {
+  if (!lawyerPaymentMethods) {
+    return ["Cash on Meeting"]; // Default fallback
+  }
+  
+  const available = ["Cash on Meeting"]; // Always available
+  
+  if (lawyerPaymentMethods.jazzcash?.enabled) {
+    available.push("JazzCash");
+  }
+  
+  if (lawyerPaymentMethods.easypaisa?.enabled) {
+    available.push("EasyPaisa");
+  }
+  
+  if (lawyerPaymentMethods.bankTransfer?.enabled) {
+    available.push("Bank Transfer");
+  }
+  
+  return available;
+};
+
 const CONSULTATION_TYPES = [
   "Initial Consultation",
   "Case Review",
@@ -52,6 +75,7 @@ export default function AppointmentBooking() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [lawyer, setLawyer] = useState(null);
+  const [lawyerPaymentMethods, setLawyerPaymentMethods] = useState(null);
   const [loading, setLoading] = useState(true);
   const calendarRef = useRef(null);
 
@@ -86,9 +110,18 @@ export default function AppointmentBooking() {
             areas: [foundLawyer.specialization || "General Law"],
             languages: ["English", "Urdu"],
             email: foundLawyer.email,
+            phone: foundLawyer.phone || foundLawyer.phoneNumber || '',
             photoUrl: foundLawyer.photoUrl || '',
           };
           setLawyer(apiLawyer);
+          
+          // Set payment methods if available
+          if (foundLawyer.paymentMethods) {
+            console.log('🔍 Debug - Setting lawyer payment methods:', foundLawyer.paymentMethods);
+            setLawyerPaymentMethods(foundLawyer.paymentMethods);
+          } else {
+            console.log('🔍 Debug - No payment methods found for lawyer');
+          }
         } else {
           // If not found in approved list, try to get user directly
           const userResponse = await api.get(`/user/${id}`);
@@ -108,6 +141,7 @@ export default function AppointmentBooking() {
               areas: ["General Law"],
               languages: ["English", "Urdu"],
               email: user.email,
+              phone: user.phone || user.phoneNumber || '',
               photoUrl: user.photoUrl || '',
             };
             setLawyer(apiLawyer);
@@ -164,7 +198,7 @@ export default function AppointmentBooking() {
     
     // Payment Information
     paymentMethod: '',
-    consultationFee: 5000,
+    consultationFee: 2000,
     paymentScreenshot: '',
     
     // Additional Information
@@ -176,7 +210,7 @@ export default function AppointmentBooking() {
   });
 
   // Keep a formatted display for consultation fee (PKR with separators)
-  const [consultationFeeDisplay, setConsultationFeeDisplay] = useState('5,000');
+  const [consultationFeeDisplay, setConsultationFeeDisplay] = useState('2,000');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -277,6 +311,79 @@ export default function AppointmentBooking() {
         console.error('🔍 Debug - File upload error:', error);
         alert(`Failed to upload ${file.name}: ${error.message}`);
       }
+    }
+  };
+
+  // Handle payment screenshot upload
+  const handlePaymentScreenshotUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+      return;
+    }
+    
+    // Check file type (allow images and PDF)
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/jpg'
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      alert(`File ${file.name} is not a supported format. Please upload JPG, PNG, or PDF files.`);
+      return;
+    }
+
+    try {
+      console.log('🔍 Debug - Uploading payment screenshot to ImageKit:', file.name);
+      
+      // Get ImageKit authentication
+      const { data: sig } = await api.get('/user/imagekit-auth');
+      
+      // Create form data for ImageKit upload
+      const form = new FormData();
+      form.append('file', file);
+      form.append('publicKey', sig.publicKey);
+      form.append('signature', sig.signature);
+      form.append('expire', sig.expire);
+      form.append('token', sig.token);
+      form.append('fileName', file.name);
+      form.append('folder', 'payment-screenshots');
+      form.append('useUniqueFileName', 'true');
+      
+      // Upload to ImageKit
+      const uploadUrl = 'https://upload.imagekit.io/api/v1/files/upload';
+      const resp = await fetch(uploadUrl, { method: 'POST', body: form });
+      const json = await resp.json();
+      
+      if (!resp.ok || !json?.url) {
+        throw new Error(json?.message || 'Upload failed');
+      }
+      
+      console.log('🔍 Debug - Payment screenshot upload successful:', json.url);
+      
+      // Store file with URL in form data
+      const fileWithUrl = {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+        url: json.url
+      };
+      
+      setFormData(prev => ({
+        ...prev,
+        paymentScreenshotFile: fileWithUrl
+      }));
+      
+      alert(`Payment screenshot ${file.name} uploaded successfully!`);
+      
+    } catch (error) {
+      console.error('🔍 Debug - Payment screenshot upload error:', error);
+      alert(`Failed to upload ${file.name}: ${error.message}`);
     }
   };
 
@@ -549,13 +656,80 @@ export default function AppointmentBooking() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-gray-400" />
-                  <span>Contact to view</span>
+                  <span>{lawyer?.email || 'Email not available'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-gray-400" />
-                  <span>Contact to view</span>
+                  <span>{lawyer?.phone || 'Phone not available'}</span>
                 </div>
               </div>
+              
+              {/* Payment Account Details */}
+              {lawyerPaymentMethods && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <h4 className="font-semibold text-sm text-gray-900 mb-3 flex items-center">
+                    <span className="mr-2">💳</span>
+                    Payment Accounts
+                  </h4>
+                  <div className="space-y-2 text-xs">
+                    {/* JazzCash */}
+                    {lawyerPaymentMethods.jazzcash?.enabled && (
+                      <div className="p-2 bg-blue-50 rounded border border-blue-200">
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="text-sm">📱</span>
+                          <span className="font-medium text-blue-900">JazzCash</span>
+                        </div>
+                        <p className="text-blue-800 font-mono">{lawyerPaymentMethods.jazzcash.accountNumber}</p>
+                        <p className="text-blue-700">{lawyerPaymentMethods.jazzcash.accountName}</p>
+                      </div>
+                    )}
+                    
+                    {/* EasyPaisa */}
+                    {lawyerPaymentMethods.easypaisa?.enabled && (
+                      <div className="p-2 bg-green-50 rounded border border-green-200">
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="text-sm">💳</span>
+                          <span className="font-medium text-green-900">EasyPaisa</span>
+                        </div>
+                        <p className="text-green-800 font-mono">{lawyerPaymentMethods.easypaisa.accountNumber}</p>
+                        <p className="text-green-700">{lawyerPaymentMethods.easypaisa.accountName}</p>
+                      </div>
+                    )}
+                    
+                    {/* Bank Transfer */}
+                    {lawyerPaymentMethods.bankTransfer?.enabled && (
+                      <div className="p-2 bg-purple-50 rounded border border-purple-200">
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="text-sm">🏦</span>
+                          <span className="font-medium text-purple-900">Bank Transfer</span>
+                        </div>
+                        <p className="text-purple-800 font-medium">{lawyerPaymentMethods.bankTransfer.bankName}</p>
+                        <p className="text-purple-800 font-mono">{lawyerPaymentMethods.bankTransfer.accountNumber}</p>
+                        <p className="text-purple-700">{lawyerPaymentMethods.bankTransfer.accountName}</p>
+                        {lawyerPaymentMethods.bankTransfer.iban && (
+                          <p className="text-purple-700 font-mono text-xs">{lawyerPaymentMethods.bankTransfer.iban}</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Cash on Meeting - Always Available */}
+                    <div className="p-2 bg-gray-50 rounded border border-gray-200">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-sm">💵</span>
+                        <span className="font-medium text-gray-900">Cash on Meeting</span>
+                      </div>
+                      <p className="text-gray-700">Pay in person when you meet</p>
+                    </div>
+                    
+                    {/* No Payment Methods Message */}
+                    {!lawyerPaymentMethods.jazzcash?.enabled && !lawyerPaymentMethods.easypaisa?.enabled && !lawyerPaymentMethods.bankTransfer?.enabled && (
+                      <div className="p-2 bg-yellow-50 rounded border border-yellow-200">
+                        <p className="text-yellow-800 text-center">Cash payments only</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -904,16 +1078,24 @@ export default function AppointmentBooking() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Payment Method *</Label>
-                      <Select value={formData.paymentMethod} onValueChange={(value) => setFormData(prev => ({...prev, paymentMethod: value}))} required>
+                      <Select value={formData.paymentMethod} onValueChange={(value) => {
+                        console.log('🔍 Debug - Payment method selected:', value);
+                        setFormData(prev => ({...prev, paymentMethod: value}));
+                      }} required>
                         <SelectTrigger>
                           <SelectValue placeholder="Select payment method" />
                         </SelectTrigger>
                         <SelectContent>
-                          {PAYMENT_METHODS.map((method) => (
-                            <SelectItem key={method} value={method}>
-                              {method}
-                            </SelectItem>
-                          ))}
+                          {(() => {
+                            const availableMethods = getAvailablePaymentMethods(lawyerPaymentMethods);
+                            console.log('🔍 Debug - Available payment methods:', availableMethods);
+                            console.log('🔍 Debug - Lawyer payment methods:', lawyerPaymentMethods);
+                            return availableMethods.map((method) => (
+                              <SelectItem key={method} value={method}>
+                                {method}
+                              </SelectItem>
+                            ));
+                          })()}
                         </SelectContent>
                       </Select>
                     </div>
@@ -928,22 +1110,158 @@ export default function AppointmentBooking() {
                           className="flex-1 border rounded-r px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40"
                           value={consultationFeeDisplay}
                           onChange={handleInputChange}
-                          placeholder="5,000"
+                          placeholder="2,000"
                         />
                       </div>
                       <p className="text-xs text-gray-500">Range: PKR 1,000 – 50,000</p>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentScreenshot">Payment Screenshot/Reference</Label>
-                    <Input
-                      id="paymentScreenshot"
-                      name="paymentScreenshot"
-                      value={formData.paymentScreenshot}
-                      onChange={handleInputChange}
-                      placeholder="Transaction ID or reference number (if paid in advance)"
-                    />
-                  </div>
+                  
+                  {/* Payment Instructions */}
+                  {formData.paymentMethod && formData.paymentMethod !== 'Cash on Meeting' && lawyerPaymentMethods && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-yellow-800 mb-2 flex items-center">
+                        <span className="mr-2">💳</span>
+                        Payment Instructions:
+                      </h4>
+                      <div className="text-sm text-yellow-700 space-y-2">
+                        {formData.paymentMethod === 'JazzCash' && lawyerPaymentMethods.jazzcash?.enabled && (
+                          <div>
+                            <p className="font-medium">Send PKR {formData.consultationFee.toLocaleString()} to:</p>
+                            <p>📱 JazzCash: {lawyerPaymentMethods.jazzcash.accountNumber}</p>
+                            <p>👤 Account Name: {lawyerPaymentMethods.jazzcash.accountName}</p>
+                            <p className="mt-2 text-xs">Take a screenshot of the payment confirmation and upload it below.</p>
+                          </div>
+                        )}
+                        {formData.paymentMethod === 'EasyPaisa' && lawyerPaymentMethods.easypaisa?.enabled && (
+                          <div>
+                            <p className="font-medium">Send PKR {formData.consultationFee.toLocaleString()} to:</p>
+                            <p>💳 EasyPaisa: {lawyerPaymentMethods.easypaisa.accountNumber}</p>
+                            <p>👤 Account Name: {lawyerPaymentMethods.easypaisa.accountName}</p>
+                            <p className="mt-2 text-xs">Take a screenshot of the payment confirmation and upload it below.</p>
+                          </div>
+                        )}
+                        {formData.paymentMethod === 'Bank Transfer' && lawyerPaymentMethods.bankTransfer?.enabled && (
+                          <div>
+                            <p className="font-medium">Transfer PKR {formData.consultationFee.toLocaleString()} to:</p>
+                            <p>🏦 Bank: {lawyerPaymentMethods.bankTransfer.bankName}</p>
+                            <p>📄 Account Number: {lawyerPaymentMethods.bankTransfer.accountNumber}</p>
+                            <p>👤 Account Name: {lawyerPaymentMethods.bankTransfer.accountName}</p>
+                            {lawyerPaymentMethods.bankTransfer.iban && (
+                              <p>🔢 IBAN: {lawyerPaymentMethods.bankTransfer.iban}</p>
+                            )}
+                            <p className="mt-2 text-xs">Take a screenshot of the transfer confirmation and upload it below.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Payment Screenshot Upload */}
+                  {(() => {
+                    console.log('🔍 Debug - Checking screenshot upload conditions:');
+                    console.log('🔍 Debug - formData.paymentMethod:', formData.paymentMethod);
+                    console.log('🔍 Debug - Should show screenshot upload:', formData.paymentMethod && formData.paymentMethod !== 'Cash on Meeting');
+                    return formData.paymentMethod && formData.paymentMethod !== 'Cash on Meeting';
+                  })() && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="paymentScreenshot">Payment Screenshot/Reference *</Label>
+                        <Input
+                          id="paymentScreenshot"
+                          name="paymentScreenshot"
+                          value={formData.paymentScreenshot}
+                          onChange={handleInputChange}
+                          placeholder="Transaction ID or reference number"
+                          required
+                        />
+                        <p className="text-xs text-gray-500">
+                          Enter transaction ID or reference number from your payment.
+                        </p>
+                      </div>
+                      
+                      {/* File Upload for Screenshot */}
+                      <div className="space-y-2">
+                        <Label htmlFor="paymentScreenshotFile">Upload Payment Screenshot *</Label>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                          <input
+                            type="file"
+                            id="paymentScreenshotFile"
+                            name="paymentScreenshotFile"
+                            accept="image/*,.pdf"
+                            onChange={handlePaymentScreenshotUpload}
+                            className="hidden"
+                          />
+                          <label htmlFor="paymentScreenshotFile" className="cursor-pointer">
+                            <div className="space-y-2">
+                              <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">
+                                  Click to upload payment screenshot
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  PNG, JPG, PDF up to 10MB
+                                </p>
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                        
+                        {/* Display uploaded screenshot */}
+                        {formData.paymentScreenshotFile && (
+                          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-green-800">
+                                  {formData.paymentScreenshotFile.name}
+                                </p>
+                                <p className="text-xs text-green-600">
+                                  {(formData.paymentScreenshotFile.size / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({...prev, paymentScreenshotFile: null}))}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <p className="text-xs text-gray-500">
+                          Upload screenshot of payment confirmation. Lawyer will verify payment before accepting appointment.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Cash on Meeting Note */}
+                  {formData.paymentMethod === 'Cash on Meeting' && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 text-green-800">
+                        <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                        <span className="font-semibold">Cash Payment Selected</span>
+                      </div>
+                      <p className="text-green-700 text-sm mt-1">
+                        You will pay PKR {formData.consultationFee.toLocaleString()} in cash when you meet the lawyer.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Submit Button */}

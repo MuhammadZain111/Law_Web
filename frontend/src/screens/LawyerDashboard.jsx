@@ -13,6 +13,7 @@ import { PaymentStatus } from "./Lawyer/payment-status"
 import  RecordsAccess  from "./Lawyer/records-access"
 import  ProfileManagement  from "./Lawyer/profile-management"
 import  NotificationsPanel  from "./Lawyer/notifications-panel"
+import { UpgradeProfile } from "./Lawyer/upgrade-profile"
 import UpcomingAppointments from "../components/UpcomingAppointments"
 
 export default function LawyerDashboard() {
@@ -99,6 +100,8 @@ export default function LawyerDashboard() {
         return <VirtualConsultation />
       case "payments":
         return <PaymentStatus />
+      case "upgrade":
+        return <UpgradeProfile />
       case "records":
         return <RecordsAccess />
       case "profile":

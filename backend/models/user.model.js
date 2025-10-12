@@ -76,6 +76,25 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    paymentMethods: {
+      jazzcash: {
+        accountNumber: { type: String, default: "" },
+        accountName: { type: String, default: "" },
+        enabled: { type: Boolean, default: false }
+      },
+      easypaisa: {
+        accountNumber: { type: String, default: "" },
+        accountName: { type: String, default: "" },
+        enabled: { type: Boolean, default: false }
+      },
+      bankTransfer: {
+        bankName: { type: String, default: "" },
+        accountNumber: { type: String, default: "" },
+        accountName: { type: String, default: "" },
+        iban: { type: String, default: "" },
+        enabled: { type: Boolean, default: false }
+      }
+    },
   },
   { timestamps: true }
 );
