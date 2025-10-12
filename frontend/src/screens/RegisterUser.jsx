@@ -12,6 +12,8 @@ function RegisterUser() {
     password: '',
     confirmPassword: ''
   });
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -29,6 +31,62 @@ function RegisterUser() {
         [name]: ''
       }));
     }
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Photo size should be less than 5MB');
+      return;
+    }
+
+    // Check file type (allow images only)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please upload JPG or PNG image only');
+      return;
+    }
+
+    try {
+      // Get ImageKit authentication
+      const response = await fetch('http://localhost:5000/api/v1/user/imagekit-auth');
+      const { token, expire, signature, publicKey } = await response.json();
+
+      // Create form data for ImageKit upload
+      const form = new FormData();
+      form.append('file', file);
+      form.append('publicKey', publicKey);
+      form.append('signature', signature);
+      form.append('expire', expire);
+      form.append('token', token);
+      form.append('fileName', file.name);
+      form.append('folder', 'user-profiles');
+      form.append('useUniqueFileName', 'true');
+
+      // Upload to ImageKit
+      const uploadUrl = 'https://upload.imagekit.io/api/v1/files/upload';
+      const uploadResponse = await fetch(uploadUrl, { method: 'POST', body: form });
+      const uploadResult = await uploadResponse.json();
+
+      if (uploadResult.url) {
+        setProfilePhoto(uploadResult.url);
+        setPhotoPreview(URL.createObjectURL(file));
+        console.log('Photo uploaded successfully:', uploadResult.url);
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      alert('Failed to upload photo. Please try again.');
+    }
+  };
+
+  const removePhoto = () => {
+    setProfilePhoto(null);
+    setPhotoPreview(null);
   };
 
   const validateForm = () => {
@@ -75,9 +133,11 @@ function RegisterUser() {
       const userData = {
         firstname: formData.firstname,
         lastname: formData.lastname,
+        username: `${formData.firstname.toLowerCase()}${formData.lastname.toLowerCase()}${Date.now()}`,
         email: formData.email,
         password: formData.password,
-        userType: 'user'
+        userType: 'user',
+        photoUrl: profilePhoto || ''
       };
 
       console.log('Sending user registration data:', userData);
@@ -103,9 +163,12 @@ function RegisterUser() {
           password: '',
           confirmPassword: ''
         });
+        setProfilePhoto(null);
+        setPhotoPreview(null);
         // Switch to login mode
         setIsRegistering(false);
       } else {
+        console.error('Registration failed:', result);
         alert(result.message || 'Registration failed. Please try again.');
       }
     } catch (error) {
@@ -154,7 +217,13 @@ function RegisterUser() {
         localStorage.setItem('token', result.token);
         localStorage.setItem('userType', result.userType || 'user');
         alert('Login successful!');
-        navigate('/');
+        
+        // Redirect based on user type
+        if (result.userType === 'lawyer') {
+          navigate('/lawyerDashboard');
+        } else {
+          navigate('/userDashboard');
+        }
       } else {
         alert(result.message || 'Login failed. Please check your credentials.');
       }
@@ -173,9 +242,50 @@ function RegisterUser() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <User className="w-8 h-8 text-blue-600" />
-          </div>
+          {/* Profile Photo Upload */}
+          {isRegistering && (
+            <div className="mb-6">
+              <div className="relative inline-block">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-blue-100 flex items-center justify-center">
+                      <User className="w-12 h-12 text-blue-600" />
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  id="photoUpload"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="photoUpload"
+                  className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors shadow-lg"
+                >
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </label>
+                {photoPreview && (
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-lg"
+                  >
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <p className="text-sm text-gray-500 mt-2">Click to upload profile photo (optional)</p>
+            </div>
+          )}
+          
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             {isRegistering ? "Create Account" : "Welcome Back"}
           </h1>

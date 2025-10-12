@@ -1,8 +1,27 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import Button from "./ui/Button.jsx"
 import { Scale } from "./icons/Icons.jsx"
+import { useState, useEffect } from "react"
 
 const Header = () => {
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userType, setUserType] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const type = localStorage.getItem('userType');
+    setIsLoggedIn(!!token);
+    setUserType(type);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userType');
+    setIsLoggedIn(false);
+    setUserType(null);
+    navigate('/');
+  };
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -25,14 +44,29 @@ const Header = () => {
           </Link>
         </div>
         <div className="flex space-x-3">
-          <Link to="/auth/login">
-            <Button variant="outline" size="sm" className="hidden sm:flex">
-              Lawyer Login
-            </Button>
-          </Link>
-          <Link to="/auth/register">
-            <Button size="sm">Lawyer Sign Up</Button>
-          </Link>
+          {isLoggedIn ? (
+            <>
+              <Link to={userType === 'lawyer' ? '/lawyerDashboard' : '/userDashboard'}>
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  Dashboard
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  Login
+                </Button>
+              </Link>
+              <Link to="/registration-selection">
+                <Button size="sm">Sign Up</Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

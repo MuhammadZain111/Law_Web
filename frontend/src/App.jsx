@@ -2,6 +2,7 @@ import { Link, Navigate, Route, Routes } from "react-router-dom";
 import About from './screens/About';
 import Home from './screens/Home';
 import LawyerDashboard from './screens/LawyerDashboard';
+import UserDashboard from './screens/UserDashboard';
 import NoPage from './screens/NoPage';
 import RegisterLawyer from './screens/RegisterLawyer';
 import RegisterUser from './screens/RegisterUser';
@@ -53,6 +54,7 @@ const App = () => {
       <Route path="/registerUser" element={<RegisterUser />} />
       <Route path="/registerLawyer" element={<RegisterLawyer />} />
       <Route path="/lawyerDashboard" element={<LawyerDashboard />} />
+      <Route path="/userDashboard" element={<RequireAuth><UserDashboard /></RequireAuth>} />
       <Route path="/services" element={<Services />} />
       <Route path="/login" element={<LoginSelection />} />
       <Route path="/user/login" element={<RegisterUser />} />
