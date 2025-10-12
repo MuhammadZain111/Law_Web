@@ -49,6 +49,13 @@ const AppointmentSchema = new mongoose.Schema({
     required: true 
   },
   paymentScreenshot: { type: String }, // File path or URL
+  paymentScreenshotFile: { // Payment screenshot file details
+    name: { type: String },
+    size: { type: Number },
+    type: { type: String },
+    lastModified: { type: Number },
+    url: { type: String }
+  },
   paymentStatus: {
     type: String,
     enum: ["unpaid", "paid", "refunded"],

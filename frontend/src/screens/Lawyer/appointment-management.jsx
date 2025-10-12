@@ -26,6 +26,7 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState(null);
+  const [downloadingFile, setDownloadingFile] = useState(null);
 
   // Sync local appointments with prop changes
   useEffect(() => {
@@ -123,6 +124,7 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
     setSelectedDocuments({
       documents: appointment.documents || '',
       documentFiles: appointment.documentFiles || [],
+      paymentScreenshotFile: appointment.paymentScreenshotFile || null,
       clientName: appointment.clientName
     });
     setShowDocumentModal(true);
@@ -135,8 +137,31 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
     // If the file has a URL, open it directly
     if (file.url) {
       console.log('🔍 Debug - Opening file URL:', file.url);
-      window.open(file.url, '_blank');
-      return;
+      
+      try {
+        // Try to open in new tab with proper security attributes
+        const newWindow = window.open(file.url, '_blank', 'noopener,noreferrer');
+        
+        if (!newWindow) {
+          // If popup was blocked, try alternative method
+          console.log('⚠️ Popup blocked, trying alternative method');
+          const link = document.createElement('a');
+          link.href = file.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+        
+        console.log('✅ File opened successfully:', file.name);
+        return;
+      } catch (error) {
+        console.log('⚠️ Error opening file:', error);
+        alert(`Error opening file: ${error.message}`);
+        return;
+      }
     }
     
     // For files without URLs, show detailed information
@@ -157,24 +182,69 @@ Current Status: File metadata only (no actual file content stored)
   };
 
   // Function to handle file download
-  const handleDownloadFile = (file) => {
+  const handleDownloadFile = async (file) => {
     console.log('🔍 Debug - Downloading file:', file);
+    setDownloadingFile(file.name);
     
-    // If the file has a URL, trigger download
-    if (file.url) {
-      console.log('🔍 Debug - Downloading file URL:', file.url);
-      const link = document.createElement('a');
-      link.href = file.url;
-      link.download = file.name;
-      link.target = '_blank'; // Open in new tab as fallback
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
-    }
-    
-    // For files without URLs, show detailed information
-    const fileInfo = `
+    try {
+      // If the file has a URL, trigger download
+      if (file.url) {
+        console.log('🔍 Debug - Downloading file URL:', file.url);
+        
+        try {
+          // Method 1: Try direct download with fetch
+          const response = await fetch(file.url);
+          if (response.ok) {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = file.name;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up the object URL
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            console.log('✅ File downloaded successfully:', file.name);
+            alert(`✅ File "${file.name}" downloaded successfully!`);
+            return;
+          }
+        } catch (error) {
+          console.log('⚠️ Fetch download failed, trying direct link method:', error);
+        }
+        
+        // Method 2: Fallback to direct link
+        try {
+          const link = document.createElement('a');
+          link.href = file.url;
+          link.download = file.name;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          console.log('✅ File download initiated via direct link:', file.name);
+          alert(`✅ Download started for "${file.name}"!`);
+          return;
+        } catch (error) {
+          console.log('⚠️ Direct link download failed:', error);
+        }
+        
+        // Method 3: Open in new tab as last resort
+        window.open(file.url, '_blank', 'noopener,noreferrer');
+        console.log('✅ File opened in new tab:', file.name);
+        alert(`✅ File "${file.name}" opened in new tab!`);
+        return;
+      }
+      
+      // For files without URLs, show detailed information
+      const fileInfo = `
 📥 Download Information:
 Name: ${file.name}
 Type: ${file.type || 'Unknown'}
@@ -185,27 +255,33 @@ Last Modified: ${file.lastModified ? new Date(file.lastModified).toLocaleString(
 This usually happens with older appointments that were created before ImageKit integration.
 
 Current Status: File metadata only (no actual file content stored)
-    `.trim();
-    
-    alert(fileInfo);
+      `.trim();
+      
+      alert(fileInfo);
+    } finally {
+      setDownloadingFile(null);
+    }
   };
 
   // Function to render document files
   const renderDocuments = (appointment) => {
     const documents = appointment.documents || '';
     const documentFiles = appointment.documentFiles || [];
+    const paymentScreenshotFile = appointment.paymentScreenshotFile;
     
     console.log('🔍 Rendering documents for appointment:', {
       clientName: appointment.clientName,
       documents: documents,
       documentFiles: documentFiles,
+      paymentScreenshotFile: paymentScreenshotFile,
       hasDocuments: !!documents,
-      hasFiles: documentFiles.length > 0
+      hasFiles: documentFiles.length > 0,
+      hasPaymentScreenshot: !!paymentScreenshotFile
     });
     
     // Debug: Check which files have URLs
     documentFiles.forEach((file, index) => {
-      console.log(`🔍 File ${index + 1}:`, {
+      console.log(`🔍 Case File ${index + 1}:`, {
         name: file.name,
         hasUrl: !!file.url,
         url: file.url,
@@ -214,28 +290,107 @@ Current Status: File metadata only (no actual file content stored)
       });
     });
     
-    if (!documents && documentFiles.length === 0) {
+    if (paymentScreenshotFile) {
+      console.log('🔍 Payment Screenshot:', {
+        name: paymentScreenshotFile.name,
+        hasUrl: !!paymentScreenshotFile.url,
+        url: paymentScreenshotFile.url,
+        type: paymentScreenshotFile.type,
+        size: paymentScreenshotFile.size
+      });
+    }
+    
+    if (!documents && documentFiles.length === 0 && !paymentScreenshotFile) {
       console.log('❌ No documents to render for:', appointment.clientName);
       return null;
     }
 
     return (
-      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Case Documents</span>
+      <div className="mt-3 space-y-4">
+        {/* Payment Screenshot Section */}
+        {paymentScreenshotFile && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <span className="text-green-600 text-lg">💳</span>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-green-800">Payment Screenshot</h4>
+                  <p className="text-xs text-green-600">Proof of payment for consultation fee</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg p-3 border border-green-200">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <span className="text-green-600 text-lg">📸</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900 truncate">{paymentScreenshotFile.name}</h4>
+                  <p className="text-sm text-gray-500">
+                    {(paymentScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • {paymentScreenshotFile.type?.split('/')[1]?.toUpperCase() || 'IMAGE'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="default" 
+                    variant="default"
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                    onClick={() => handleViewFile(paymentScreenshotFile)}
+                  >
+                    <Eye className="h-5 w-5 mr-2" />
+                    View
+                  </Button>
+                  <Button 
+                    size="default" 
+                    variant="default"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                    onClick={() => handleDownloadFile(paymentScreenshotFile)}
+                    disabled={downloadingFile === paymentScreenshotFile.name}
+                  >
+                    {downloadingFile === paymentScreenshotFile.name ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-5 w-5 mr-2" />
+                        Download
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="h-7 px-2"
-            onClick={() => handleViewDocuments(appointment)}
-          >
-            <Eye className="h-3 w-3 mr-1" />
-            View All
-          </Button>
-        </div>
+        )}
+
+        {/* Case Documents Section */}
+        {(documents || documentFiles.length > 0) && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-800">Case Documents</h4>
+                  <p className="text-xs text-blue-600">Legal documents and case-related files</p>
+                </div>
+              </div>
+              <Button 
+                size="default" 
+                variant="outline" 
+                className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold px-3 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                onClick={() => handleViewDocuments(appointment)}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View All
+              </Button>
+            </div>
         
         {/* Text description of documents */}
         {documents && (
@@ -277,6 +432,8 @@ Current Status: File metadata only (no actual file content stored)
                 </p>
               )}
             </div>
+          </div>
+        )}
           </div>
         )}
       </div>
@@ -442,17 +599,22 @@ Current Status: File metadata only (no actual file content stored)
                     {appointment.status === "pending" && (
                       <>
                         <Button
-                          size="sm"
+                          size="default"
                           onClick={() => handleAcceptAppointment(appointment._id || appointment.id)}
-                          className="bg-primary hover:bg-primary/90"
+                          className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                         >
-                          <CheckCircle className="h-4 w-4 mr-1" />
+                          <CheckCircle className="h-5 w-5 mr-2" />
                           Accept
                         </Button>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => setSelectedAppointment(appointment)}>
-                              <RotateCcw className="h-4 w-4 mr-1" />
+                            <Button 
+                              size="default" 
+                              variant="outline" 
+                              className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                              onClick={() => setSelectedAppointment(appointment)}
+                            >
+                              <RotateCcw className="h-5 w-5 mr-2" />
                               Reschedule
                             </Button>
                           </DialogTrigger>
@@ -524,18 +686,89 @@ Current Status: File metadata only (no actual file content stored)
 
       {/* Document View Modal */}
       <Dialog open={showDocumentModal} onOpenChange={setShowDocumentModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Case Documents - {selectedDocuments?.clientName}</DialogTitle>
+            <DialogTitle>Documents & Payment - {selectedDocuments?.clientName}</DialogTitle>
             <DialogDescription>
-              Review all documents and files provided by the client for this case.
+              Review all documents, files, and payment proof provided by the client.
             </DialogDescription>
           </DialogHeader>
           
           {selectedDocuments && (
             <div className="space-y-6">
-              {/* Document Description */}
-              {selectedDocuments.documents && (
+              {/* Payment Screenshot Section */}
+              {selectedDocuments.paymentScreenshotFile && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <span className="text-green-600 text-xl">💳</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-green-800">Payment Screenshot</h3>
+                      <p className="text-sm text-green-600">Proof of payment for consultation fee</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center">
+                        <span className="text-green-600 text-2xl">📸</span>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{selectedDocuments.paymentScreenshotFile.name}</h4>
+                        <p className="text-sm text-gray-500">
+                          {(selectedDocuments.paymentScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • {selectedDocuments.paymentScreenshotFile.type?.split('/')[1]?.toUpperCase() || 'IMAGE'}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button 
+                          size="sm" 
+                          variant="default"
+                          className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
+                          onClick={() => handleViewFile(selectedDocuments.paymentScreenshotFile)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="default"
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
+                          onClick={() => handleDownloadFile(selectedDocuments.paymentScreenshotFile)}
+                          disabled={downloadingFile === selectedDocuments.paymentScreenshotFile.name}
+                        >
+                          {downloadingFile === selectedDocuments.paymentScreenshotFile.name ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1"></div>
+                              <span className="text-xs">Downloading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4 mr-1" />
+                              <span className="text-xs">Download</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Case Documents Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-blue-800">Case Documents</h3>
+                    <p className="text-sm text-blue-600">Legal documents and case-related files</p>
+                  </div>
+                </div>
+
+                {/* Document Description */}
+                {selectedDocuments.documents && (
                 <div>
                   <h3 className="text-lg font-medium mb-2">Document Description</h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
@@ -548,11 +781,12 @@ Current Status: File metadata only (no actual file content stored)
               {selectedDocuments.documentFiles.length > 0 && (
                 <div>
                   <h3 className="text-lg font-medium mb-3">Uploaded Files ({selectedDocuments.documentFiles.length})</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {selectedDocuments.documentFiles.map((file, index) => (
-                      <div key={index} className="border rounded-lg p-4 bg-white">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0">
+                      <div key={index} className="border rounded-lg p-4 bg-white min-h-[120px]">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0">
                             {file.type?.startsWith('image/') ? (
                               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                                 <span className="text-blue-600 text-sm font-bold">IMG</span>
@@ -572,10 +806,11 @@ Current Status: File metadata only (no actual file content stored)
                             <p className="text-sm text-gray-500">
                               {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type?.split('/')[1]?.toUpperCase() || 'FILE'}
                             </p>
-                            <div className="flex gap-2 mt-2">
+                            <div className="flex gap-2 mt-2 flex-wrap">
                               <Button 
                                 size="sm" 
-                                variant="outline"
+                                variant="default"
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
                                 onClick={() => handleViewFile(file)}
                               >
                                 <Eye className="h-4 w-4 mr-1" />
@@ -583,13 +818,25 @@ Current Status: File metadata only (no actual file content stored)
                               </Button>
                               <Button 
                                 size="sm" 
-                                variant="outline"
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
                                 onClick={() => handleDownloadFile(file)}
+                                disabled={downloadingFile === file.name}
                               >
-                                <Download className="h-4 w-4 mr-1" />
-                                Download
+                                {downloadingFile === file.name ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1"></div>
+                                    <span className="text-xs">Downloading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="h-4 w-4 mr-1" />
+                                    <span className="text-xs">Download</span>
+                                  </>
+                                )}
                               </Button>
                             </div>
+                          </div>
                           </div>
                         </div>
                       </div>
@@ -597,11 +844,15 @@ Current Status: File metadata only (no actual file content stored)
                   </div>
                 </div>
               )}
+              </div>
             </div>
           )}
           
           <DialogFooter>
-            <Button onClick={() => setShowDocumentModal(false)}>
+            <Button 
+              onClick={() => setShowDocumentModal(false)}
+              className="bg-gray-800 hover:bg-gray-900 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            >
               Close
             </Button>
           </DialogFooter>
