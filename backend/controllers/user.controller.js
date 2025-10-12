@@ -302,3 +302,76 @@ export const uploadLocal = async (req, res) => {
     })
   }
 }
+
+// Update payment methods
+export const updatePaymentMethods = async (req, res) => {
+  try {
+    const userId = req.user?.id
+    const { paymentMethods } = req.body
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated"
+      })
+    }
+
+    if (!paymentMethods) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment methods data is required"
+      })
+    }
+
+    // Validate payment methods structure
+    const validMethods = ['jazzcash', 'easypaisa', 'bankTransfer']
+    for (const method of validMethods) {
+      if (paymentMethods[method] && paymentMethods[method].enabled) {
+        if (method === 'bankTransfer') {
+          if (!paymentMethods[method].bankName || !paymentMethods[method].accountNumber || !paymentMethods[method].accountName) {
+            return res.status(400).json({
+              success: false,
+              message: `Bank Transfer requires bank name, account number, and account name`
+            })
+          }
+        } else {
+          if (!paymentMethods[method].accountNumber || !paymentMethods[method].accountName) {
+            return res.status(400).json({
+              success: false,
+              message: `${method} requires account number and account name`
+            })
+          }
+        }
+      }
+    }
+
+    // Update user with payment methods
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { paymentMethods },
+      { new: true, select: '-password' }
+    )
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      })
+    }
+
+    console.log(`[v0] Payment methods updated for user: ${userId}`)
+
+    res.json({
+      success: true,
+      message: "Payment methods updated successfully",
+      user: updatedUser
+    })
+
+  } catch (error) {
+    console.error("[v0] Update payment methods error:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to update payment methods"
+    })
+  }
+}
