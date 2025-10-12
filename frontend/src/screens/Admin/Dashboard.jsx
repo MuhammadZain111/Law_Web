@@ -36,10 +36,10 @@ export default function Dashboard() {
     ;(async () => {
       try {
         // Load approved list for table
-        const approved = await api.get("/lawyers?status=approved")
+        const approved = await api.get("/appointments/lawyers?status=approved")
         setLawyers(approved.data || [])
         // Load pending list for approvals
-        const pending = await api.get("/lawyers?status=pending")
+        const pending = await api.get("/appointments/lawyers?status=pending")
         setPendingLawyers(pending.data || [])
       } catch (e) {
         if (e?.response?.status === 401) {
@@ -330,7 +330,13 @@ export default function Dashboard() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Pending Profile Registrations</CardTitle>
-                    <CardDescription>New lawyer registrations awaiting admin approval before profile creation</CardDescription>
+                    <CardDescription>
+                      New lawyer registrations awaiting admin approval before profile creation
+                      <br />
+                      <span className="text-sm text-blue-600 mt-1 block">
+                        Required for approval: Full Name, Bar Number, Specialization, Experience, City, CNIC, Phone (10+ digits), and at least one document
+                      </span>
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {pendingLawyers.length === 0 ? (
@@ -385,6 +391,28 @@ export default function Dashboard() {
                                 </div>
                               </div>
                               <div className="flex flex-col gap-2 shrink-0">
+                                {/* Check for missing required fields */}
+                                {(() => {
+                                  const missing = [];
+                                  if (!l.fullName) missing.push("Full Name");
+                                  if (!l.barNumber) missing.push("Bar Number");
+                                  if (!l.specialization) missing.push("Specialization");
+                                  if (!l.yearsOfExperience && l.yearsOfExperience !== 0) missing.push("Experience");
+                                  if (!l.city) missing.push("City");
+                                  if (!l.cnicNumber) missing.push("CNIC");
+                                  if (!l.phone || l.phone.length < 10) missing.push("Phone (10+ digits)");
+                                  if ((l.submittedDocuments || 0) === 0) missing.push("Documents");
+                                  
+                                  return missing.length > 0 ? (
+                                    <div className="text-xs text-red-600 mb-2 p-2 bg-red-50 rounded">
+                                      <strong>Missing:</strong> {missing.join(", ")}
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-green-600 mb-2 p-2 bg-green-50 rounded">
+                                      ✓ All required fields complete
+                                    </div>
+                                  );
+                                })()}
                                 <Button
                                   className="bg-green-600 hover:bg-green-700"
                                   onClick={async () => {
@@ -393,13 +421,26 @@ export default function Dashboard() {
                                       if (!id) return
                                       await api.post(`/lawyers/${id}/approve`)
                                       const [approved, pending] = await Promise.all([
-                                        api.get('/lawyers?status=approved'),
-                                        api.get('/lawyers?status=pending'),
+                                        api.get('/appointments/lawyers?status=approved'),
+                                        api.get('/appointments/lawyers?status=pending'),
                                       ])
                                       setLawyers(approved.data || [])
                                       setPendingLawyers(pending.data || [])
                                     } catch (err) {
                                       console.error(err)
+                                      
+                                      // Handle specific validation errors
+                                      if (err?.message && err?.message.includes("Profile is incomplete")) {
+                                        // Try to get the missing fields from the error response
+                                        const missingFields = err.missing || [];
+                                        const missingList = missingFields.length > 0 
+                                          ? `\n\nMissing fields: ${missingFields.join(', ')}`
+                                          : '';
+                                        
+                                        alert(`Cannot approve lawyer: Profile is incomplete.${missingList}\n\nPlease ensure the lawyer has completed their profile with all required information.`)
+                                      } else {
+                                        alert(err?.message || 'Failed to approve lawyer. Please try again.')
+                                      }
                                     }
                                   }}
                                 >
@@ -411,7 +452,7 @@ export default function Dashboard() {
                                     try {
                                       const id = l._id || l.id
                                       if (!id) return
-                                      const { data } = await api.get(`/lawyers/${id}/review`)
+                                      const { data } = await api.get(`/appointments/lawyers/${id}/review`)
                                       const lines = [
                                         `Name: ${data.fullName}`,
                                         `Email: ${l.userId?.email || l.email || ''}`,
@@ -439,7 +480,7 @@ export default function Dashboard() {
                                       const id = l._id || l.id
                                       if (!id) return
                                       await api.post(`/lawyers/${id}/reject`, { reason: 'Insufficient documents' })
-                                      const pending = await api.get('/lawyers?status=pending')
+                                      const pending = await api.get('/appointments/lawyers?status=pending')
                                       setPendingLawyers(pending.data || [])
                                     } catch (err) {
                                       console.error(err)
@@ -577,10 +618,11 @@ export default function Dashboard() {
                                     const id = l._id || l.id;
                                     await api.post(`/lawyers/${id}/approve`);
                                     // Refresh lists
-                                    const approved = await api.get("/lawyers?status=approved");
+                                    const approved = await api.get("/appointments/lawyers?status=approved");
                                     setLawyers(approved.data || []);
                                   } catch (err) {
                                     console.error(err);
+                                    alert(err?.message || 'Failed to approve lawyer. Please check profile completeness.');
                                   }
                                 }}
                               >

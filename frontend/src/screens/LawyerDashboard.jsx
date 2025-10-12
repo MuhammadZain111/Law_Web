@@ -13,6 +13,7 @@ import { PaymentStatus } from "./Lawyer/payment-status"
 import  RecordsAccess  from "./Lawyer/records-access"
 import  ProfileManagement  from "./Lawyer/profile-management"
 import  NotificationsPanel  from "./Lawyer/notifications-panel"
+import UpcomingAppointments from "../components/UpcomingAppointments"
 
 export default function LawyerDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -71,7 +72,7 @@ export default function LawyerDashboard() {
           const payload = JSON.parse(atob(token.split('.')[1] || ''))
           const userId = payload.userId || payload.id
           if (userId) {
-            const resp = await api.get(`/v1/user/${userId}`)
+            const resp = await api.get(`/user/${userId}`)
             if (resp?.data?.user) setUser(resp.data.user)
           }
         }
@@ -82,7 +83,12 @@ export default function LawyerDashboard() {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardOverview user={user} appointments={appointments} pendingCount={pendingAppointments.length} />
+        return (
+          <div className="p-6 space-y-6">
+            <DashboardOverview user={user} appointments={appointments} pendingCount={pendingAppointments.length} />
+            <UpcomingAppointments userRole="lawyer" userId={user?.id} />
+          </div>
+        )
       case "appointments":
         return <AppointmentManagement appointments={appointments} onUpdate={fetchAppointments} />
       case "cases":
@@ -98,7 +104,12 @@ export default function LawyerDashboard() {
       case "profile":
         return <ProfileManagement />
       default:
-        return <DashboardOverview user={user} appointments={appointments} pendingCount={pendingAppointments.length} />
+        return (
+          <div className="p-6 space-y-6">
+            <DashboardOverview user={user} appointments={appointments} pendingCount={pendingAppointments.length} />
+            <UpcomingAppointments userRole="lawyer" userId={user?.id} />
+          </div>
+        )
     }
   }
 

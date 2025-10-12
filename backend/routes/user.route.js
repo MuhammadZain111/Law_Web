@@ -53,17 +53,19 @@ const storage = multer.diskStorage({
     cb(null, name);
   },
 });
-// const upload = multer({ storage });
+const upload = multer({ storage });
 
-// router.post("/upload-local", upload.single("file"), (req, res) => {
-//   try {
-//     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-//     const url = `${process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`}/uploads/${req.file.filename}`;
-//     return res.json({ url });
-//   } catch (e) {
-//     console.error(e);
-//     return res.status(500).json({ message: "Failed to store file" });
-//   }
-//});
+router.post("/upload-local", upload.single("file"), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const port = process.env.PORT || 5000;
+    const base = process.env.BASE_URL || `http://localhost:${port}`;
+    const url = `${base}/uploads/${req.file.filename}`;
+    return res.json({ url });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "Failed to store file" });
+  }
+});
 
 export default router;

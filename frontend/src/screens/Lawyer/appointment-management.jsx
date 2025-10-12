@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Calendar, Clock, User, Phone, Mail, CheckCircle, XCircle, RotateCcw, Filter } from "lucide-react";
+import { Calendar, Clock, User, Phone, Mail, CheckCircle, XCircle, RotateCcw, Filter, FileText, Download, Eye } from "lucide-react";
 
 export function AppointmentManagement({ appointments = [], onUpdate }) {
   const [localAppointments, setLocalAppointments] = useState(appointments);
@@ -24,11 +24,25 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState(null);
 
   // Sync local appointments with prop changes
   useEffect(() => {
     console.log('📋 AppointmentManagement received appointments:', appointments.length);
     console.log('📋 Appointments data:', appointments);
+    
+    // Check for documents in appointments
+    appointments.forEach((apt, index) => {
+      console.log(`📋 Appointment ${index}:`, {
+        clientName: apt.clientName,
+        documents: apt.documents,
+        documentFiles: apt.documentFiles,
+        hasDocuments: !!apt.documents,
+        hasFiles: apt.documentFiles?.length > 0
+      });
+    });
+    
     setLocalAppointments(appointments);
   }, [appointments]);
 
@@ -102,6 +116,171 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
 
   const getStatusCount = (status) => {
     return appointments.filter((apt) => apt.status === status).length;
+  };
+
+  // Function to handle document viewing
+  const handleViewDocuments = (appointment) => {
+    setSelectedDocuments({
+      documents: appointment.documents || '',
+      documentFiles: appointment.documentFiles || [],
+      clientName: appointment.clientName
+    });
+    setShowDocumentModal(true);
+  };
+
+  // Function to handle file viewing
+  const handleViewFile = (file) => {
+    console.log('🔍 Debug - Viewing file:', file);
+    
+    // If the file has a URL, open it directly
+    if (file.url) {
+      console.log('🔍 Debug - Opening file URL:', file.url);
+      window.open(file.url, '_blank');
+      return;
+    }
+    
+    // For files without URLs, show detailed information
+    const fileInfo = `
+📄 File Information:
+Name: ${file.name}
+Type: ${file.type || 'Unknown'}
+Size: ${(file.size / 1024 / 1024).toFixed(2)} MB
+Last Modified: ${file.lastModified ? new Date(file.lastModified).toLocaleString() : 'Unknown'}
+
+⚠️ Note: This file was uploaded but the actual file content is not available for viewing. 
+This usually happens with older appointments that were created before ImageKit integration.
+
+Current Status: File metadata only (no actual file content stored)
+    `.trim();
+    
+    alert(fileInfo);
+  };
+
+  // Function to handle file download
+  const handleDownloadFile = (file) => {
+    console.log('🔍 Debug - Downloading file:', file);
+    
+    // If the file has a URL, trigger download
+    if (file.url) {
+      console.log('🔍 Debug - Downloading file URL:', file.url);
+      const link = document.createElement('a');
+      link.href = file.url;
+      link.download = file.name;
+      link.target = '_blank'; // Open in new tab as fallback
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+    
+    // For files without URLs, show detailed information
+    const fileInfo = `
+📥 Download Information:
+Name: ${file.name}
+Type: ${file.type || 'Unknown'}
+Size: ${(file.size / 1024 / 1024).toFixed(2)} MB
+Last Modified: ${file.lastModified ? new Date(file.lastModified).toLocaleString() : 'Unknown'}
+
+⚠️ Note: This file was uploaded but the actual file content is not available for download. 
+This usually happens with older appointments that were created before ImageKit integration.
+
+Current Status: File metadata only (no actual file content stored)
+    `.trim();
+    
+    alert(fileInfo);
+  };
+
+  // Function to render document files
+  const renderDocuments = (appointment) => {
+    const documents = appointment.documents || '';
+    const documentFiles = appointment.documentFiles || [];
+    
+    console.log('🔍 Rendering documents for appointment:', {
+      clientName: appointment.clientName,
+      documents: documents,
+      documentFiles: documentFiles,
+      hasDocuments: !!documents,
+      hasFiles: documentFiles.length > 0
+    });
+    
+    // Debug: Check which files have URLs
+    documentFiles.forEach((file, index) => {
+      console.log(`🔍 File ${index + 1}:`, {
+        name: file.name,
+        hasUrl: !!file.url,
+        url: file.url,
+        type: file.type,
+        size: file.size
+      });
+    });
+    
+    if (!documents && documentFiles.length === 0) {
+      console.log('❌ No documents to render for:', appointment.clientName);
+      return null;
+    }
+
+    return (
+      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">Case Documents</span>
+          </div>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="h-7 px-2"
+            onClick={() => handleViewDocuments(appointment)}
+          >
+            <Eye className="h-3 w-3 mr-1" />
+            View All
+          </Button>
+        </div>
+        
+        {/* Text description of documents */}
+        {documents && (
+          <div className="mb-3">
+            <p className="text-xs text-gray-600 mb-1">Document Description:</p>
+            <p className="text-sm text-gray-800 bg-white p-2 rounded border line-clamp-2">{documents}</p>
+          </div>
+        )}
+        
+        {/* Uploaded files preview */}
+        {documentFiles.length > 0 && (
+          <div>
+            <p className="text-xs text-gray-600 mb-2">Uploaded Files ({documentFiles.length}):</p>
+            <div className="space-y-1">
+              {documentFiles.slice(0, 2).map((file, index) => (
+                <div key={index} className="flex items-center gap-2 bg-white p-2 rounded border">
+                  {file.type?.startsWith('image/') ? (
+                    <div className="w-5 h-5 bg-blue-100 rounded flex items-center justify-center">
+                      <span className="text-blue-600 text-xs font-bold">IMG</span>
+                    </div>
+                  ) : file.type === 'application/pdf' ? (
+                    <div className="w-5 h-5 bg-red-100 rounded flex items-center justify-center">
+                      <span className="text-red-600 text-xs font-bold">PDF</span>
+                    </div>
+                  ) : (
+                    <FileText className="w-4 h-4 text-gray-500" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {(file.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {documentFiles.length > 2 && (
+                <p className="text-xs text-gray-500 text-center py-1">
+                  +{documentFiles.length - 2} more files
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -229,6 +408,33 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
                       {(appointment.caseDescription || appointment.notes) && (
                         <p className="text-sm text-muted-foreground italic">Note: {appointment.caseDescription || appointment.notes}</p>
                       )}
+                      
+                      {/* Display documents if available */}
+                      {renderDocuments(appointment)}
+                      
+                      {/* Test button to show documents (temporary) */}
+                      <div className="mt-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => {
+                            console.log('🧪 Test button clicked for appointment:', appointment);
+                            handleViewDocuments(appointment);
+                          }}
+                          className="h-6 px-2 text-xs"
+                        >
+                          🧪 Test Documents
+                        </Button>
+                      </div>
+                      
+                      {/* Always show document info for debugging */}
+                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                        <p><strong>Debug Info:</strong></p>
+                        <p>Documents: "{appointment.documents || 'None'}"</p>
+                        <p>Document Files: {appointment.documentFiles?.length || 0} files</p>
+                        <p>Has Documents: {appointment.documents ? 'Yes' : 'No'}</p>
+                        <p>Has Files: {appointment.documentFiles?.length > 0 ? 'Yes' : 'No'}</p>
+                      </div>
                     </div>
                   </div>
 
@@ -315,6 +521,92 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Document View Modal */}
+      <Dialog open={showDocumentModal} onOpenChange={setShowDocumentModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Case Documents - {selectedDocuments?.clientName}</DialogTitle>
+            <DialogDescription>
+              Review all documents and files provided by the client for this case.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedDocuments && (
+            <div className="space-y-6">
+              {/* Document Description */}
+              {selectedDocuments.documents && (
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Document Description</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-800 whitespace-pre-wrap">{selectedDocuments.documents}</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Uploaded Files */}
+              {selectedDocuments.documentFiles.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium mb-3">Uploaded Files ({selectedDocuments.documentFiles.length})</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedDocuments.documentFiles.map((file, index) => (
+                      <div key={index} className="border rounded-lg p-4 bg-white">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0">
+                            {file.type?.startsWith('image/') ? (
+                              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <span className="text-blue-600 text-sm font-bold">IMG</span>
+                              </div>
+                            ) : file.type === 'application/pdf' ? (
+                              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                                <span className="text-red-600 text-sm font-bold">PDF</span>
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <FileText className="w-6 h-6 text-gray-600" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 truncate">{file.name}</h4>
+                            <p className="text-sm text-gray-500">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type?.split('/')[1]?.toUpperCase() || 'FILE'}
+                            </p>
+                            <div className="flex gap-2 mt-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleViewFile(file)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleDownloadFile(file)}
+                              >
+                                <Download className="h-4 w-4 mr-1" />
+                                Download
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setShowDocumentModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

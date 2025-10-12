@@ -20,6 +20,8 @@ router.get("/me/notifications", (_req, res) => {
 router.post("/profile", async (req, res) => {
   try {
     const body = req.body || {};
+    console.log("Creating lawyer profile:", { userId: body.userId, fullName: body.fullName, barNumber: body.barNumber });
+    
     // Upsert based on userId if provided, otherwise create new
     const filter = body.userId ? { userId: body.userId } : { barNumber: body.barNumber };
     const update = {
@@ -28,9 +30,13 @@ router.post("/profile", async (req, res) => {
     };
     const options = { new: true, upsert: true, setDefaultsOnInsert: true };
     const doc = await Lawyer.findOneAndUpdate(filter, update, options);
+    console.log("Lawyer profile created/updated:", doc);
     return res.status(201).json({ message: "Profile submitted for approval", lawyer: doc });
   } catch (e) {
     console.error("Lawyer profile submit error:", e);
+    if (e.name === 'ValidationError') {
+      return res.status(400).json({ error: "Validation error", details: e.message });
+    }
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -54,6 +60,22 @@ router.get("/", async (req, res) => {
     // Combine user data with lawyer profile data
     const list = users.map(user => {
       const profile = lawyerProfiles.find(p => p.userId.toString() === user._id.toString());
+      console.log(`User ${user._id}:`, { 
+        hasProfile: !!profile, 
+        profileData: profile ? {
+          fullName: profile.fullName,
+          barNumber: profile.barNumber,
+          specialization: profile.specialization,
+          yearsOfExperience: profile.yearsOfExperience,
+          city: profile.city,
+          phone: profile.phone,
+          firmName: profile.firmName,
+          cnicNumber: profile.cnicNumber,
+          licenses: profile.licenses?.length || 0,
+          documents: profile.documents?.length || 0
+        } : null
+      });
+      
       return {
         _id: user._id,
         userId: user._id,
@@ -61,7 +83,7 @@ router.get("/", async (req, res) => {
         fullName: profile?.fullName || `${user.firstname} ${user.lastname}`,
         barNumber: profile?.barNumber || '',
         specialization: profile?.specialization || '',
-        yearsOfExperience: profile?.yearsOfExperience || 0,
+        yearsOfExperience: profile?.yearsOfExperience !== undefined ? profile.yearsOfExperience : (user.yearsOfExperience || 0),
         city: profile?.city || '',
         state: profile?.state || '',
         country: profile?.country || '',
@@ -124,7 +146,7 @@ router.post("/:id/approve", async (req, res) => {
     if (profile.yearsOfExperience === undefined || profile.yearsOfExperience === null) missing.push("yearsOfExperience");
     if (!profile.city) missing.push("city");
     if (!profile.cnicNumber) missing.push("cnicNumber");
-    if (!profile.phone || !/^\d{11}$/.test(profile.phone)) missing.push("phone (11 digits)");
+    if (!profile.phone || profile.phone.length < 10) missing.push("phone (10+ digits)");
     const totalDocs = (profile.licenses?.length || 0) + (profile.documents?.length || 0);
     if (totalDocs === 0) missing.push("documents/licenses");
 

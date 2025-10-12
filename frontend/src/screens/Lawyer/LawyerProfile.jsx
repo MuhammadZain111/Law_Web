@@ -13,39 +13,54 @@ export default function LawyerProfile() {
   const [lawyer, setLawyer] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('🔍 Debug - LawyerProfile component mounted with ID:', id);
+
   useEffect(() => {
     fetchLawyerFromAPI();
   }, [id]);
 
   const fetchLawyerFromAPI = async () => {
     try {
+      console.log('🔍 Debug - LawyerProfile fetching for ID:', id);
+      console.log('🔍 Debug - LawyerProfile ID type:', typeof id);
+      
       // First try to get from approved lawyers list
-      const response = await api.get('/lawyers?status=approved');
-      const lawyers = response.data || [];
-      const foundLawyer = lawyers.find(l => l._id === id || l.userId === id);
+      const response = await api.get('/appointments/lawyers?status=approved');
+      console.log('🔍 Debug - Approved lawyers response:', response);
+      
+      const lawyersData = response.data?.lawyers || response.data || [];
+      console.log('🔍 Debug - Lawyers data:', lawyersData);
+      
+      const foundLawyer = lawyersData.find(l => l._id === id || l.userId === id);
+      console.log('🔍 Debug - Found lawyer:', foundLawyer);
       
       if (foundLawyer) {
         // Transform API data to match our component structure
         const apiLawyer = {
           id: foundLawyer._id || foundLawyer.userId,
           name: foundLawyer.fullName || `${foundLawyer.firstname || ''} ${foundLawyer.lastname || ''}`,
-          expertise: foundLawyer.specialization || "General Law",
-          specialization: foundLawyer.specialization || "General Law",
+          expertise: foundLawyer.specialization || foundLawyer.occupation || "General Law",
+          specialization: foundLawyer.specialization || foundLawyer.occupation || "General Law",
           rating: 4.5,
           reviews: 50,
           location: [foundLawyer.city, foundLawyer.state, foundLawyer.country].filter(Boolean).join(', ') || "Pakistan",
           experience: `${foundLawyer.yearsOfExperience || 0}+ years`,
           about: foundLawyer.bio || "Experienced lawyer providing quality legal services.",
-          areas: [foundLawyer.specialization || "General Law"],
+          areas: [foundLawyer.specialization || foundLawyer.occupation || "General Law"],
           languages: ["English", "Urdu"],
           email: foundLawyer.email,
           photoUrl: foundLawyer.photoUrl || "",
         };
         setLawyer(apiLawyer);
       } else {
+        console.log('🔍 Debug - Lawyer not found in approved list, trying direct user fetch...');
         // If not found in approved list, try to get user directly
         const userResponse = await api.get(`/user/${id}`);
+        console.log('🔍 Debug - Direct user response:', userResponse);
+        
         const user = userResponse.data?.user || userResponse.data
+        console.log('🔍 Debug - User data:', user);
+        
         if (user && user.userType === 'lawyer') {
           const apiLawyer = {
             id: user._id,
@@ -67,13 +82,27 @@ export default function LawyerProfile() {
       }
     } catch (error) {
       console.error("Error fetching lawyer:", error);
+      console.error("Error details:", {
+        message: error.message,
+        status: error.status,
+        data: error.data
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleContactLawyer = () => {
-    navigate(`/lawyers/${id}/book`);
+    console.log('🔍 Debug - handleContactLawyer called');
+    console.log('🔍 Debug - Current ID:', id);
+    console.log('🔍 Debug - Navigation target:', `/lawyers/${id}/book`);
+    
+    try {
+      navigate(`/lawyers/${id}/book`);
+      console.log('🔍 Debug - Navigation successful');
+    } catch (error) {
+      console.error('🔍 Debug - Navigation error:', error);
+    }
   };
 
   if (loading) {
@@ -85,12 +114,15 @@ export default function LawyerProfile() {
   }
 
   if (!lawyer) {
+    console.log('🔍 Debug - No lawyer data found, showing not found message');
     return (
       <div className="p-6 text-center text-gray-600">
         Lawyer not found.
       </div>
     );
   }
+
+  console.log('🔍 Debug - Lawyer data loaded:', lawyer);
 
   return (
     <div className="flex flex-col md:flex-row gap-6 p-6 max-w-6xl mx-auto">
@@ -132,7 +164,21 @@ export default function LawyerProfile() {
           </div>
         </div>
 
-        <Button className="mt-6 w-full" onClick={handleContactLawyer}>Contact Lawyer</Button>
+        <div className="mt-6 w-full">
+          <Button 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
+            onClick={() => {
+              console.log('🔍 Debug - Contact Lawyer button clicked');
+              alert('Button clicked! Navigating to booking page...');
+              handleContactLawyer();
+            }}
+          >
+            Contact Lawyer
+          </Button>
+          <div className="mt-2 text-xs text-gray-500 text-center">
+            Debug: Button should be visible and clickable
+          </div>
+        </div>
       </Card>
 
       {/* Right Section */}
@@ -156,7 +202,15 @@ export default function LawyerProfile() {
                   <Badge key={lang}>{lang}</Badge>
                 ))}
               </div>
-              <Button variant="outline" onClick={handleContactLawyer}>Schedule a Consultation</Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  console.log('🔍 Debug - Schedule Consultation button clicked');
+                  handleContactLawyer();
+                }}
+              >
+                Schedule a Consultation
+              </Button>
             </div>
           </TabsContent>
 

@@ -11,11 +11,13 @@ if (!/^https?:\/\//i.test(API_BASE)) {
 API_BASE = API_BASE.replace(/\/$/, '');
 // If someone set VITE_API_BASE to include /api, strip it to avoid /api/api duplication
 API_BASE = API_BASE.replace(/\/(api)$/, '');
-const BASE_URL = `${API_BASE}/api`;
+const BASE_URL = `${API_BASE}/api/v1`;
 
 async function request(path, { method = 'GET', body, headers = {} } = {}) {
   const token = localStorage.getItem('token');
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const fullUrl = `${BASE_URL}${path}`;
+  console.log(`Making ${method} request to:`, fullUrl);
+  const res = await fetch(fullUrl, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -27,8 +29,15 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const message = data?.message || data?.error || 'Request failed';
-    throw new Error(message);
+    const message = data?.message || data?.error || `Request failed with status ${res.status}`;
+    console.error('API Error:', { status: res.status, statusText: res.statusText, data });
+    
+    // Create error object with additional data for better error handling
+    const error = new Error(message);
+    error.status = res.status;
+    error.data = data;
+    error.missing = data?.missing; // For profile validation errors
+    throw error;
   }
   return { data };
 }

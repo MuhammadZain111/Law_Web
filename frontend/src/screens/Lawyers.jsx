@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { ArrowRight, MapPin, Star } from "../assets/icons/Icons.jsx"
 import IMAGES from "../constants/Images.js"
 import { api } from "../shared/api.js"
@@ -12,17 +13,21 @@ const Lawyers = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get('/lawyers?status=approved')
-        const list = (res.data || []).map(l => ({
-          id: l._id,
-          name: l.fullName || l.name,
-          specialization: l.specialization,
-          rating: 4.8,
-          reviews: 100,
-          location: [l.city, l.state, l.country].filter(Boolean).join(', ') || 'N/A',
-          image: l.photoUrl || IMAGES.lawyer,
-          areas: [],
-        }))
+        const res = await api.get('/appointments/lawyers?status=approved')
+        const lawyersData = res.data?.lawyers || res.data || [];
+        const list = (Array.isArray(lawyersData) ? lawyersData : []).map(l => {
+          console.log('🔍 Debug - Processing lawyer:', l);
+          return {
+            id: l._id,
+            name: l.fullName || `${l.firstname || ''} ${l.lastname || ''}`.trim() || l.name,
+            specialization: l.specialization || l.occupation,
+            rating: 4.8,
+            reviews: 100,
+            location: [l.city, l.state, l.country].filter(Boolean).join(', ') || 'N/A',
+            image: l.photoUrl || IMAGES.lawyer,
+            areas: [],
+          };
+        })
         setLawyers(list)
       } catch (_e) {
         setLawyers([])
@@ -65,6 +70,11 @@ const Lawyers = () => {
                     </Badge>
                   ))}
                 </div>
+                <Link to={`/lawyers/${lawyer.id}`} className="block mt-4">
+                  <Button variant="outline" className="w-full">
+                    View Profile
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}
