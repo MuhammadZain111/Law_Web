@@ -6,8 +6,8 @@ const AboutUs = () => {
     {
       title: 'Client-Centered Experience',
       desc: 'Foster meaningful client relationships with real-time updates, secure messaging, and task reminders.',
-      image: '/banner.png',
-    },
+      image: '/banner.png',    },
+      
     {
       title: 'Smart Legal Automation',
       desc: 'Automate reminders, court tracking, and case progress. Let us handle the tech while you handle justice.',

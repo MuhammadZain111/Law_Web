@@ -60,9 +60,17 @@ export default function AppointmentBooking() {
     const fetchLawyer = async () => {
       try {
         // Fetch from approved lawyers API
-        const response = await api.get('/lawyers?status=approved');
-        const lawyers = response.data || [];
-        const foundLawyer = lawyers.find(l => l._id === id || l.userId === id);
+        console.log('🔍 Debug - AppointmentBooking fetching lawyer for ID:', id);
+        const response = await api.get('/appointments/lawyers?status=approved');
+        console.log('🔍 Debug - AppointmentBooking response:', response);
+        
+        const lawyersData = response.data?.lawyers || response.data || [];
+        console.log('🔍 Debug - AppointmentBooking lawyersData:', lawyersData);
+        console.log('🔍 Debug - AppointmentBooking lawyersData type:', typeof lawyersData);
+        console.log('🔍 Debug - AppointmentBooking lawyersData isArray:', Array.isArray(lawyersData));
+        
+        const foundLawyer = lawyersData.find(l => l._id === id || l.userId === id);
+        console.log('🔍 Debug - AppointmentBooking foundLawyer:', foundLawyer);
         
         if (foundLawyer) {
           const apiLawyer = {
@@ -83,7 +91,7 @@ export default function AppointmentBooking() {
           setLawyer(apiLawyer);
         } else {
           // If not found in approved list, try to get user directly
-          const userResponse = await api.get(`/api/v1/user/${id}`);
+          const userResponse = await api.get(`/user/${id}`);
           const userPayload = userResponse?.data?.user;
           if (userPayload && userPayload.userType === 'lawyer') {
             const user = userPayload;
@@ -163,6 +171,7 @@ export default function AppointmentBooking() {
     previousLawyer: '',
     caseStatus: 'New',
     documents: '',
+    documentFiles: [], // Array to store uploaded files
     specialRequirements: ''
   });
 
@@ -194,6 +203,105 @@ export default function AppointmentBooking() {
     }));
   };
 
+  // Handle file upload with ImageKit
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    
+    for (const file of files) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+        continue;
+      }
+      
+      // Check file type (allow common document types)
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'text/plain'
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        alert(`File ${file.name} is not a supported format. Please upload PDF, DOC, DOCX, JPG, PNG, or TXT files.`);
+        continue;
+      }
+
+      try {
+        console.log('🔍 Debug - Uploading file to ImageKit:', file.name);
+        
+        // Get ImageKit authentication
+        const { data: sig } = await api.get('/user/imagekit-auth');
+        
+        // Create form data for ImageKit upload
+        const form = new FormData();
+        form.append('file', file);
+        form.append('publicKey', sig.publicKey);
+        form.append('signature', sig.signature);
+        form.append('expire', sig.expire);
+        form.append('token', sig.token);
+        form.append('fileName', file.name);
+        form.append('folder', 'appointment-documents');
+        form.append('useUniqueFileName', 'true');
+        
+        // Upload to ImageKit
+        const uploadUrl = 'https://upload.imagekit.io/api/v1/files/upload';
+        const resp = await fetch(uploadUrl, { method: 'POST', body: form });
+        const json = await resp.json();
+        
+        if (!resp.ok || !json?.url) {
+          throw new Error(json?.message || 'Upload failed');
+        }
+        
+        console.log('🔍 Debug - ImageKit upload successful:', json.url);
+        
+        // Add file with URL to form data
+        const fileWithUrl = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+          url: json.url
+        };
+        
+        setFormData(prev => ({
+          ...prev,
+          documentFiles: [...prev.documentFiles, fileWithUrl]
+        }));
+        
+        alert(`File ${file.name} uploaded successfully!`);
+        
+      } catch (error) {
+        console.error('🔍 Debug - File upload error:', error);
+        alert(`Failed to upload ${file.name}: ${error.message}`);
+      }
+    }
+  };
+
+  // Remove uploaded file
+  const removeFile = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      documentFiles: prev.documentFiles.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Handle drag and drop
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = Array.from(e.dataTransfer.files);
+    const event = { target: { files } };
+    handleFileUpload(event);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -209,7 +317,7 @@ export default function AppointmentBooking() {
         caseDescription: formData.caseDescription || 'No additional details provided',
         appointmentDate: selectedDate ? selectedDate.toISOString() : new Date().toISOString(),
         timeSlot: selectedTime,
-        consultationFee: formData.consultationFee,
+        consultationFee: Number(formData.consultationFee),
         paymentMethod: formData.paymentMethod,
         paymentScreenshot: formData.paymentScreenshot,
         // Additional fields
@@ -222,11 +330,90 @@ export default function AppointmentBooking() {
         previousLawyer: formData.previousLawyer,
         caseStatus: formData.caseStatus,
         documents: formData.documents,
+        documentFiles: formData.documentFiles.map(file => {
+          // Ensure we're working with a File object and extract properties safely
+          if (file && typeof file === 'object') {
+            return {
+              name: file.name || 'unknown',
+              size: file.size || 0,
+              type: file.type || 'application/octet-stream',
+              lastModified: file.lastModified || Date.now(),
+              url: file.url || null // Include URL if available
+            };
+          }
+          // If it's already a plain object, return as is
+          return file;
+        }),
         specialRequirements: formData.specialRequirements
       };
 
+      // Debug: Log the lawyerId and its format
+      console.log('🔍 Debug - Lawyer ID from URL:', id);
+      console.log('🔍 Debug - Lawyer ID type:', typeof id);
+      console.log('🔍 Debug - Lawyer ID length:', id?.length);
+      console.log('🔍 Debug - Is valid ObjectId format:', /^[0-9a-fA-F]{24}$/.test(id));
+      
+      // Debug: Log documentFiles data
+      console.log('🔍 Debug - DocumentFiles before mapping:', formData.documentFiles);
+      console.log('🔍 Debug - DocumentFiles after mapping:', appointmentData.documentFiles);
+      console.log('🔍 Debug - DocumentFiles type:', typeof appointmentData.documentFiles);
+      console.log('🔍 Debug - DocumentFiles isArray:', Array.isArray(appointmentData.documentFiles));
+      console.log('🔍 Debug - DocumentFiles JSON:', JSON.stringify(appointmentData.documentFiles));
+
+      // If there are files to upload, we'll need to handle them separately
+      // For now, we'll include file metadata in the appointment data
+      console.log('📋 Sending appointment data:', appointmentData);
+      console.log('📋 Required fields check:', {
+        lawyerId: !!appointmentData.lawyerId,
+        clientName: !!appointmentData.clientName,
+        clientEmail: !!appointmentData.clientEmail,
+        clientPhone: !!appointmentData.clientPhone,
+        caseType: !!appointmentData.caseType,
+        caseDescription: !!appointmentData.caseDescription,
+        appointmentDate: !!appointmentData.appointmentDate,
+        timeSlot: !!appointmentData.timeSlot,
+        consultationFee: !!appointmentData.consultationFee,
+        paymentMethod: !!appointmentData.paymentMethod
+      });
+
+      // Validate required fields before sending
+      const requiredFields = ['lawyerId', 'clientName', 'clientEmail', 'clientPhone', 'caseType', 'caseDescription', 'appointmentDate', 'timeSlot', 'consultationFee', 'paymentMethod'];
+      const missingFields = requiredFields.filter(field => !appointmentData[field]);
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      // Validate enum values
+      const validCaseTypes = ['Criminal Law', 'Family Law', 'Civil Litigation', 'Corporate Law', 'Property Law', 'Immigration Law', 'Tax Law', 'Employment Law'];
+      if (!validCaseTypes.includes(appointmentData.caseType)) {
+        throw new Error(`Invalid case type: ${appointmentData.caseType}`);
+      }
+
+      const validPaymentMethods = ['EasyPaisa', 'JazzCash', 'Bank Transfer', 'Cash on Meeting', 'Credit Card', 'easypaisa', 'jazzcash', 'bank'];
+      if (!validPaymentMethods.includes(appointmentData.paymentMethod)) {
+        throw new Error(`Invalid payment method: ${appointmentData.paymentMethod}`);
+      }
+
+      // Validate timeSlot format
+      const timeSlotPattern = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeSlotPattern.test(appointmentData.timeSlot)) {
+        throw new Error(`Invalid time slot format: ${appointmentData.timeSlot}`);
+      }
+
+      // Validate consultationFee is a positive number
+      if (isNaN(appointmentData.consultationFee) || appointmentData.consultationFee <= 0) {
+        throw new Error(`Invalid consultation fee: ${appointmentData.consultationFee}`);
+      }
+
+      // Validate lawyerId is a valid MongoDB ObjectId format
+      const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+      if (!objectIdPattern.test(appointmentData.lawyerId)) {
+        throw new Error(`Invalid lawyer ID format: ${appointmentData.lawyerId}`);
+      }
+
       // Submit to backend
-      const response = await api.post('/v1/appointments', appointmentData);
+      const response = await api.post('/appointments', appointmentData);
       
       if (response.data.success) {
         setIsSubmitted(true);
@@ -236,7 +423,30 @@ export default function AppointmentBooking() {
       }
     } catch (error) {
       console.error('Error booking appointment:', error);
-      alert('Failed to book appointment. Please try again.');
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        data: error.data
+      });
+      
+      // Show more specific error message
+      let errorMessage = 'Failed to book appointment. Please try again.';
+      
+      if (error.data?.details) {
+        errorMessage = `Validation Error: ${error.data.details}`;
+      } else if (error.data?.message) {
+        errorMessage = `Error: ${error.data.message}`;
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      // If there are specific validation errors, show them
+      if (error.data?.errors && Array.isArray(error.data.errors)) {
+        const fieldErrors = error.data.errors.map(err => `${err.field}: ${err.message}`).join(', ');
+        errorMessage = `Validation errors: ${fieldErrors}`;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -548,6 +758,77 @@ export default function AppointmentBooking() {
                       placeholder="List any documents you have related to your case..."
                       rows={2}
                     />
+                    
+                    {/* File Upload Section */}
+                    <div className="mt-4">
+                      <Label>Upload Documents (Optional)</Label>
+                      <div className="mt-2">
+                        {/* Drag and Drop Area */}
+                        <div
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors"
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                        >
+                          <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-600 mb-2">
+                            Drag and drop files here, or click to select files
+                          </p>
+                          <input
+                            type="file"
+                            multiple
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                            onChange={handleFileUpload}
+                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
+                          <p className="text-xs text-gray-500 mt-2">
+                            Supported formats: PDF, DOC, DOCX, JPG, PNG, TXT (Max 10MB each)
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Display uploaded files */}
+                      {formData.documentFiles.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-medium text-gray-700 mb-2">
+                            Uploaded Files ({formData.documentFiles.length}):
+                          </p>
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {formData.documentFiles.map((file, index) => (
+                              <div key={index} className="flex items-center justify-between bg-green-50 border border-green-200 p-3 rounded-md">
+                                <div className="flex items-center space-x-3">
+                                  <div className="flex-shrink-0">
+                                    {file.type.startsWith('image/') ? (
+                                      <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                        <span className="text-blue-600 text-xs font-bold">IMG</span>
+                                      </div>
+                                    ) : file.type === 'application/pdf' ? (
+                                      <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">
+                                        <span className="text-red-600 text-xs font-bold">PDF</span>
+                                      </div>
+                                    ) : (
+                                      <FileText className="w-4 h-4 text-gray-500" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type.split('/')[1].toUpperCase()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile(index)}
+                                  className="ml-2 text-red-500 hover:text-red-700 text-sm font-medium"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

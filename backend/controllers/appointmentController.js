@@ -5,6 +5,13 @@ import { sendEmail, buildStatusEmail } from "../utils/mailer.js";
 
 export const createAppointment = async (req, res) => {
   try {
+    console.log('📋 Creating appointment with data:', {
+      lawyerId: req.body.lawyerId,
+      clientName: req.body.clientName,
+      documents: req.body.documents,
+      documentFiles: req.body.documentFiles?.length || 0
+    });
+    
     const { 
       lawyerId, 
       clientName, 
@@ -16,7 +23,19 @@ export const createAppointment = async (req, res) => {
       timeSlot, 
       consultationFee, 
       paymentMethod, 
-      paymentScreenshot 
+      paymentScreenshot,
+      // Additional fields
+      clientAddress,
+      clientCity,
+      clientAge,
+      clientGender,
+      consultationType,
+      urgency,
+      previousLawyer,
+      caseStatus,
+      documents,
+      documentFiles,
+      specialRequirements
     } = req.body;
 
     // Validate required fields
@@ -40,12 +59,55 @@ export const createAppointment = async (req, res) => {
     const clientId = req.user?.id || null;
 
     // Validate lawyerId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(lawyerId)) {
+    console.log('🔍 Validating lawyerId:', lawyerId, 'Type:', typeof lawyerId);
+    if (!lawyerId || !mongoose.Types.ObjectId.isValid(lawyerId)) {
+      console.log('❌ Invalid lawyer ID:', lawyerId);
       return res.status(400).json({
         success: false,
-        message: "Invalid lawyer ID"
+        message: "Invalid lawyer ID format"
       });
     }
+
+    console.log('📋 Creating appointment with data:', {
+      clientId,
+      lawyerId: new mongoose.Types.ObjectId(lawyerId),
+      clientName,
+      clientEmail,
+      clientPhone,
+      caseType,
+      caseDescription,
+      appointmentDate: dt,
+      timeSlot,
+      consultationFee,
+      paymentMethod,
+      documents,
+      documentFiles: documentFiles?.length || 0
+    });
+
+    // Debug documentFiles specifically
+    console.log('🔍 Debug - documentFiles received:', {
+      type: typeof documentFiles,
+      isArray: Array.isArray(documentFiles),
+      length: documentFiles?.length,
+      content: documentFiles
+    });
+
+    // Debug the entire request body
+    console.log('🔍 Debug - Full request body:', JSON.stringify(req.body, null, 2));
+
+    // Additional validation logging
+    console.log('🔍 Field validation check:', {
+      lawyerIdValid: mongoose.Types.ObjectId.isValid(lawyerId),
+      clientNameValid: !!clientName,
+      clientEmailValid: !!clientEmail,
+      clientPhoneValid: !!clientPhone,
+      caseTypeValid: !!caseType,
+      caseDescriptionValid: !!caseDescription,
+      appointmentDateValid: !isNaN(dt.getTime()),
+      timeSlotValid: !!timeSlot,
+      consultationFeeValid: !isNaN(consultationFee) && consultationFee > 0,
+      paymentMethodValid: !!paymentMethod
+    });
 
     const appointment = await Appointment.create({
       clientId,
@@ -60,9 +122,30 @@ export const createAppointment = async (req, res) => {
       consultationFee,
       paymentMethod,
       paymentScreenshot,
+      // Additional fields
+      clientAddress,
+      clientCity,
+      clientAge,
+      clientGender,
+      consultationType,
+      urgency,
+      previousLawyer,
+      caseStatus,
+      documents,
+      documentFiles,
+      specialRequirements,
       status: 'pending',
-      paymentStatus: 'unpaid'
+      paymentStatus: 'unpaid',
+      // Initialize reminder preferences
+      remindersSent: [],
+      reminderPreferences: {
+        emailReminders: true,
+        smsReminders: false,
+        reminderIntervals: ['24h', '2h']
+      }
     });
+
+    console.log('✅ Appointment created successfully:', appointment._id);
 
     res.status(201).json({ 
       success: true, 
@@ -70,10 +153,36 @@ export const createAppointment = async (req, res) => {
       appointment 
     });
   } catch (err) {
-    console.error("createAppointment:", err);
+    console.error("createAppointment error:", err);
+    
+    // Handle validation errors
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => ({
+        field: e.path,
+        message: e.message,
+        value: e.value
+      }));
+      console.log('❌ Validation errors:', errors);
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        errors: errors,
+        details: `Validation failed for fields: ${errors.map(e => e.field).join(', ')}`
+      });
+    }
+    
+    // Handle duplicate key errors
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Duplicate entry error"
+      });
+    }
+    
     res.status(500).json({ 
       success: false, 
-      message: "Server error" 
+      message: "Server error",
+      error: err.message
     });
   }
 };
@@ -84,15 +193,36 @@ export const listAppointments = async (req, res) => {
     const userId = req.user.userId || req.user.id; // Handle both userId and id
     const userRole = req.user.role || req.user.userType; // Handle both role and userType
     
+    console.log('🔍 listAppointments - User info:', {
+      userId,
+      userRole,
+      userObject: req.user
+    });
+    
     if (userRole === "client") q.clientId = userId;
     if (userRole === "lawyer") q.lawyerId = userId;
+    
+    console.log('🔍 listAppointments - Query:', q);
 
     const appointments = await Appointment.find(q)
       .populate("clientId", "name email")
       .populate("lawyerId", "name email")
       .sort({ appointmentDate: -1, createdAt: -1 });
 
-    res.json({ appointments });
+    console.log('📋 Returning appointments:', appointments.length, 'appointments');
+    console.log('📋 Sample appointment data:', appointments[0] ? {
+      clientName: appointments[0].clientName,
+      documents: appointments[0].documents,
+      documentFiles: appointments[0].documentFiles?.length || 0
+    } : 'No appointments');
+
+    res.json({ 
+      success: true,
+      appointments,
+      count: appointments.length,
+      userRole,
+      userId
+    });
   } catch (err) {
     console.error("listAppointments:", err);
     res.status(500).json({ message: "Server error" });
@@ -163,9 +293,21 @@ export const cancelAppointment = async (req, res) => {
 export const getAllLawyers = async (req, res) => {
   try {
     const User = (await import("../models/user.model.js")).default;
-    const lawyers = await User.find({ userType: 'lawyer' })
+    const { status } = req.query;
+    
+    // Build query based on status filter
+    let query = { userType: 'lawyer' };
+    if (status) {
+      query.status = status;
+    }
+    
+    console.log('🔍 Debug - getAllLawyers query:', query);
+    
+    const lawyers = await User.find(query)
       .select('-password')
       .sort({ createdAt: -1 });
+
+    console.log('🔍 Debug - Found lawyers:', lawyers.length);
 
     res.status(200).json({
       success: true,

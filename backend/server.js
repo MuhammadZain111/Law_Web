@@ -20,7 +20,9 @@ import appointmentRoute from "./routes/appointments.js";
 import authRoutes from "./routes/auth.routes.js";
 import lawyerRoutes from "./routes/lawyer.routes.js";
 import userRoute from "./routes/user.route.js";
+import reminderRoutes from "./routes/reminder.routes.js";
 import { registerSocket } from "./socket.js";
+import SchedulerService from "./services/schedulerService.js";
 
 // Load env
 dotenv.config();
@@ -50,6 +52,7 @@ app.get("/", (_req, res) => res.json({ ok: true }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/appointments", appointmentRoute);
+app.use("/api/v1/reminders", reminderRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/lawyers", lawyerRoutes);
 
@@ -83,6 +86,10 @@ mongoose
   .then(() => {
     const masked = (MONGO_URI || "").replace(/:\/\/([^:]*):([^@]*)@/g, "://$1:***@");
     console.log("✅ MongoDB connected successfully →", masked || "<no uri>");
+    
+    // Initialize reminder scheduler
+    SchedulerService.initialize();
+    
     const startListening = () => {
       server.listen(PORT, () => {
         console.log(`✅ Server listening on http://localhost:${PORT}`);

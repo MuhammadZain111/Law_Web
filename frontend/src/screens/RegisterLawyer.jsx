@@ -148,7 +148,7 @@ function RegisterLawyer() {
       console.log("Sending lawyer registration data:", lawyerData)
 
       // Make API call to backend
-    const { data: result } = await api.post("/v1/user/register", lawyerData)
+    const { data: result } = await api.post("/user/register", lawyerData)
 
     if (result?.user) {
         
@@ -207,7 +207,17 @@ function RegisterLawyer() {
       }
     } catch (error) {
       console.error("Registration error:", error)
-      alert("Network error. Please check your connection and try again.")
+      
+      // Handle specific error cases
+      if (error.message && error.message.includes("Email already exists")) {
+        alert("This email address is already registered. Please use a different email or try logging in instead.")
+      } else if (error.message && error.message.includes("400")) {
+        alert("Invalid registration data. Please check all fields and try again.")
+      } else if (error.message && error.message.includes("500")) {
+        alert("Server error. Please try again later.")
+      } else {
+        alert(`Registration failed: ${error.message || "Please check your connection and try again."}`)
+      }
     }
   }
 
@@ -226,7 +236,7 @@ function RegisterLawyer() {
 
       console.log("Sending lawyer login data:", loginData)
 
-      const { data: result } = await api.post("/v1/user/login", loginData)
+      const { data: result } = await api.post("/user/login", loginData)
       if (result?.token) {
         // Store token in localStorage
         localStorage.setItem("token", result.token)
@@ -442,7 +452,7 @@ function RegisterLawyer() {
                     if (!file) return
                     try {
                       // reuse ImageKit upload flow
-                      const { data: sig } = await api.get('/v1/user/imagekit-auth')
+                      const { data: sig } = await api.get('/user/imagekit-auth')
                       const form = new FormData()
                       form.append('file', file)
                       form.append('publicKey', sig.publicKey)
@@ -486,7 +496,7 @@ function RegisterLawyer() {
 
                         try {
                           console.log("[v0] Requesting ImageKit auth...")
-                          const { data: sig } = await api.get("/v1/user/imagekit-auth")
+                          const { data: sig } = await api.get("/user/imagekit-auth")
 
                           console.log("[v0] ImageKit auth response:", {
                             hasSignature: !!sig?.signature,

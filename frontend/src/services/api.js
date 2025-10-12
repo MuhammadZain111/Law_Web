@@ -113,8 +113,49 @@ export const userAPI = {
   },
 };
 
+// Reminder API functions
+export const reminderAPI = {
+  // Get upcoming appointments
+  getUpcomingAppointments: async (hours = 24) => {
+    return apiRequest(`/reminders/upcoming?hours=${hours}`);
+  },
+
+  // Update reminder preferences
+  updateReminderPreferences: async (appointmentId, preferences) => {
+    return apiRequest(`/reminders/preferences/${appointmentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(preferences),
+    });
+  },
+
+  // Send manual reminder (lawyer only)
+  sendManualReminder: async (appointmentId, reminderType) => {
+    return apiRequest(`/reminders/send/${appointmentId}`, {
+      method: 'POST',
+      body: JSON.stringify({ reminderType }),
+    });
+  },
+
+  // Admin functions
+  getSchedulerStatus: async () => {
+    return apiRequest('/reminders/admin/status');
+  },
+
+  triggerReminderJob: async (reminderType) => {
+    return apiRequest('/reminders/admin/trigger', {
+      method: 'POST',
+      body: JSON.stringify({ reminderType }),
+    });
+  },
+
+  getReminderStats: async () => {
+    return apiRequest('/reminders/admin/stats');
+  }
+};
+
 export default {
   appointmentAPI,
   lawyerAPI,
   userAPI,
+  reminderAPI,
 };

@@ -110,7 +110,17 @@ function RegisterUser() {
       }
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Network error. Please check your connection and try again.');
+      
+      // Handle specific error cases
+      if (error.message && error.message.includes("Email already exists")) {
+        alert("This email address is already registered. Please use a different email or try logging in instead.");
+      } else if (error.message && error.message.includes("400")) {
+        alert("Invalid registration data. Please check all fields and try again.");
+      } else if (error.message && error.message.includes("500")) {
+        alert("Server error. Please try again later.");
+      } else {
+        alert(`Registration failed: ${error.message || "Please check your connection and try again."}`);
+      }
     }
   };
 

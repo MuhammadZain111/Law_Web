@@ -9,24 +9,57 @@ import { Card, CardContent } from "../common/Card.jsx"
 
 const FeaturedLawyers = () => {
   const [lawyers, setLawyers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get('/lawyers?status=approved')
-        const list = (res.data || []).map(l => ({
+        setLoading(true)
+        setError("")
+        
+        // Fetch approved lawyers if available; otherwise fallback to all lawyers
+        console.log('Fetching lawyers from API...')
+        let res = await api.get('/appointments/lawyers?status=approved')
+        console.log('Approved lawyers response:', res)
+        
+        let lawyersData = res.data?.lawyers || res.data || [];
+        if (!Array.isArray(lawyersData) || lawyersData.length === 0) {
+          console.log('No approved lawyers found, fetching all lawyers...')
+          res = await api.get('/appointments/lawyers')
+          console.log('All lawyers response:', res)
+          lawyersData = res.data?.lawyers || res.data || [];
+        }
+        
+        console.log('🔍 Debug - lawyersData:', lawyersData);
+        console.log('🔍 Debug - First lawyer data:', lawyersData[0]);
+        
+        const list = (Array.isArray(lawyersData) ? lawyersData : []).map(l => ({
           id: l._id,
-          name: l.fullName || l.name,
-          specialization: l.specialization,
+          name: l.fullName || `${l.firstname || ''} ${l.lastname || ''}`.trim() || l.name || 'Unknown Lawyer',
+          specialization: l.specialization || l.occupation || 'General Practice',
           rating: 4.8,
           reviews: 100,
           location: [l.city, l.state, l.country].filter(Boolean).join(', ') || 'N/A',
           image: l.photoUrl || IMAGES.lawyer,
           areas: [],
         }))
-        if (list.length) setLawyers(list.slice(0, 4))
-      } catch (_e) {
-        // silently ignore; no fallback data
+        
+        setLawyers(list.slice(0, 4))
+        setError("")
+      } catch (e) {
+        console.error('Failed to load lawyers:', e)
+        let errorMessage = 'Network error'
+        if (e.message) {
+          errorMessage = e.message
+        } else if (e.data?.message) {
+          errorMessage = e.data.message
+        } else if (typeof e === 'string') {
+          errorMessage = e
+        }
+        setError(`Failed to load lawyers: ${errorMessage}`)
+      } finally {
+        setLoading(false)
       }
     })()
   }, [])
@@ -48,6 +81,15 @@ const FeaturedLawyers = () => {
         </Link>
       </div>
 
+      {loading && (
+        <div className="text-gray-500">Loading lawyers...</div>
+      )}
+      {!loading && error && (
+        <div className="text-red-600">{error}</div>
+      )}
+      {!loading && !error && lawyers.length === 0 && (
+        <div className="text-gray-600">No lawyers found yet.</div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {lawyers.map((lawyer) => (
           <Card key={lawyer.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
