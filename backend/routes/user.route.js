@@ -15,6 +15,7 @@ router.route("/login").post(login)
 router.route("/logout").get(logout)
 router.route("/lawyers").get(getAllLawyers)
 router.route("/profile").get(auth(), getProfile)
+router.route("/profile").put(auth(), updateProfile)
 router.route("/payment-methods").put(auth(), updatePaymentMethods)
 
 console.log("[v0] ImageKit keys check:", {
