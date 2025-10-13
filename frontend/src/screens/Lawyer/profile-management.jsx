@@ -1,74 +1,59 @@
-import React, { useState } from "react";
-import { Button } from "./ui/button"; // shadcn button
+import React, { useEffect, useState } from "react";
+import { Button } from "./ui/button";
+import { api } from "../../shared/api.js";
 
-export default function LawyerSidebar() {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [collapsed, setCollapsed] = useState(false);
+export default function LawyerProfileSection() {
+  const [profile, setProfile] = useState(null);
 
-  const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "appointments", label: "Appointments", icon: "📅" },
-    { id: "cases", label: "Cases", icon: "📁" },
-    { id: "chat", label: "Live Chat", icon: "💬" },
-    { id: "consultation", label: "Virtual Consultation", icon: "🎥" },
-    { id: "payments", label: "Payments", icon: "💳" },
-    { id: "records", label: "Records", icon: "📋" },
-    { id: "profile", label: "Profile", icon: "👤" },
-  ];
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await api.get('/user/profile');
+        const user = res?.data?.user || res?.data || res?.user || null;
+        setProfile(user);
+      } catch (_) {
+        // ignore
+      }
+    })();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userType');
+    window.location.href = '/';
+  };
 
   return (
-    <div
-      className={`bg-primary text-primary-foreground transition-all duration-300 flex flex-col ${
-        collapsed ? "w-16" : "w-64"
-      }`}
-    >
-      {/* Header */}
-      <div className="p-4 border-b border-primary-foreground/20">
-        <div className="flex items-center justify-between">
-          {!collapsed && <h2 className="text-lg font-serif font-bold">Legal Practice</h2>}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-primary-foreground hover:bg-primary-foreground/20"
-          >
-            {collapsed ? "→" : "←"}
-          </Button>
+    <div className="p-6">
+      <div className="max-w-xl bg-white rounded-xl shadow border border-gray-200 p-6">
+        <div className="flex items-center gap-4">
+          <img
+            src={profile?.photoUrl || 'https://i.pravatar.cc/120'}
+            alt="avatar"
+            className="w-16 h-16 rounded-full object-cover"
+          />
+          <div>
+            <div className="text-lg font-semibold">{profile ? `${profile.firstname || ''} ${profile.lastname || ''}`.trim() : 'Lawyer'}</div>
+            <div className="text-sm text-gray-500">{profile?.email || ''}</div>
+          </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {menuItems.map((item) => (
-            <li key={item.id}>
-              <button
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-left ${
-                  activeTab === item.id
-                    ? "bg-primary-foreground/20 text-primary-foreground"
-                    : "text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                {!collapsed && <span className="font-medium">{item.label}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+        <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="text-gray-500">Specialization</div>
+            <div className="font-medium">{profile?.occupation || '—'}</div>
+          </div>
+          <div>
+            <div className="text-gray-500">City</div>
+            <div className="font-medium">{profile?.city || '—'}</div>
+          </div>
+        </div>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-primary-foreground/20">
-        <button
-          onClick={() => {
-            alert("Logged out!");
-          }}
-          className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-left text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
-        >
-          <span className="text-lg">🚪</span>
-          {!collapsed && <span className="font-medium">Logout</span>}
-        </button>
+        <div className="mt-8">
+          <Button className="bg-red-600 hover:bg-red-700" onClick={handleLogout}>Logout</Button>
+        </div>
       </div>
     </div>
   );

@@ -25,6 +25,13 @@ const App = () => {
     if (!token) return <Navigate to="/login" replace />;
     return children;
   };
+  const RequireRole = ({ role, children }) => {
+    const token = localStorage.getItem('token');
+    const userType = localStorage.getItem('userType');
+    if (!token) return <Navigate to="/login" replace />;
+    if (role && userType !== role) return <Navigate to="/" replace />;
+    return children;
+  };
   return (
    <div>
 
@@ -53,8 +60,9 @@ const App = () => {
       <Route path="/registration-selection" element={<RegistrationSelection />} />
       <Route path="/registerUser" element={<RegisterUser />} />
       <Route path="/registerLawyer" element={<RegisterLawyer />} />
-      <Route path="/lawyerDashboard" element={<LawyerDashboard />} />
-      <Route path="/userDashboard" element={<RequireAuth><UserDashboard /></RequireAuth>} />
+      <Route path="/lawyerDashboard" element={<RequireRole role="lawyer"><LawyerDashboard /></RequireRole>} />
+      <Route path="/lawyerdashboard" element={<RequireRole role="lawyer"><LawyerDashboard /></RequireRole>} />
+      <Route path="/userDashboard" element={<RequireRole role="user"><UserDashboard /></RequireRole>} />
       <Route path="/services" element={<Services />} />
       <Route path="/login" element={<LoginSelection />} />
       <Route path="/user/login" element={<RegisterUser />} />
@@ -62,7 +70,7 @@ const App = () => {
       {/* optional dedicated login routes if you have separate pages */}
       {/* <Route path="/user/login" element={<UserLogin />} /> */}
       {/* <Route path="/lawyer/login" element={<LawyerLogin />} /> */}
-      <Route path="/admin" element={<RequireAuth><AdminLayout /></RequireAuth>}>
+      <Route path="/admin" element={<RequireRole role="admin"><AdminLayout /></RequireRole>}>
         <Route index element={<Dashboard />} />
       </Route>
       <Route path="/lawyers" element={<Lawyers />} />

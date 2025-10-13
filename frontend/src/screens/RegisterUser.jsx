@@ -4,7 +4,7 @@ import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 
 function RegisterUser() {
   const navigate = useNavigate();
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(true);
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -213,16 +213,20 @@ function RegisterUser() {
       const result = await response.json();
 
       if (response.ok) {
-        // Store token in localStorage
+        // Determine role from multiple possible shapes
+        const role = (result && (result.userType || result?.user?.userType)) || 'user';
+        // Store token and role
         localStorage.setItem('token', result.token);
-        localStorage.setItem('userType', result.userType || 'user');
+        localStorage.setItem('userType', role);
         alert('Login successful!');
         
-        // Redirect based on user type
-        if (result.userType === 'lawyer') {
+        // Redirect based on role
+        if (role === 'lawyer') {
           navigate('/lawyerDashboard');
+        } else if (role === 'admin') {
+          navigate('/admin');
         } else {
-          navigate('/userDashboard');
+          navigate('/');
         }
       } else {
         alert(result.message || 'Login failed. Please check your credentials.');
@@ -242,6 +246,23 @@ function RegisterUser() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
+          {isRegistering && (
+            <div className="inline-flex mb-4 rounded-xl border border-gray-200 bg-white overflow-hidden">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-semibold bg-emerald-50 text-emerald-700"
+              >
+                User Signup
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/registerLawyer')}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Lawyer Signup
+              </button>
+            </div>
+          )}
           {/* Profile Photo Upload */}
           {isRegistering && (
             <div className="mb-6">
