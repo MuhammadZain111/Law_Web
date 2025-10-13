@@ -1,5 +1,7 @@
 import { Button, Navbar, NavbarBrand, NavbarCollapse, NavbarLink, NavbarToggle } from "flowbite-react";
 import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { userAPI } from '@/services/api';
 
 function CustomNavbar() {
   const customTheme = {
@@ -12,12 +14,67 @@ function CustomNavbar() {
 
   const navigate = useNavigate();
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userType, setUserType] = useState(null);
+  const [userName, setUserName] = useState('User');
+  const [avatarUrl, setAvatarUrl] = useState('https://i.pravatar.cc/100');
+  const [showCard, setShowCard] = useState(false);
+  const [showRegisterMenu, setShowRegisterMenu] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const type = localStorage.getItem('userType');
+    setIsLoggedIn(!!token);
+    setUserType(type);
+    if (token) {
+      // Load basic profile data for avatar/name; ignore errors silently
+      (async () => {
+        try {
+          const res = await userAPI.getProfile?.();
+          const data = res?.data || res; // handle either shape
+          const u = data?.user || data; // some endpoints return { user }
+          if (u) {
+            if (u.name) setUserName(u.name);
+            if (u.fullName) setUserName(u.fullName);
+            if (u.username) setUserName(u.username);
+            if (u.firstname || u.lastname) setUserName(`${u.firstname || ''} ${u.lastname || ''}`.trim() || userName);
+            if (u.avatarUrl) setAvatarUrl(u.avatarUrl);
+            if (u.profileImage) setAvatarUrl(u.profileImage);
+            if (u.photoUrl) setAvatarUrl(u.photoUrl);
+          }
+        } catch (_) {
+          // fall back silently
+        }
+      })();
+    }
+  }, []);
+
   const goToRegister = () => {
-    navigate('/registration-selection');
+    navigate('/registerUser');
   };
 
   const goToLogin = () => {
     navigate('/login');
+  };
+
+  const goToProfile = () => {
+    // Decide which dashboard/profile to show based on saved userType
+    if (userType === 'lawyer') {
+      navigate('/lawyerDashboard');
+    } else if (userType === 'admin') {
+      navigate('/admin');
+    } else {
+      // default to user dashboard
+      navigate('/userDashboard');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userType');
+    setIsLoggedIn(false);
+    setUserType(null);
+    navigate('/');
   };
 
   const linkClass = "text-gray-700 hover:text-gray-900 transition-colors"
@@ -39,9 +96,74 @@ function CustomNavbar() {
         <NavbarLink as={Link} to="/contact" className={linkClass}>Contact</NavbarLink>
       </NavbarCollapse>
 
-      <div className="flex md:order-2 gap-2">
+      <div className="flex md:order-2 gap-2 items-center">
+        {isLoggedIn && userType === 'user' ? (
+          <div
+            className="relative"
+            onMouseEnter={() => setShowCard(true)}
+            onMouseLeave={() => setShowCard(false)}
+          >
+            <button
+              type="button"
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full ring-1 ring-gray-200 overflow-hidden"
+              onClick={goToProfile}
+              aria-label="Open profile"
+            >
+              <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+            </button>
+
+            {showCard && (
+              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 bg-white shadow-lg p-3">
+                <div className="flex items-center gap-3">
+                  <img src={avatarUrl} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+                  <div className="text-sm font-semibold text-gray-900 truncate">{userName}</div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full text-left text-sm text-gray-700 hover:text-red-600"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
         <Button color="light" className="border border-gray-300 text-gray-700 hover:bg-gray-100" onClick={goToLogin}>Login</Button>
-        <Button className="!bg-emerald-600 hover:!bg-emerald-700 text-white" onClick={goToRegister}>Register</Button>
+            <div className="relative">
+              <Button
+                className="!bg-emerald-600 hover:!bg-emerald-700 text-white"
+                onClick={() => setShowRegisterMenu((v) => !v)}
+                onBlur={() => setTimeout(() => setShowRegisterMenu(false), 120)}
+              >
+                Register
+              </Button>
+              {showRegisterMenu && (
+                <div className="absolute right-0 mt-2 w-44 rounded-lg border border-gray-200 bg-white shadow-lg p-1 z-50">
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setShowRegisterMenu(false); navigate('/registerUser'); }}
+                  >
+                    User Signup
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setShowRegisterMenu(false); navigate('/registerLawyer'); }}
+                  >
+                    Lawyer Signup
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </Navbar>
   );

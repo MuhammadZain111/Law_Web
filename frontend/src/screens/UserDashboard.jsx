@@ -164,6 +164,15 @@ export default function UserDashboard() {
                   <span>My Appointments</span>
                 </button>
                 <button
+                  onClick={() => navigate('/lawyers')}
+                  className={`w-full text-left px-6 py-4 rounded-2xl font-medium transition-all duration-300 flex items-center space-x-3 text-gray-700 hover:bg-white/50 hover:shadow-md`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-blue-100`}>
+                    <span className="text-blue-600">⚖️</span>
+                  </div>
+                  <span>Find Lawyers</span>
+                </button>
+                <button
                   onClick={() => setActiveTab("settings")}
                   className={`w-full text-left px-6 py-4 rounded-2xl font-medium transition-all duration-300 flex items-center space-x-3 ${
                     activeTab === "settings"
@@ -333,8 +342,18 @@ function UserAppointments({ userId }) {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/appointments');
-      setAppointments(response.data?.appointments || response.data || []);
+      const response = await api.get('/appointments/');
+      const list = response.data?.appointments || response.data || [];
+      // Filter to current user if API returns mixed; also match by email fallback
+      const uid = userId;
+      const me = await api.get('/user/profile');
+      const userEmail = me?.data?.user?.email || me?.data?.email;
+      const filtered = Array.isArray(list) ? list.filter(a => {
+        const cid = a.clientId?._id || a.clientId || a.userId || a.user?._id;
+        const email = a.clientEmail || a.clientId?.email;
+        return (uid && cid && String(cid) === String(uid)) || (userEmail && email && email === userEmail);
+      }) : [];
+      setAppointments(filtered);
     } catch (error) {
       console.error('Error fetching appointments:', error);
       setAppointments([]);

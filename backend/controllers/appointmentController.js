@@ -199,8 +199,20 @@ export const listAppointments = async (req, res) => {
       userObject: req.user
     });
     
-    if (userRole === "client") q.clientId = userId;
-    if (userRole === "lawyer") q.lawyerId = userId;
+    // Treat normal portal users/clients and also match by email for legacy rows
+    if (userRole === "lawyer") {
+      q.lawyerId = userId;
+    } else {
+      // fetch user email for fallback
+      let userEmail;
+      try {
+        const User = (await import("../models/user.model.js")).default;
+        const u = await User.findById(userId).select("email");
+        userEmail = u?.email;
+      } catch(_e) {}
+      q.$or = [ { clientId: userId } ];
+      if (userEmail) q.$or.push({ clientEmail: userEmail });
+    }
     
     console.log('🔍 listAppointments - Query:', q);
 
