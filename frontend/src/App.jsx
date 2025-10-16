@@ -18,8 +18,22 @@ import Dashboard from './screens/Admin/Dashboard';
 import NotificationBell from './screens/Admin/NotificationBell';
 import ProfileForm from './screens/Admin/ProfileForm';
 import LoginSelection from './screens/LoginSelection.jsx';
+import AdminLogin from './screens/Admin/Login.jsx';
+import { Toaster } from '@/hooks/use-toast';
 
 const App = () => {
+  const getRoleFromToken = () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      const [, payload] = String(token).split('.');
+      if (!payload) return null;
+      const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')) || '{}');
+      return json?.role || json?.userType || null;
+    } catch (_e) {
+      return null;
+    }
+  };
   const RequireAuth = ({ children }) => {
     const token = localStorage.getItem('token');
     if (!token) return <Navigate to="/login" replace />;
@@ -27,13 +41,22 @@ const App = () => {
   };
   const RequireRole = ({ role, children }) => {
     const token = localStorage.getItem('token');
-    const userType = localStorage.getItem('userType');
-    if (!token) return <Navigate to="/login" replace />;
-    if (role && userType !== role) return <Navigate to="/" replace />;
+    const userType = localStorage.getItem('userType') || localStorage.getItem('role') || getRoleFromToken();
+    if (!token) return <Navigate to={role === 'admin' ? "/admin/login" : "/login"} replace />;
+    if (role && userType !== role) return <Navigate to={role === 'admin' ? "/admin/login" : "/"} replace />;
+    return children;
+  };
+
+  const RequireAdmin = ({ children }) => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('userType') || localStorage.getItem('role') || getRoleFromToken();
+    if (!token) return <Navigate to="/admin/login" replace />;
+    if (role !== 'admin') return <Navigate to="/admin/login" replace />;
     return children;
   };
   return (
    <div>
+      <Toaster />
 
        <nav>
 
@@ -65,13 +88,15 @@ const App = () => {
       <Route path="/userDashboard" element={<RequireRole role="user"><UserDashboard /></RequireRole>} />
       <Route path="/services" element={<Services />} />
       <Route path="/login" element={<LoginSelection />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/user/login" element={<RegisterUser />} />
       <Route path="/lawyer/login" element={<RegisterLawyer />} />
       {/* optional dedicated login routes if you have separate pages */}
       {/* <Route path="/user/login" element={<UserLogin />} /> */}
       {/* <Route path="/lawyer/login" element={<LawyerLogin />} /> */}
-      <Route path="/admin" element={<RequireRole role="admin"><AdminLayout /></RequireRole>}>
+      <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
         <Route index element={<Dashboard />} />
+        <Route path="dashboard" element={<Dashboard />} />
       </Route>
       <Route path="/lawyers" element={<Lawyers />} />
       <Route path="/lawyers/:id" element={<LawyerProfile />} />

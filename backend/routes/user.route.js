@@ -70,4 +70,36 @@ router.post("/upload-local", upload.single("file"), (req, res) => {
   }
 });
 
+// Notifications - persistent
+router.get('/notifications', auth(), async (req, res) => {
+  try {
+    const Notification = (await import('../models/Notification.js')).default;
+    const items = await Notification.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(100);
+    res.json({ success: true, notifications: items });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Failed to fetch notifications' });
+  }
+});
+
+router.post('/notifications', auth(), async (req, res) => {
+  try {
+    const Notification = (await import('../models/Notification.js')).default;
+    const { title, description } = req.body;
+    const item = await Notification.create({ userId: req.user.id, title, description });
+    res.status(201).json({ success: true, notification: item });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Failed to create notification' });
+  }
+});
+
+router.post('/notifications/mark-read', auth(), async (req, res) => {
+  try {
+    const Notification = (await import('../models/Notification.js')).default;
+    await Notification.updateMany({ userId: req.user.id, read: false }, { $set: { read: true } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Failed to mark as read' });
+  }
+});
+
 export default router;

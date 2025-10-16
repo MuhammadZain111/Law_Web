@@ -1,23 +1,22 @@
 import React from "react";
 
-export function DashboardOverview({ user }) {
+export function DashboardOverview({ user, appointments = [], pendingCount = 0, todaysAppointments = [], recentActivity = [] }) {
+  // Compute stats dynamically from props
+  const activeCases = Array.isArray(appointments)
+    ? appointments.filter(a => (a.caseStatus || '').toLowerCase() !== 'completed').length
+    : 0;
+  const completedConsults = Array.isArray(appointments)
+    ? appointments.filter(a => (a.status || '').toLowerCase() === 'completed').length
+    : 0;
+  const outstandingPayments = Array.isArray(appointments)
+    ? appointments.reduce((sum, a) => sum + (a.paymentStatus === 'unpaid' ? Number(a.consultationFee || 0) : 0), 0)
+    : 0;
+
   const stats = [
-    { title: "Active Cases", value: "24", change: "+3 this week", color: "bg-blue-500" },
-    { title: "Pending Appointments", value: "8", change: "+2 today", color: "bg-orange-500" },
-    { title: "Completed Consultations", value: "156", change: "+12 this month", color: "bg-green-500" },
-    { title: "Outstanding Payments", value: "$12,450", change: "-$2,300 this week", color: "bg-red-500" },
-  ];
-
-  const recentAppointments = [
-    { client: "Sarah Johnson", time: "10:00 AM", type: "Consultation", status: "confirmed" },
-    { client: "Michael Chen", time: "2:30 PM", type: "Case Review", status: "pending" },
-    { client: "Emily Davis", time: "4:00 PM", type: "Document Signing", status: "confirmed" },
-  ];
-
-  const notifications = [
-    { message: "New appointment request from Alex Thompson", time: "5 minutes ago" },
-    { message: "Payment received from Johnson vs. Smith case", time: "1 hour ago" },
-    { message: "Document uploaded for Martinez case", time: "2 hours ago" },
+    { title: 'Active Cases', value: String(activeCases), change: '', color: 'bg-blue-500' },
+    { title: 'Pending Appointments', value: String(pendingCount), change: '', color: 'bg-orange-500' },
+    { title: 'Completed Consultations', value: String(completedConsults), change: '', color: 'bg-green-500' },
+    { title: 'Outstanding Payments', value: `PKR ${outstandingPayments.toLocaleString()}`, change: '', color: 'bg-red-500' },
   ];
 
   return (
@@ -53,24 +52,26 @@ export function DashboardOverview({ user }) {
         <div className="bg-white p-4 rounded shadow">
           <h2 className="text-lg font-serif mb-4">Today's Appointments</h2>
           <div className="space-y-4">
-            {recentAppointments.map((appointment, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
-                <div>
-                  <p className="font-medium">{appointment.client}</p>
-                  <p className="text-sm text-gray-500">{appointment.type}</p>
+            {todaysAppointments.map((a, index) => {
+              const name = a.clientName || a.userName || a.client?.name || 'Client'
+              const type = a.caseType || a.consultationType || 'Consultation'
+              const time = new Date(a.appointmentDate || a.date || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              const status = (a.status || '').toLowerCase()
+              return (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                  <div>
+                    <p className="font-medium">{name}</p>
+                    <p className="text-sm text-gray-500">{type}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{time}</p>
+                    <span className={`px-2 py-1 text-xs rounded ${status === 'confirmed' ? 'bg-green-200 text-green-800' : status === 'pending' ? 'bg-yellow-200 text-yellow-900' : 'bg-gray-300 text-gray-800'}`}>
+                      {status || 'scheduled'}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">{appointment.time}</p>
-                  <span
-                    className={`px-2 py-1 text-xs rounded ${
-                      appointment.status === "confirmed" ? "bg-green-200 text-green-800" : "bg-gray-300 text-gray-800"
-                    }`}
-                  >
-                    {appointment.status}
-                  </span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
           <button className="w-full mt-4 border rounded py-2 bg-transparent">View All Appointments</button>
         </div>
@@ -79,12 +80,12 @@ export function DashboardOverview({ user }) {
         <div className="bg-white p-4 rounded shadow">
           <h2 className="text-lg font-serif mb-4">Recent Activity</h2>
           <div className="space-y-4">
-            {notifications.map((notification, index) => (
+            {recentActivity.map((n, index) => (
               <div key={index} className="flex items-start space-x-3 p-3 bg-gray-100 rounded-lg">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
                 <div>
-                  <p className="text-sm">{notification.message}</p>
-                  <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
+                  <p className="text-sm">{n.title || n.message || 'Update'}</p>
+                  <p className="text-xs text-gray-400 mt-1">{new Date(n.createdAt || n.time || Date.now()).toLocaleString()}</p>
                 </div>
               </div>
             ))}

@@ -1,15 +1,95 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/shared/api';
+import { toast } from '@/hooks/use-toast';
+import { io as socketIO } from 'socket.io-client';
 
 export default function UserDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // no polling state needed; we use a local interval in the appointments component
   const [activeTab, setActiveTab] = useState("profile");
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const NOTIF_KEY = 'userNotifications';
 
   useEffect(() => {
     fetchUserProfile();
+  }, []);
+
+  // Realtime via socket
+  useEffect(() => {
+    try {
+      const userId = user?.id || user?._id;
+      if (!userId) return;
+      const s = socketIO(import.meta.env?.VITE_API_BASE || 'http://localhost:5000', {
+        path: '/socket.io',
+        transports: ['websocket'],
+        auth: { userId },
+      });
+      s.on('appointment:status', (payload) => {
+        setAppointments((prev) => prev.map((a) => (a._id === payload.id || a.id === payload.id ? { ...a, status: payload.status } : a)));
+        toast({
+          title: `Appointment ${payload.status?.toUpperCase()}`,
+          description: `Your appointment status changed to ${payload.status}.`,
+        });
+        try {
+          window.dispatchEvent(new CustomEvent('appt:notify', { detail: { title: 'Status Updated', description: `Appointment ${payload.status}`, time: Date.now() } }));
+        } catch (_) {}
+      });
+      return () => {
+        try { s.disconnect(); } catch (_) {}
+      };
+    } catch (_) {}
+  }, [user]);
+
+  // Simple in-app notification bus listener
+  useEffect(() => {
+    // Load persisted notifications once
+    try {
+      const saved = localStorage.getItem(NOTIF_KEY);
+      if (saved) setNotifications(JSON.parse(saved));
+    } catch (_) {}
+    const handler = (e) => {
+      const n = e.detail;
+      if (!n) return;
+      setNotifications((arr) => [{ ...n }, ...arr].slice(0, 20));
+    };
+    window.addEventListener('appt:notify', handler);
+    return () => window.removeEventListener('appt:notify', handler);
+  }, []);
+
+  // Persist notifications whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(NOTIF_KEY, JSON.stringify(notifications));
+    } catch (_) {}
+  }, [notifications]);
+
+  // Fetch notifications from server on load and occasionally (manual refresh or first open)
+  useEffect(() => {
+    const loadServerNotifications = async () => {
+      try {
+        const res = await api.get('/user/notifications');
+        const serverItems = res?.data?.notifications || [];
+        if (serverItems.length) {
+          // Merge with local, dedupe by _id/time/title
+          const merged = [...serverItems.map(n => ({ id: n._id, title: n.title, description: n.description, time: n.createdAt })), ...notifications];
+          const seen = new Set();
+          const uniq = [];
+          for (const n of merged) {
+            const key = n.id || `${n.title}|${n.time}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            uniq.push(n);
+          }
+          setNotifications(uniq.slice(0, 100));
+        }
+      } catch (_) {}
+    };
+    loadServerNotifications();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUserProfile = async () => {
@@ -97,7 +177,42 @@ export default function UserDashboard() {
               </div>
             </div>
             
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-6 relative">
+              {/* Notification Bell */}
+              <button
+                onClick={() => setShowNotifications((v) => !v)}
+                className="relative w-10 h-10 rounded-full bg-white/70 border border-white/30 shadow flex items-center justify-center hover:bg-white/90"
+                aria-label="Notifications"
+              >
+                <span className="text-gray-700">🔔</span>
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+              {/* Notification Panel */}
+              {showNotifications && (
+                <div className="absolute right-36 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-200 p-3 z-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-semibold text-gray-900">Notifications</div>
+                    <button className="text-xs text-gray-500 hover:text-gray-700" onClick={() => { setNotifications([]); setShowNotifications(false); }}>Clear</button>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="text-sm text-gray-500 py-3">No notifications</div>
+                  ) : (
+                    <div className="max-h-64 overflow-auto space-y-2">
+                      {notifications.slice(0, 20).map((n, idx) => (
+                        <div key={idx} className="p-2 rounded-lg border border-gray-100 bg-gray-50">
+                          <div className="text-sm font-medium text-gray-900">{n.title}</div>
+                          <div className="text-xs text-gray-600">{n.description}</div>
+                          <div className="text-[10px] text-gray-400 mt-1">{new Date(n.time).toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex items-center space-x-3 bg-white/60 backdrop-blur-sm rounded-2xl px-4 py-2 shadow-md border border-white/20">
                 <div className="w-10 h-10 bg-gradient-to-r from-gray-600 to-gray-800 rounded-full flex items-center justify-center shadow-lg">
                   {user.photoUrl ? (
@@ -334,9 +449,16 @@ function UserProfile({ user, onUpdate }) {
 function UserAppointments({ userId }) {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const prevStatusRef = React.useRef({});
 
   useEffect(() => {
     fetchAppointments();
+    // Optional: external trigger to refetch instantly (e.g., right after booking)
+    const refetch = () => fetchAppointments();
+    window.addEventListener('appt:refetch', refetch);
+    return () => {
+      window.removeEventListener('appt:refetch', refetch);
+    };
   }, [userId]);
 
   const fetchAppointments = async () => {
@@ -344,16 +466,37 @@ function UserAppointments({ userId }) {
       setLoading(true);
       const response = await api.get('/appointments/');
       const list = response.data?.appointments || response.data || [];
-      // Filter to current user if API returns mixed; also match by email fallback
-      const uid = userId;
-      const me = await api.get('/user/profile');
-      const userEmail = me?.data?.user?.email || me?.data?.email;
-      const filtered = Array.isArray(list) ? list.filter(a => {
-        const cid = a.clientId?._id || a.clientId || a.userId || a.user?._id;
-        const email = a.clientEmail || a.clientId?.email;
-        return (uid && cid && String(cid) === String(uid)) || (userEmail && email && email === userEmail);
-      }) : [];
-      setAppointments(filtered);
+      // Rely on server-side filtering; also normalize any 'accepted' to 'confirmed' for display
+      const normalized = Array.isArray(list) ? list.map(a => ({
+        ...a,
+        status: a.status === 'accepted' ? 'confirmed' : a.status,
+        lawyerName: a.lawyerName || a.lawyer?.fullName || (a.lawyerId ? `${a.lawyerId.firstname || ''} ${a.lawyerId.lastname || ''}`.trim() : 'Lawyer'),
+      })) : [];
+      // Detect status changes and notify
+      const prev = prevStatusRef.current;
+      normalized.forEach(item => {
+        const id = item._id || item.id;
+        const prevStatus = prev[id];
+        if (prevStatus && prevStatus !== item.status) {
+          toast({
+            title: `Appointment ${item.status?.toUpperCase()}`,
+            description: `${item.lawyerName || 'Lawyer'} updated your appointment to ${item.status}.`,
+          });
+          // Add to in-app notifications list
+          try {
+            // Push to parent state via window event (simple bus)
+            window.dispatchEvent(new CustomEvent('appt:notify', {
+              detail: {
+                title: `Appointment ${item.status?.toUpperCase()}`,
+                description: `${item.lawyerName || 'Lawyer'} updated your appointment to ${item.status}.`,
+                time: Date.now(),
+              }
+            }));
+          } catch (_) {}
+        }
+        prev[id] = item.status;
+      });
+      setAppointments(normalized);
     } catch (error) {
       console.error('Error fetching appointments:', error);
       setAppointments([]);
@@ -365,11 +508,19 @@ function UserAppointments({ userId }) {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-2">
-          My Appointments
-        </h2>
-        <p className="text-gray-600">Track and manage your legal consultations</p>
+      <div className="mb-8 flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-2">
+            My Appointments
+          </h2>
+          <p className="text-gray-600">Track and manage your legal consultations</p>
+        </div>
+        <button
+          onClick={fetchAppointments}
+          className="h-10 px-4 rounded-xl bg-gray-900 text-white text-sm shadow hover:opacity-90"
+        >
+          Refresh
+        </button>
       </div>
       
       {loading ? (

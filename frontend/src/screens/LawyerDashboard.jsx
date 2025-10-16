@@ -22,6 +22,8 @@ export default function LawyerDashboard() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [appointments, setAppointments] = useState([])
   const [pendingAppointments, setPendingAppointments] = useState([])
+  const [todaysAppointments, setTodaysAppointments] = useState([])
+  const [recentActivity, setRecentActivity] = useState([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
 
@@ -30,6 +32,7 @@ export default function LawyerDashboard() {
     // Use real auth token already stored by login flow
     fetchProfile()
     fetchAppointments()
+    fetchRecentActivity()
     
     // Set up polling to check for new appointments every 10 seconds (for testing)
     const interval = setInterval(fetchAppointments, 10000)
@@ -50,6 +53,21 @@ export default function LawyerDashboard() {
         const pending = response.appointments.filter(apt => apt.status === 'pending')
         console.log('⏳ Pending appointments:', pending.length)
         setPendingAppointments(pending)
+
+        // Compute today's appointments dynamically
+        try {
+          const today = new Date()
+          const y = today.getFullYear(), m = today.getMonth(), d = today.getDate()
+          const start = new Date(y, m, d, 0, 0, 0, 0).getTime()
+          const end = new Date(y, m, d, 23, 59, 59, 999).getTime()
+          const todays = response.appointments.filter((a) => {
+            const ts = new Date(a.appointmentDate || a.date || a.scheduledDate || a.createdAt).getTime()
+            return ts >= start && ts <= end
+          })
+          setTodaysAppointments(todays)
+        } catch (_e) {
+          setTodaysAppointments([])
+        }
       } else {
         console.log('❌ No appointments in response')
       }
@@ -57,6 +75,16 @@ export default function LawyerDashboard() {
       console.error('❌ Error fetching appointments:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchRecentActivity = async () => {
+    try {
+      const res = await api.get('/user/notifications')
+      const items = res?.data?.notifications || []
+      setRecentActivity(items)
+    } catch (_e) {
+      setRecentActivity([])
     }
   }
 
@@ -86,7 +114,13 @@ export default function LawyerDashboard() {
       case "dashboard":
         return (
           <div className="p-6 space-y-6">
-            <DashboardOverview user={user} appointments={appointments} pendingCount={pendingAppointments.length} />
+            <DashboardOverview
+              user={user}
+              appointments={appointments}
+              pendingCount={pendingAppointments.length}
+              todaysAppointments={todaysAppointments}
+              recentActivity={recentActivity}
+            />
             <UpcomingAppointments userRole="lawyer" userId={user?.id} />
           </div>
         )
