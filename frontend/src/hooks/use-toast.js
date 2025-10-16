@@ -1,6 +1,5 @@
 // Inspired by react-hot-toast library
 import * as React from "react"
-import { ToastActionElement, ToastProps } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -151,3 +150,40 @@ function useToast() {
 }
 
 export { useToast, toast }
+
+// Lightweight toast renderer for this app
+export function Toaster() {
+  const { toasts, dismiss } = useToast()
+  if (!toasts || toasts.length === 0) return null
+  return React.createElement(
+    'div',
+    { style: { position: 'fixed', top: 16, right: 16, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 8 } },
+    toasts.map((t) =>
+      React.createElement(
+        'div',
+        {
+          key: t.id,
+          onClick: () => dismiss(t.id),
+          style: {
+            minWidth: 280,
+            maxWidth: 360,
+            background: '#111827',
+            color: 'white',
+            padding: '12px 14px',
+            borderRadius: 12,
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+            cursor: 'pointer',
+          },
+        },
+        [
+          t.title
+            ? React.createElement('div', { key: 'title', style: { fontWeight: 700, marginBottom: 4 } }, t.title)
+            : null,
+          t.description
+            ? React.createElement('div', { key: 'desc', style: { opacity: 0.9, fontSize: 14 } }, t.description)
+            : null,
+        ]
+      )
+    )
+  )
+}

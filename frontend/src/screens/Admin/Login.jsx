@@ -77,6 +77,8 @@ export default function Login() {
     try {
       const res = await api.post("/auth/login", { email, password });
       localStorage.setItem("token", res.data.token);
+      try { localStorage.setItem("userType", res?.data?.admin?.role || "admin"); } catch (_) {}
+      try { localStorage.setItem("role", res?.data?.admin?.role || "admin"); } catch (_) {}
       setAuthToken(res.data.token);
       navigate("/admin");
     } catch (e) {

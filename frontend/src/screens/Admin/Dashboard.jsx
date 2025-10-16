@@ -29,22 +29,22 @@ export default function Dashboard() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) {
-      navigate('/login')
+      navigate('/admin/login')
       return
     }
     setAuthToken(token)
     ;(async () => {
       try {
-        // Load approved list for table
-        const approved = await api.get("/appointments/lawyers?status=approved")
+        // Load approved list for table (use enriched lawyers endpoint)
+        const approved = await api.get("/lawyers?status=approved")
         setLawyers(approved.data?.lawyers || approved.data || [])
         // Load pending list for approvals
-        const pending = await api.get("/appointments/lawyers?status=pending")
+        const pending = await api.get("/lawyers?status=pending")
         setPendingLawyers(pending.data?.lawyers || pending.data || [])
       } catch (e) {
-        if (e?.response?.status === 401) {
+        if (e?.response?.status === 401 || e?.status === 401) {
           localStorage.removeItem('token')
-          navigate('/login')
+          navigate('/admin/login')
           return
         }
         setError(e?.response?.data?.error || e?.message || "Failed to load")
@@ -421,8 +421,8 @@ export default function Dashboard() {
                                       if (!id) return
                                       await api.post(`/lawyers/${id}/approve`)
                                       const [approved, pending] = await Promise.all([
-                                        api.get('/appointments/lawyers?status=approved'),
-                                        api.get('/appointments/lawyers?status=pending'),
+                                        api.get('/lawyers?status=approved'),
+                                        api.get('/lawyers?status=pending'),
                                       ])
                                       setLawyers(approved.data?.lawyers || approved.data || [])
                                       setPendingLawyers(pending.data?.lawyers || pending.data || [])
@@ -480,7 +480,7 @@ export default function Dashboard() {
                                       const id = l._id || l.id
                                       if (!id) return
                                       await api.post(`/lawyers/${id}/reject`, { reason: 'Insufficient documents' })
-                                      const pending = await api.get('/appointments/lawyers?status=pending')
+                                      const pending = await api.get('/lawyers?status=pending')
                                       setPendingLawyers(pending.data?.lawyers || pending.data || [])
                                     } catch (err) {
                                       console.error(err)

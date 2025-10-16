@@ -53,8 +53,8 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/appointments", appointmentRoute);
 app.use("/api/v1/reminders", reminderRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/lawyers", lawyerRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/lawyers", lawyerRoutes);
 
 // 404 handler
 app.use((_req, _res, next) => next(createError(404, "Not found")));

@@ -525,6 +525,17 @@ export default function AppointmentBooking() {
       if (response.data.success) {
         setIsSubmitted(true);
         console.log('Appointment created successfully:', response.data.appointment);
+        try {
+          // Notify dashboard and request refresh
+          window.dispatchEvent(new CustomEvent('appt:notify', {
+            detail: {
+              title: 'Appointment Requested',
+              description: `You requested an appointment with ${lawyer.name}.`,
+              time: Date.now(),
+            }
+          }));
+          window.dispatchEvent(new Event('appt:refetch'));
+        } catch (_) {}
       } else {
         throw new Error(response.data.message || 'Failed to create appointment');
       }

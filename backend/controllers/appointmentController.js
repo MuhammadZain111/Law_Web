@@ -24,6 +24,7 @@ export const createAppointment = async (req, res) => {
       consultationFee, 
       paymentMethod, 
       paymentScreenshot,
+      paymentScreenshotFile,
       // Additional fields
       clientAddress,
       clientCity,
@@ -109,6 +110,19 @@ export const createAppointment = async (req, res) => {
       paymentMethodValid: !!paymentMethod
     });
 
+    // Build payment screenshot object: prefer structured file; fall back to simple URL
+    let paymentScreenshotFileObj = paymentScreenshotFile || null;
+    // Only construct a file object if the provided paymentScreenshot is a URL; otherwise ignore (it's likely a reference/ID)
+    if (!paymentScreenshotFileObj && typeof paymentScreenshot === 'string' && /^https?:\/\//i.test(paymentScreenshot)) {
+      paymentScreenshotFileObj = {
+        name: 'payment_screenshot.jpg',
+        size: 0,
+        type: 'image/*',
+        lastModified: Date.now(),
+        url: paymentScreenshot,
+      };
+    }
+
     const appointment = await Appointment.create({
       clientId,
       lawyerId: new mongoose.Types.ObjectId(lawyerId),
@@ -122,6 +136,7 @@ export const createAppointment = async (req, res) => {
       consultationFee,
       paymentMethod,
       paymentScreenshot,
+      paymentScreenshotFile: paymentScreenshotFileObj,
       // Additional fields
       clientAddress,
       clientCity,
@@ -146,6 +161,18 @@ export const createAppointment = async (req, res) => {
     });
 
     console.log('✅ Appointment created successfully:', appointment._id);
+
+    // Persist notifications for both parties
+    try {
+      const Notification = (await import('../models/Notification.js')).default;
+      await Notification.create({ userId: appointment.lawyerId, title: 'New Appointment Request', description: `${clientName} requested an appointment.` });
+      if (clientId) await Notification.create({ userId: clientId, title: 'Appointment Requested', description: `Your appointment request was sent.` });
+      // Realtime emit to lawyer if connected
+      const { io } = await import('../server.js');
+      if (io) {
+        io.to(String(appointment.lawyerId)).emit('appointment:status', { id: appointment._id.toString(), status: appointment.status });
+      }
+    } catch (_) {}
 
     res.status(201).json({ 
       success: true, 
@@ -217,8 +244,8 @@ export const listAppointments = async (req, res) => {
     console.log('🔍 listAppointments - Query:', q);
 
     const appointments = await Appointment.find(q)
-      .populate("clientId", "name email")
-      .populate("lawyerId", "name email")
+      .populate("clientId", "firstname lastname email photoUrl")
+      .populate("lawyerId", "firstname lastname email photoUrl")
       .sort({ appointmentDate: -1, createdAt: -1 });
 
     console.log('📋 Returning appointments:', appointments.length, 'appointments');
@@ -289,6 +316,20 @@ export const updateAppointmentStatus = async (req, res) => {
 
     appt.status = status;
     await appt.save();
+    try {
+      // Emit realtime event to client room for this user
+      const { io } = await import('../server.js');
+      const targetUserId = (req.user.role === 'lawyer' || req.user.userType === 'lawyer') ? appt.clientId?.toString() : appt.lawyerId?.toString();
+      if (io && targetUserId) {
+        io.to(String(targetUserId)).emit('appointment:status', {
+          id: appt._id.toString(),
+          status: appt.status,
+        });
+        // Persist notification for target user
+        const Notification = (await import('../models/Notification.js')).default;
+        await Notification.create({ userId: targetUserId, title: `Appointment ${status}`, description: `Your appointment status changed to ${status}.` });
+      }
+    } catch (_) {}
     res.json({ appointment: appt });
   } catch (err) {
     console.error("updateAppointmentStatus:", err);
