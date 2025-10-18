@@ -20,14 +20,6 @@ import { registerSocket } from "./socket.js";
 // Load env
 dotenv.config();
 
-// Debug: print environment variables
-console.log("Environment variables:");
-console.log({
-  PORT: process.env.PORT,
-  MONGODB_URI: process.env.MONGODB_URI,
-  JWT_SECRET: process.env.JWT_SECRET,
-});
-
 const app = express();
 
 // Security & middleware
@@ -85,7 +77,7 @@ const MONGO_URI =
   process.env.MONGODB_URI ||
   process.env.MONGO_URI ||
   "mongodb://127.0.0.1:27017/lawyer_admin";
-const PORT = process.env.PORT || 3000;
+let PORT = Number(process.env.PORT) || 3000;
 
 // Debug: print which DB URI will be used
 console.log("Attempting to connect to MongoDB at:", MONGO_URI);
@@ -93,10 +85,26 @@ console.log("Attempting to connect to MongoDB at:", MONGO_URI);
 mongoose
   .connect(MONGO_URI)
   .then(() => {
-    console.log("✅ MongoDB connection established successfully!");
-    server.listen(PORT, () => {
-      console.log(`✅ Server listening on http://localhost:${PORT}`);
+    const masked = (MONGO_URI || "").replace(/:\/\/([^:]*):([^@]*)@/g, "://$1:***@");
+    console.log("✅ MongoDB connected successfully →", masked || "<no uri>");
+    const startListening = () => {
+      server.listen(PORT, () => {
+        console.log(`✅ Server listening on http://localhost:${PORT}`);
+      });
+    };
+
+    server.on("error", (err) => {
+      if (err && err.code === "EADDRINUSE") {
+        console.error(`⚠️ Port ${PORT} in use, trying ${PORT + 1}...`);
+        PORT += 1;
+        setTimeout(startListening, 100);
+      } else {
+        console.error("❌ HTTP server error:", err);
+        process.exit(1);
+      }
     });
+
+    startListening();
   })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);

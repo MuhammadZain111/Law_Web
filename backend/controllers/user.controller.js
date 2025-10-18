@@ -6,17 +6,17 @@ import User from "../models/user.model.js";
 export const register = async (req, res) => {
   try {
     console.log("Registration request body:", req.body);
-    
-    const {
-      firstname,
-      lastname,
-      username,
-      email,
-      password,
-      userType,
-      nationalIdNumber,
-      nationalIdFrontUrl,
-      nationalIdBackUrl,
+    const { 
+      firstname, 
+      lastname, 
+      username, 
+      email, 
+      password, 
+      userType, 
+      photoUrl,
+      nationalIdNumber, 
+      nationalIdFrontUrl, 
+      nationalIdBackUrl 
     } = req.body;
 
     if (!firstname || !lastname || !email || !password) {
@@ -48,7 +48,7 @@ export const register = async (req, res) => {
       email,
       password: hashedPassword,
       userType: userType || "user",
-      status: userType === "lawyer" ? "pending" : "approved",
+      status: userType === "lawyer" ? "pending" : "approved"
     };
 
     // Add username only if provided
@@ -59,15 +59,11 @@ export const register = async (req, res) => {
     if (nationalIdNumber) userData.nationalIdNumber = nationalIdNumber;
     if (nationalIdFrontUrl) userData.nationalIdFrontUrl = nationalIdFrontUrl;
     if (nationalIdBackUrl) userData.nationalIdBackUrl = nationalIdBackUrl;
+    if (photoUrl) userData.photoUrl = photoUrl;
 
     const newUser = await User.create(userData);
-    const { password: _pw, ...userResponse } = newUser.toObject();
-
-    return res.status(201).json({
-      success: true,
-      message: "Account Created Successfully",
-      user: userResponse,
-    });
+    const { password: _, ...userResponse } = newUser.toObject();
+    return res.status(201).json({ success: true, message: "Account Created Successfully", user: userResponse });
   } catch (error) {
     console.error("Registration error:", error);
     return res.status(500).json({ 
@@ -77,6 +73,9 @@ export const register = async (req, res) => {
     });
   }
 };
+
+
+
 
 // Login
 export const login = async (req, res) => {
@@ -96,8 +95,11 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid Credentials" });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || "dev_secret", { expiresIn: "1d" });
-    const { password: _pw, ...userData } = user.toObject();
+    const jwtSecret = process.env.JWT_SECRET || "dev_secret";
+    const token = jwt.sign({ userId: user._id }, jwtSecret, { expiresIn: "1d" });
+
+    // remove password before sending
+    const { password: _, ...userData } = user.toObject();
 
     return res
       .status(200)
@@ -132,7 +134,7 @@ export const logout = async (_req, res) => {
   }
 };
 
-// Get current user profile (requires auth, uses req.user)
+// Get current user profile (requires auth)
 export const getProfile = async (req, res) => {
   try {
     const id = req.user?.id || req.user?.userId;
@@ -149,7 +151,6 @@ export const getProfile = async (req, res) => {
     return res.status(500).json({ success: false, message: "Failed to fetch profile" });
   }
 };
-
 // Update Profile
 export const updateProfile = async (req, res) => {
   try {
@@ -207,11 +208,9 @@ export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
     const user = await User.findById(id).select("-password");
-
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-
     res.status(200).json({ success: true, message: "User fetched successfully", user });
   } catch (error) {
     console.error("Error fetching user:", error);

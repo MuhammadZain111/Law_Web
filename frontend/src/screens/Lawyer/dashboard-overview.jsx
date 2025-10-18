@@ -1,6 +1,6 @@
 import React from "react";
 
-export function DashboardOverview() {
+export function DashboardOverview({ user }) {
   const stats = [
     { title: "Active Cases", value: "24", change: "+3 this week", color: "bg-blue-500" },
     { title: "Pending Appointments", value: "8", change: "+2 today", color: "bg-orange-500" },
@@ -24,7 +24,12 @@ export function DashboardOverview() {
     <div className="p-6 space-y-6">
       {/* Welcome Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-serif font-bold mb-2">Welcome back, John Doe</h1>
+        {(() => {
+          const display = (user?.fullName || user?.name || [user?.firstname || user?.firstName, user?.lastname || user?.lastName].filter(Boolean).join(' ') || user?.username || user?.email || '')
+          return (
+            <h1 className="text-3xl font-serif font-bold mb-2">Welcome back{display ? `, ${display}` : ''}</h1>
+          )
+        })()}
         <p className="text-gray-500">Here's what's happening with your practice today.</p>
       </div>
 

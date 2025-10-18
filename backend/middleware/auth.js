@@ -1,7 +1,10 @@
 // middleware/auth.js
 import jwt from "jsonwebtoken";
 
+
+
 // Role-aware auth middleware: auth(['admin']) or auth(['lawyer']) or auth()
+
 const auth = (roles = []) => {
   return async (req, res, next) => {
     const token =
@@ -18,6 +21,9 @@ const auth = (roles = []) => {
       req.user.id = req.user.id || req.user.userId;
 
       // Ensure role/userType is available on req.user
+      // Ensure role/userType is available on req.user.
+      // If token doesn't carry it, fetch minimal user info from DB.
+      
       if (!req.user.role && !req.user.userType && req.user.id) {
         try {
           const User = (await import("../models/user.model.js")).default;
@@ -36,6 +42,8 @@ const auth = (roles = []) => {
         return res.status(403).json({ message: "Forbidden" });
       }
 
+
+
       next();
     } catch (_err) {
       res.status(401).json({ message: "Invalid token" });
@@ -44,6 +52,7 @@ const auth = (roles = []) => {
 };
 
 // Simple helpers (optional) for routes that want a minimal check
+
 export function requireAuth(req, res, next) {
   try {
     const token =

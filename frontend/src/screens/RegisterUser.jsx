@@ -1,10 +1,14 @@
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function RegisterUser() {
   const navigate = useNavigate();
   const [isRegistering, setIsRegistering] = useState(false);
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) navigate('/');
+  }, [navigate]);
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',

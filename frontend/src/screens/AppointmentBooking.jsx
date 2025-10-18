@@ -164,12 +164,25 @@ export default function AppointmentBooking() {
     specialRequirements: ''
   });
 
+  // Keep a formatted display for consultation fee (PKR with separators)
+  const [consultationFeeDisplay, setConsultationFeeDisplay] = useState('5,000');
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    // Special handling for consultationFee: sanitize and format
+    if (name === 'consultationFee') {
+      const digitsOnly = String(value).replace(/[^0-9]/g, '');
+      let numeric = parseInt(digitsOnly || '0', 10);
+      // Clamp to sensible range
+      if (Number.isNaN(numeric)) numeric = 0;
+      if (numeric < 1000) numeric = 1000;
+      if (numeric > 50000) numeric = 50000;
+      setFormData(prev => ({ ...prev, consultationFee: numeric }));
+      setConsultationFeeDisplay(numeric.toLocaleString('en-PK'));
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleAppointmentTypeChange = (value) => {
@@ -395,7 +408,7 @@ export default function AppointmentBooking() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="gender">Gender</Label>
-                      <Select onValueChange={(value) => setFormData(prev => ({...prev, gender: value}))}>
+                      <Select value={formData.gender} onValueChange={(value) => setFormData(prev => ({...prev, gender: value}))}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
@@ -440,7 +453,7 @@ export default function AppointmentBooking() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Case Type *</Label>
-                      <Select onValueChange={(value) => setFormData(prev => ({...prev, caseType: value}))} required>
+                      <Select value={formData.caseType} onValueChange={(value) => setFormData(prev => ({...prev, caseType: value}))} required>
                         <SelectTrigger>
                           <SelectValue placeholder="Select case type" />
                         </SelectTrigger>
@@ -455,7 +468,7 @@ export default function AppointmentBooking() {
                     </div>
                     <div className="space-y-2">
                       <Label>Consultation Type *</Label>
-                      <Select onValueChange={(value) => setFormData(prev => ({...prev, consultationType: value}))} required>
+                      <Select value={formData.consultationType} onValueChange={(value) => setFormData(prev => ({...prev, consultationType: value}))} required>
                         <SelectTrigger>
                           <SelectValue placeholder="Select consultation type" />
                         </SelectTrigger>
@@ -470,7 +483,7 @@ export default function AppointmentBooking() {
                     </div>
                     <div className="space-y-2">
                       <Label>Urgency Level</Label>
-                      <Select onValueChange={(value) => setFormData(prev => ({...prev, urgency: value}))}>
+                      <Select value={formData.urgency} onValueChange={(value) => setFormData(prev => ({...prev, urgency: value}))}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select urgency" />
                         </SelectTrigger>
@@ -484,7 +497,7 @@ export default function AppointmentBooking() {
                     </div>
                     <div className="space-y-2">
                       <Label>Case Status</Label>
-                      <Select onValueChange={(value) => setFormData(prev => ({...prev, caseStatus: value}))}>
+                      <Select value={formData.caseStatus} onValueChange={(value) => setFormData(prev => ({...prev, caseStatus: value}))}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select case status" />
                         </SelectTrigger>
@@ -568,7 +581,7 @@ export default function AppointmentBooking() {
                     </div>
                     <div className="space-y-2">
                       <Label>Preferred Time *</Label>
-                      <Select onValueChange={setSelectedTime} required>
+                      <Select value={selectedTime} onValueChange={setSelectedTime} required>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a time slot" />
                         </SelectTrigger>
@@ -604,7 +617,7 @@ export default function AppointmentBooking() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Payment Method *</Label>
-                      <Select onValueChange={(value) => setFormData(prev => ({...prev, paymentMethod: value}))} required>
+                      <Select value={formData.paymentMethod} onValueChange={(value) => setFormData(prev => ({...prev, paymentMethod: value}))} required>
                         <SelectTrigger>
                           <SelectValue placeholder="Select payment method" />
                         </SelectTrigger>
@@ -618,17 +631,20 @@ export default function AppointmentBooking() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="consultationFee">Consultation Fee (PKR)</Label>
-                      <Input
-                        id="consultationFee"
-                        name="consultationFee"
-                        type="number"
-                        value={formData.consultationFee}
-                        onChange={handleInputChange}
-                        placeholder="5000"
-                        min="1000"
-                        max="50000"
-                      />
+                      <Label htmlFor="consultationFee">Consultation Fee</Label>
+                      <div className="flex items-stretch">
+                        <span className="inline-flex items-center px-3 border border-r-0 rounded-l bg-gray-50 text-gray-600 text-sm">PKR</span>
+                        <input
+                          id="consultationFee"
+                          name="consultationFee"
+                          inputMode="numeric"
+                          className="flex-1 border rounded-r px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                          value={consultationFeeDisplay}
+                          onChange={handleInputChange}
+                          placeholder="5,000"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">Range: PKR 1,000 – 50,000</p>
                     </div>
                   </div>
                   <div className="space-y-2">

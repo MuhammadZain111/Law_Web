@@ -18,6 +18,7 @@ import AdminLogin from './screens/Admin/Login';
 import NotificationBell from './screens/Admin/NotificationBell';
 import ProfileForm from './screens/Admin/ProfileForm';
 import LoginSelection from './screens/LoginSelection.jsx';
+import UserDashboard from './screens/UserDashboard.jsx';
 
 const App = () => {
   const RequireAdminAuth = ({ children }) => {
@@ -57,6 +58,7 @@ const App = () => {
       <Route path="/services" element={<Services />} />
       <Route path="/login" element={<LoginSelection />} />
       <Route path="/user/login" element={<UserLogin />} />
+      <Route path="/user/dashboard" element={<UserDashboard />} />
       <Route path="/lawyer/login" element={<AdminLogin />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       {/* optional dedicated login routes if you have separate pages */}

@@ -1,6 +1,6 @@
 // controllers/appointment.controller.js
-import Appointment from "../models/appointment.model.js";
 import mongoose from "mongoose";
+import Appointment from "../models/appointment.model.js";
 
 // Create appointment
 export const createAppointment = async (req, res) => {
@@ -165,8 +165,7 @@ export const updateAppointmentStatus = async (req, res) => {
 
     appt.status = status;
     await appt.save();
-
-    res.json({ appointment: appt });
+   res.json({ appointment: appt });
   } catch (err) {
     console.error("updateAppointmentStatus:", err);
     res.status(500).json({ message: "Server error" });

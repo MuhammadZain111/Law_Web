@@ -1,7 +1,7 @@
-import React from 'react'
-import { useState } from "react";
+import { Eye, EyeOff, Lock, Mail, Scale, User } from 'lucide-react';
+import { useEffect, useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, Scale } from 'lucide-react';
+import { api } from '../shared/api.js';
 
 function RegisterLawyer() {
   const navigate = useNavigate();
@@ -22,9 +22,15 @@ function RegisterLawyer() {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    photoUrl: ''
   });
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) navigate('/lawyerDashboard');
+  }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -89,7 +95,8 @@ function RegisterLawyer() {
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        userType: 'lawyer'
+        userType: 'lawyer',
+        photoUrl: formData.photoUrl
       };
 
       console.log('Sending lawyer registration data:', lawyerData);
@@ -145,7 +152,8 @@ function RegisterLawyer() {
           username: '',
           email: '',
           password: '',
-          confirmPassword: ''
+          confirmPassword: '',
+          photoUrl: ''
         });
         // Switch to login mode
         setIsRegistering(false);
@@ -269,7 +277,62 @@ function RegisterLawyer() {
               </div>
             )}
 
-            {isRegistering && (
+        {isRegistering && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Profile Photo (optional)
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  try {
+                    // Get ImageKit auth params
+                    const { data: sig } = await api.get('/v1/user/imagekit-auth')
+                    if (!sig?.signature || !sig?.token || !sig?.expire) {
+                      throw new Error('ImageKit not configured')
+                    }
+                    const form = new FormData()
+                    form.append('file', file)
+                    form.append('publicKey', import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY || '')
+                    form.append('signature', sig.signature)
+                    form.append('expire', sig.expire)
+                    form.append('token', sig.token)
+                    form.append('fileName', file.name)
+                    const base = (import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT || '').replace(/\/$/, '')
+                    const resp = await fetch(`${base}/api/v1/files/upload`, { method: 'POST', body: form })
+                    const json = await resp.json()
+                    if (json?.url) {
+                      setFormData(prev => ({ ...prev, photoUrl: json.url }))
+                    } else {
+                      alert('Failed to upload image')
+                    }
+                  } catch (err) {
+                    console.error('Image upload error', err)
+                    alert('Image upload failed')
+                  }
+                }}
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+              />
+              {formData.photoUrl && (
+                <img src={formData.photoUrl} alt="preview" className="w-12 h-12 rounded-full object-cover border" />
+              )}
+            </div>
+            <p className="mt-2 text-xs text-gray-500">We host via ImageKit. You can change this later.</p>
+          </div>
+        )}
+
+        {isRegistering && formData.photoUrl && (
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <span>Preview:</span>
+            <img src={formData.photoUrl} alt="preview" className="w-12 h-12 rounded-full object-cover border" onError={(e)=>{e.currentTarget.style.display='none'}} />
+          </div>
+        )}
+
+        {isRegistering && (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Username

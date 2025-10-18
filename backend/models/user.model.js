@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+
 const userSchema = new mongoose.Schema(
   {
     firstname: {
@@ -81,6 +82,9 @@ const userSchema = new mongoose.Schema(
 );
 
 // Idempotent export to avoid model overwrite on hot reload
+
 const User = mongoose.models.User || mongoose.model("User", userSchema);
+
+
 
 export default User;

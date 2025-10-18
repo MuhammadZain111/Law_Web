@@ -7,14 +7,21 @@ export default function AdminLayout() {
   const location = useLocation();
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) navigate('/login');
+    if (!token) navigate('/admin/login');
     else setAuthToken(token);
   }, [navigate]);
 
   async function logout() {
-    await api.post('/auth/logout');
-    localStorage.removeItem('token');
-    navigate('/login');
+    try {
+      await api.post('/auth/logout');
+    } catch (_e) {
+      // ignore network errors; proceed to clear client state
+    } finally {
+      try { localStorage.removeItem('token'); } catch (_e) {}
+      try { localStorage.removeItem('userType'); } catch (_e) {}
+      setAuthToken(null);
+      navigate('/admin/login', { replace: true });
+    }
   }
 
   return (
