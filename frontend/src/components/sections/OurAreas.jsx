@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 function OurAreas() {
   
@@ -41,7 +42,7 @@ function OurAreas() {
 
             <h2 className="text-4xl font-serif font-semibold text-[#2c1f1a]">Our Legal Practice Areas</h2>
 
-            <button className="text-sm px-5 py-2 bg-[#ebe2dd] text-[#2c1f1a] rounded-md hover:bg-[#dfd1c8] transition"> See More Legal Services</button>
+            <Link to="/services#services" className="text-sm px-5 py-2 bg-[#ebe2dd] text-[#2c1f1a] rounded-md hover:bg-[#dfd1c8] transition">See More Legal Services</Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

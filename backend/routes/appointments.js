@@ -19,9 +19,8 @@ router.get("/lawyers", getAllLawyers);
 router.get("/lawyers/:lawyerId", getLawyerById);
 router.get("/available-slots/:lawyerId", getAvailableTimeSlots);
 
-// Protected routes (auth required)
-// client books appointment
-router.post("/", auth(), createAppointment);
+// Booking: allow guests to create appointment (auth optional)
+router.post("/", createAppointment);
 
 // role-based list (client sees own, lawyer sees theirs, admin sees all)
 router.get("/", auth(), listAppointments);

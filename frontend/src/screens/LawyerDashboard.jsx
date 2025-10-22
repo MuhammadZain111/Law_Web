@@ -26,6 +26,19 @@ export default function LawyerDashboard() {
   const [recentActivity, setRecentActivity] = useState([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
+  
+  const getUserIdFromToken = () => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return null
+      const [, payload] = String(token).split('.')
+      if (!payload) return null
+      const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')) || '{}')
+      return json?.id || json?.userId || null
+    } catch (_e) {
+      return null
+    }
+  }
 
   // Fetch appointments on component mount
   useEffect(() => {
@@ -48,9 +61,16 @@ export default function LawyerDashboard() {
       
       if (response.appointments) {
         console.log('✅ Appointments found:', response.appointments.length)
-        setAppointments(response.appointments)
+        const currentLawyerId = getUserIdFromToken()
+        const filtered = currentLawyerId
+          ? response.appointments.filter((a) => {
+              const lid = a.lawyerId?._id || a.lawyerId
+              return String(lid) === String(currentLawyerId)
+            })
+          : response.appointments
+        setAppointments(filtered)
         // Filter pending appointments for notifications
-        const pending = response.appointments.filter(apt => apt.status === 'pending')
+        const pending = filtered.filter(apt => apt.status === 'pending')
         console.log('⏳ Pending appointments:', pending.length)
         setPendingAppointments(pending)
 
@@ -60,7 +80,7 @@ export default function LawyerDashboard() {
           const y = today.getFullYear(), m = today.getMonth(), d = today.getDate()
           const start = new Date(y, m, d, 0, 0, 0, 0).getTime()
           const end = new Date(y, m, d, 23, 59, 59, 999).getTime()
-          const todays = response.appointments.filter((a) => {
+          const todays = filtered.filter((a) => {
             const ts = new Date(a.appointmentDate || a.date || a.scheduledDate || a.createdAt).getTime()
             return ts >= start && ts <= end
           })
@@ -80,7 +100,7 @@ export default function LawyerDashboard() {
 
   const fetchRecentActivity = async () => {
     try {
-      const res = await api.get('/user/notifications')
+      const res = await api.get('/notifications')
       const items = res?.data?.notifications || []
       setRecentActivity(items)
     } catch (_e) {

@@ -264,32 +264,16 @@ export default function AppointmentBooking() {
       }
 
       try {
-        console.log('🔍 Debug - Uploading file to ImageKit:', file.name);
-        
-        // Get ImageKit authentication
-        const { data: sig } = await api.get('/user/imagekit-auth');
-        
-        // Create form data for ImageKit upload
-        const form = new FormData();
-        form.append('file', file);
-        form.append('publicKey', sig.publicKey);
-        form.append('signature', sig.signature);
-        form.append('expire', sig.expire);
-        form.append('token', sig.token);
-        form.append('fileName', file.name);
-        form.append('folder', 'appointment-documents');
-        form.append('useUniqueFileName', 'true');
-        
-        // Upload to ImageKit
-        const uploadUrl = 'https://upload.imagekit.io/api/v1/files/upload';
-        const resp = await fetch(uploadUrl, { method: 'POST', body: form });
-        const json = await resp.json();
-        
-        if (!resp.ok || !json?.url) {
-          throw new Error(json?.message || 'Upload failed');
-        }
-        
-        console.log('🔍 Debug - ImageKit upload successful:', json.url);
+        console.log('🔍 Debug - Uploading file (local backend):', file.name);
+        // Direct local upload to backend (skip ImageKit to avoid console errors)
+        const fd = new FormData();
+        fd.append('file', file);
+        const base = (import.meta.env?.VITE_API_BASE || 'http://localhost:5000').replace(/\/$/, '') + '/api/v1/user/upload-local';
+        const res = await fetch(base, { method: 'POST', body: fd, credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok || !data?.url) throw new Error(data?.message || 'Local upload failed');
+        const uploadedUrl = data.url;
+        console.log('🔍 Debug - Local upload successful:', uploadedUrl);
         
         // Add file with URL to form data
         const fileWithUrl = {
@@ -297,7 +281,7 @@ export default function AppointmentBooking() {
           size: file.size,
           type: file.type,
           lastModified: file.lastModified,
-          url: json.url
+          url: uploadedUrl
         };
         
         setFormData(prev => ({
@@ -381,9 +365,9 @@ export default function AppointmentBooking() {
       
       alert(`Payment screenshot ${file.name} uploaded successfully!`);
       
-    } catch (error) {
-      console.error('🔍 Debug - Payment screenshot upload error:', error);
-      alert(`Failed to upload ${file.name}: ${error.message}`);
+    } catch (fallbackErr) {
+      console.error('🔍 Debug - Payment screenshot upload error:', fallbackErr);
+      alert(`Failed to upload ${file.name}: ${fallbackErr.message}`);
     }
   };
 
