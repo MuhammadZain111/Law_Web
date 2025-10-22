@@ -190,7 +190,7 @@ const UpcomingAppointments = ({ userRole, userId }) => {
                     : 'border-gray-200 bg-gray-50'
                 }`}
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between">       
                   <div className="flex-1">
                     <div className="flex items-center mb-2">
                       <Clock className={`h-4 w-4 mr-2 ${

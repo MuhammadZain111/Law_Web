@@ -2,7 +2,7 @@ import { Link, Navigate, Route, Routes } from "react-router-dom";
 import About from './screens/About';
 import Home from './screens/Home';
 import LawyerDashboard from './screens/LawyerDashboard';
-import UserDashboard from './screens/UserDashboard';
+import UserDashboard from './screens/UserDashboard.jsx';
 import NoPage from './screens/NoPage';
 import RegisterLawyer from './screens/RegisterLawyer';
 import RegisterUser from './screens/RegisterUser';
@@ -10,8 +10,8 @@ import RegistrationSelection from './screens/RegistrationSelection';
 import Services from './screens/Services';
 // import LawyerPage from '@/components/sections/LawyerPage'
 
- import AppointmentBooking from '@/screens/AppointmentBooking';
-import LawyerProfile from '@/screens/Lawyer/LawyerProfile';
+import AppointmentBooking from './screens/AppointmentBooking.jsx';
+import LawyerProfile from './screens/Lawyer/LawyerProfile.jsx';
 import Lawyers from './screens/Lawyers.jsx';
 import AdminLayout from './screens/Admin/AdminLayout';
 import Dashboard from './screens/Admin/Dashboard';
@@ -19,7 +19,7 @@ import NotificationBell from './screens/Admin/NotificationBell';
 import ProfileForm from './screens/Admin/ProfileForm';
 import LoginSelection from './screens/LoginSelection.jsx';
 import AdminLogin from './screens/Admin/Login.jsx';
-import { Toaster } from '@/hooks/use-toast';
+import { Toaster } from './hooks/use-toast.js';
 
 const App = () => {
   const getRoleFromToken = () => {
@@ -85,7 +85,7 @@ const App = () => {
       <Route path="/registerLawyer" element={<RegisterLawyer />} />
       <Route path="/lawyerDashboard" element={<RequireRole role="lawyer"><LawyerDashboard /></RequireRole>} />
       <Route path="/lawyerdashboard" element={<RequireRole role="lawyer"><LawyerDashboard /></RequireRole>} />
-      <Route path="/userDashboard" element={<RequireRole role="user"><UserDashboard /></RequireRole>} />
+      <Route path="/userDashboard" element={<RequireAuth><UserDashboard /></RequireAuth>} />
       <Route path="/services" element={<Services />} />
       <Route path="/login" element={<LoginSelection />} />
       <Route path="/admin/login" element={<AdminLogin />} />

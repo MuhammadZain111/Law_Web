@@ -135,8 +135,11 @@ router.get("/:id/review", async (req, res) => {
 router.post("/:id/approve", async (req, res) => {
   try {
     const { id } = req.params;
-    // Ensure profile has sufficient information before approval
+    // Get both user and lawyer profile data
+    const user = await User.findById(id).select('-password').lean();
     const profile = await Lawyer.findOne({ userId: id }).lean();
+    
+    if (!user) return res.status(404).json({ error: "Lawyer user not found" });
     if (!profile) return res.status(404).json({ error: "Lawyer profile not found" });
 
     const missing = [];
@@ -144,9 +147,17 @@ router.post("/:id/approve", async (req, res) => {
     if (!profile.barNumber) missing.push("barNumber");
     if (!profile.specialization) missing.push("specialization");
     if (profile.yearsOfExperience === undefined || profile.yearsOfExperience === null) missing.push("yearsOfExperience");
-    if (!profile.city) missing.push("city");
+    
+    // Check city in both profile and user
+    const city = profile.city || user.city || '';
+    if (!city) missing.push("city");
+    
     if (!profile.cnicNumber) missing.push("cnicNumber");
-    if (!profile.phone || profile.phone.length < 10) missing.push("phone (10+ digits)");
+    
+    // Check phone in both profile and user
+    const phone = profile.phone || user.phone || '';
+    if (!phone || phone.length < 10) missing.push("phone (10+ digits)");
+    
     const totalDocs = (profile.licenses?.length || 0) + (profile.documents?.length || 0);
     if (totalDocs === 0) missing.push("documents/licenses");
 

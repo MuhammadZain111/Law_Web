@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom"
 import Button from "./ui/Button.jsx"
 import { Scale } from "./icons/Icons.jsx"
 import { useState, useEffect } from "react"
+import NotificationBell from "./NotificationBell.jsx"
 
 const Header = () => {
   const navigate = useNavigate();
@@ -43,7 +44,8 @@ const Header = () => {
             Contact
           </Link>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex space-x-3 items-center">
+          {isLoggedIn && <NotificationBell />}
           {isLoggedIn ? (
             <>
               <Link to={userType === 'lawyer' ? '/lawyerDashboard' : '/userDashboard'}>

@@ -2,6 +2,8 @@
 import Appointment from "../models/appointment.model.js";
 import mongoose from "mongoose";
 import { sendEmail, buildStatusEmail } from "../utils/mailer.js";
+import { createNotification } from "../services/notificationService.js";
+
 
 export const createAppointment = async (req, res) => {
   try {
@@ -316,6 +318,57 @@ export const updateAppointmentStatus = async (req, res) => {
 
     appt.status = status;
     await appt.save();
+    
+    // Send email and notification to client on key status changes
+    const shouldNotify = ['confirmed', 'rejected', 'cancelled', 'completed'].includes(status);
+    if (shouldNotify) {
+      try {
+        // Resolve recipient email
+        let recipientEmail = appt.clientEmail;
+        if (!recipientEmail && appt.clientId) {
+          try {
+            const User = (await import("../models/user.model.js")).default;
+            const u = await User.findById(appt.clientId).select("email");
+            recipientEmail = u?.email || null;
+          } catch (_) {}
+        }
+
+        // Send email
+        const { subject, text, html } = buildStatusEmail(appt, status);
+        if (recipientEmail) {
+          const result = await sendEmail({ to: recipientEmail, subject, text, html });
+          console.log('📧 Confirmation email result:', result);
+        } else {
+          console.warn('📧 Skipping email: no client email available for appointment', String(appt._id));
+        }
+
+        // Create notification for client
+        if (appt.clientId) {
+          const statusMessages = {
+            'confirmed': 'Your appointment has been confirmed',
+            'rejected': 'Your appointment has been rejected',
+            'cancelled': 'Your appointment has been cancelled',
+            'completed': 'Your appointment has been completed'
+          };
+          
+          const title = statusMessages[status] || `Appointment status changed to ${status}`;
+          const description = `Appointment with ${appt.lawyerId?.name || 'lawyer'} on ${new Date(appt.appointmentDate).toLocaleDateString()}`;
+          
+          await createNotification(appt.clientId, title, description);
+        }
+
+        // Create notification for lawyer (if status changed by client)
+        if (userRole === "client" && appt.lawyerId) {
+          const title = `Appointment ${status} by client`;
+          const description = `Client ${appt.clientName} ${status} the appointment scheduled for ${new Date(appt.appointmentDate).toLocaleDateString()}`;
+          
+          await createNotification(appt.lawyerId, title, description);
+        }
+
+      } catch (emailErr) {
+        console.warn('Email/Notification send failed for appointment confirmation:', emailErr?.message || emailErr);
+      }
+    }
     try {
       // Emit realtime event to client room for this user
       const { io } = await import('../server.js');

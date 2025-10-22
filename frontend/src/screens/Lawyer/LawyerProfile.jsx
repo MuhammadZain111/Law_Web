@@ -175,7 +175,6 @@ export default function LawyerProfile() {
             className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
             onClick={() => {
               console.log('🔍 Debug - Contact Lawyer button clicked');
-              alert('Button clicked! Navigating to booking page...');
               handleContactLawyer();
             }}
           >

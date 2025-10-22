@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/shared/api';
-import { toast } from '@/hooks/use-toast';
+import { api } from '../shared/api.js';
+import { toast } from '../hooks/use-toast.js';
 import { io as socketIO } from 'socket.io-client';
 
 export default function UserDashboard() {
@@ -71,7 +71,7 @@ export default function UserDashboard() {
   useEffect(() => {
     const loadServerNotifications = async () => {
       try {
-        const res = await api.get('/user/notifications');
+        const res = await api.get('/notifications');
         const serverItems = res?.data?.notifications || [];
         if (serverItems.length) {
           // Merge with local, dedupe by _id/time/title
@@ -102,7 +102,9 @@ export default function UserDashboard() {
       }
 
       const response = await api.get('/user/profile');
-      setUser(response.data?.user || response.data);
+      const userData = response.data?.user || response.data;
+      console.log('🔍 User profile data:', userData);
+      setUser(userData);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       if (error.response?.status === 401) {
@@ -124,7 +126,7 @@ export default function UserDashboard() {
       case "profile":
         return <UserProfile user={user} onUpdate={fetchUserProfile} />;
       case "appointments":
-        return <UserAppointments userId={user?.id} />;
+        return (user?.id || user?._id) ? <UserAppointments userId={user.id || user._id} /> : <div>Loading...</div>;
       case "settings":
         return <UserSettings user={user} onUpdate={fetchUserProfile} />;
       default:
@@ -464,14 +466,26 @@ function UserAppointments({ userId }) {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Fetching appointments for user:', userId);
+      if (!userId) {
+        console.log('❌ No userId available, skipping appointment fetch');
+        setLoading(false);
+        return;
+      }
       const response = await api.get('/appointments/');
+      console.log('🔍 API Response:', response);
       const list = response.data?.appointments || response.data || [];
+      console.log('🔍 Raw appointments list:', list);
+      
       // Rely on server-side filtering; also normalize any 'accepted' to 'confirmed' for display
       const normalized = Array.isArray(list) ? list.map(a => ({
         ...a,
         status: a.status === 'accepted' ? 'confirmed' : a.status,
         lawyerName: a.lawyerName || a.lawyer?.fullName || (a.lawyerId ? `${a.lawyerId.firstname || ''} ${a.lawyerId.lastname || ''}`.trim() : 'Lawyer'),
       })) : [];
+      
+      console.log('🔍 Normalized appointments:', normalized);
+      
       // Detect status changes and notify
       const prev = prevStatusRef.current;
       normalized.forEach(item => {
@@ -498,7 +512,12 @@ function UserAppointments({ userId }) {
       });
       setAppointments(normalized);
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.error('❌ Error fetching appointments:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.status,
+        data: error.data
+      });
       setAppointments([]);
     } finally {
       setLoading(false);
