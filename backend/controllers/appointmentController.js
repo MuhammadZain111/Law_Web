@@ -59,7 +59,32 @@ export const createAppointment = async (req, res) => {
     }
 
     // Get client ID from token (if available) or create without it
-    const clientId = req.user?.id || null;
+    let clientId = req.user?.id || req.user?.userId || null;
+    
+    console.log('🔍 Authentication info:', {
+      hasUser: !!req.user,
+      userId: req.user?.id || req.user?.userId,
+      userEmail: req.user?.email,
+      clientEmail: clientEmail
+    });
+    
+    // If user is authenticated, prioritize linking to their account
+    if (req.user && req.user.id) {
+      clientId = req.user.id;
+      console.log('✅ User is authenticated, linking appointment to user:', clientId);
+    } else if (!clientId && clientEmail) {
+      // If no authenticated user but we have an email, try to find user by email
+      try {
+        const User = (await import("../models/user.model.js")).default;
+        const user = await User.findOne({ email: clientEmail }).select("_id");
+        if (user) {
+          clientId = user._id;
+          console.log('🔍 Found user by email, linking appointment to user:', clientId);
+        }
+      } catch (error) {
+        console.log('❌ Error finding user by email:', error.message);
+      }
+    }
 
     // Validate lawyerId is a valid ObjectId
     console.log('🔍 Validating lawyerId:', lawyerId, 'Type:', typeof lawyerId);
@@ -216,6 +241,56 @@ export const createAppointment = async (req, res) => {
   }
 };
 
+// Function to link existing appointments to a user when they log in
+export const linkAppointmentsToUser = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const userEmail = req.user.email;
+    
+    if (!userId || !userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and email are required"
+      });
+    }
+    
+    // Find appointments that have the user's email but no clientId
+    const unlinkedAppointments = await Appointment.find({
+      clientEmail: userEmail,
+      clientId: null
+    });
+    
+    if (unlinkedAppointments.length === 0) {
+      return res.json({
+        success: true,
+        message: "No unlinked appointments found",
+        linkedCount: 0
+      });
+    }
+    
+    // Update these appointments to link them to the user
+    const updateResult = await Appointment.updateMany(
+      { clientEmail: userEmail, clientId: null },
+      { clientId: userId }
+    );
+    
+    console.log(`🔗 Linked ${updateResult.modifiedCount} appointments to user ${userId}`);
+    
+    res.json({
+      success: true,
+      message: `Successfully linked ${updateResult.modifiedCount} appointments`,
+      linkedCount: updateResult.modifiedCount
+    });
+    
+  } catch (error) {
+    console.error("Error linking appointments to user:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while linking appointments"
+    });
+  }
+};
+
 export const listAppointments = async (req, res) => {
   try {
     const q = {};
@@ -238,12 +313,30 @@ export const listAppointments = async (req, res) => {
         const User = (await import("../models/user.model.js")).default;
         const u = await User.findById(userId).select("email");
         userEmail = u?.email;
-      } catch(_e) {}
+        console.log('🔍 User email from database:', userEmail);
+      } catch(_e) {
+        console.log('❌ Error fetching user email:', _e.message);
+      }
+      
+      // Build query to match appointments by clientId OR clientEmail
       q.$or = [ { clientId: userId } ];
-      if (userEmail) q.$or.push({ clientEmail: userEmail });
+      if (userEmail) {
+        q.$or.push({ clientEmail: userEmail });
+        console.log('🔍 Added email match to query:', userEmail);
+      }
+      
+      // Also try to match by clientId being null and clientEmail matching
+      // This handles cases where appointments were created without authentication
+      if (userEmail) {
+        q.$or.push({ 
+          clientId: null, 
+          clientEmail: userEmail 
+        });
+        console.log('🔍 Added null clientId + email match to query');
+      }
     }
     
-    console.log('🔍 listAppointments - Query:', q);
+    console.log('🔍 listAppointments - Final Query:', JSON.stringify(q, null, 2));
 
     const appointments = await Appointment.find(q)
       .populate("clientId", "firstname lastname email photoUrl")
@@ -253,6 +346,8 @@ export const listAppointments = async (req, res) => {
     console.log('📋 Returning appointments:', appointments.length, 'appointments');
     console.log('📋 Sample appointment data:', appointments[0] ? {
       clientName: appointments[0].clientName,
+      clientEmail: appointments[0].clientEmail,
+      clientId: appointments[0].clientId,
       documents: appointments[0].documents,
       documentFiles: appointments[0].documentFiles?.length || 0
     } : 'No appointments');

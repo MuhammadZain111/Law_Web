@@ -8,9 +8,10 @@ import {
   cancelAppointment,
   getAllLawyers,
   getLawyerById,
-  getAvailableTimeSlots
+  getAvailableTimeSlots,
+  linkAppointmentsToUser
 } from "../controllers/appointmentController.js";
-import auth from "../middleware/auth.js";
+import auth, { optionalAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -20,10 +21,13 @@ router.get("/lawyers/:lawyerId", getLawyerById);
 router.get("/available-slots/:lawyerId", getAvailableTimeSlots);
 
 // Booking: allow guests to create appointment (auth optional)
-router.post("/", createAppointment);
+router.post("/", optionalAuth(), createAppointment);
 
 // role-based list (client sees own, lawyer sees theirs, admin sees all)
 router.get("/", auth(), listAppointments);
+
+// Link existing appointments to user (for users who booked without being logged in)
+router.post("/link-to-user", auth(), linkAppointmentsToUser);
 
 // details
 router.get("/:id", auth(), getAppointment);

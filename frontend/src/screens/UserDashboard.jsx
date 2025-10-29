@@ -105,6 +105,18 @@ export default function UserDashboard() {
       const userData = response.data?.user || response.data;
       console.log('🔍 User profile data:', userData);
       setUser(userData);
+      
+      // Try to link any existing appointments to this user
+      try {
+        const linkResponse = await api.post('/appointments/link-to-user');
+        if (linkResponse.data?.linkedCount > 0) {
+          console.log(`🔗 Linked ${linkResponse.data.linkedCount} appointments to user`);
+          // Trigger a refresh of appointments if any were linked
+          window.dispatchEvent(new Event('appt:refetch'));
+        }
+      } catch (linkError) {
+        console.log('🔗 No appointments to link or error linking:', linkError.message);
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error);
       if (error.response?.status === 401) {

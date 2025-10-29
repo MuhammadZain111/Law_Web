@@ -6,6 +6,7 @@ import About from '../components/sections/About.jsx'
 import  Footer  from '../components/sections/Footer.jsx'
 import FeaturedLawyers from '../components/sections/FeaturedLawyers.jsx'
 import HowItWorks from '../components/sections/HowItWorks.jsx'
+import Chatbot from '../components/common/Chatbot.jsx'
 
 function Home() {
   return (
@@ -17,6 +18,7 @@ function Home() {
        <FeaturedLawyers />
        <About />
        <Footer />
+       <Chatbot />
     </div>
   )
 }

@@ -68,4 +68,46 @@ export function signJwt(payload) {
   });
 }
 
+// Optional authentication middleware - doesn't fail if no token provided
+export function optionalAuth() {
+  return async (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    
+    if (!token) {
+      // No token provided, continue without authentication
+      req.user = null;
+      return next();
+    }
+
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+      req.user = payload || {};
+
+      // Normalize id field for downstream consumers
+      req.user.id = req.user.id || req.user.userId;
+
+      // Ensure role/userType is available on req.user.
+      // If token doesn't carry it, fetch minimal user info from DB.
+      if (!req.user.role && !req.user.userType && req.user.id) {
+        try {
+          const User = (await import("../models/user.model.js")).default;
+          const userDoc = await User.findById(req.user.id).select("userType");
+          if (userDoc) {
+            req.user.userType = userDoc.userType; // e.g., 'lawyer' | 'client' | 'admin'
+          }
+        } catch (fetchErr) {
+          // If we fail to fetch user role, proceed without it; route handlers may handle accordingly
+          // But do not block the request solely due to this lookup
+        }
+      }
+
+      next();
+    } catch (err) {
+      // Invalid token, but don't fail the request - just continue without authentication
+      req.user = null;
+      next();
+    }
+  };
+}
+
 export default auth;
