@@ -3,27 +3,41 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const rawKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
-const apiKey = typeof rawKey === 'string' ? rawKey.trim() : rawKey;
+// Helper function to get API key and detect provider
+function getApiConfig() {
+  const rawKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+  const apiKey = typeof rawKey === 'string' ? rawKey.trim() : rawKey;
 
-// Detect provider based on explicit env vars or key prefix
-const isGroq = Boolean(process.env.GROQ_API_KEY) || (typeof apiKey === 'string' && apiKey.startsWith('gsk_'));
-const isXAI = Boolean(process.env.XAI_API_KEY || process.env.GROK_API_KEY) && !isGroq;
-const isOpenAI = !isGroq && !isXAI;
+  if (!apiKey) {
+    return { apiKey: null, isGroq: false, isXAI: false, isOpenAI: false };
+  }
 
-// On first import, log a masked fingerprint so we can verify env loading
+  // Detect provider based on explicit env vars or key prefix
+  const isGroq = Boolean(process.env.GROQ_API_KEY) || (typeof apiKey === 'string' && apiKey.startsWith('gsk_'));
+  const isXAI = Boolean(process.env.XAI_API_KEY || process.env.GROK_API_KEY) && !isGroq;
+  const isOpenAI = !isGroq && !isXAI;
+
+  return { apiKey, isGroq, isXAI, isOpenAI };
+}
+
+// Get config and log fingerprint
+const config = getApiConfig();
 try {
   const mask = (k) => (k && k.length >= 8 ? `${k.slice(0,2)}***${k.slice(-2)} (len:${k.length})` : '<none>');
   if (process.env.NODE_ENV !== 'production') {
-    console.log('[xAI/OpenAI] API key fingerprint:', mask(apiKey));
+    console.log('[xAI/OpenAI] API key fingerprint:', mask(config.apiKey));
   }
 } catch (_) {}
 
-const openai = new OpenAI({
-  apiKey,
-  ...(isXAI ? { baseURL: 'https://api.x.ai/v1' } : {}),
-  ...(isGroq ? { baseURL: 'https://api.groq.com/openai/v1' } : {}),
-});
+// Create OpenAI client only if API key exists
+let openai = null;
+if (config.apiKey) {
+  openai = new OpenAI({
+    apiKey: config.apiKey,
+    ...(config.isXAI ? { baseURL: 'https://api.x.ai/v1' } : {}),
+    ...(config.isGroq ? { baseURL: 'https://api.groq.com/openai/v1' } : {}),
+  });
+}
 
 export const chatWithBot = async (req, res) => {
   try {
@@ -36,10 +50,10 @@ export const chatWithBot = async (req, res) => {
       });
     }
 
-    if (!apiKey) {
+    if (!openai || !config.apiKey) {
       return res.status(500).json({
         success: false,
-        message: 'AI API key not configured'
+        message: 'AI API key not configured. Please set XAI_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY in your .env file.'
       });
     }
 
@@ -66,9 +80,9 @@ Remember: You are not providing legal advice, just general legal information and
 
     const completion = await openai.chat.completions.create({
       model: (
-        isXAI
+        config.isXAI
           ? (process.env.XAI_MODEL || process.env.GROK_MODEL || "grok-2-latest")
-          : isGroq
+          : config.isGroq
             ? (process.env.GROQ_MODEL || "llama-3.3-70b-versatile")
             : (process.env.OPENAI_MODEL || "gpt-4o-mini")
       ),

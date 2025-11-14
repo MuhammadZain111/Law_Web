@@ -23,7 +23,8 @@ export default function AdminLayout() {
         }
       }
     } catch (_e) {}
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // navigate is stable from react-router-dom, so we can safely omit it
 
   async function logout() {
     await api.post('/auth/logout');

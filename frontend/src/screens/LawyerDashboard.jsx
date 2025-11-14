@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { appointmentAPI, userAPI } from '@/services/api'
 import { api } from '@/shared/api'
 import { mockLogin } from '@/utils/auth'
@@ -40,20 +40,7 @@ export default function LawyerDashboard() {
     }
   }
 
-  // Fetch appointments on component mount
-  useEffect(() => {
-    // Use real auth token already stored by login flow
-    fetchProfile()
-    fetchAppointments()
-    fetchRecentActivity()
-    
-    // Set up polling to check for new appointments every 10 seconds (for testing)
-    const interval = setInterval(fetchAppointments, 10000)
-    
-    return () => clearInterval(interval)
-  }, [])
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       console.log('🔍 Fetching appointments...')
       const response = await appointmentAPI.getAppointments()
@@ -96,9 +83,9 @@ export default function LawyerDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchRecentActivity = async () => {
+  const fetchRecentActivity = useCallback(async () => {
     try {
       const res = await api.get('/notifications')
       const items = res?.data?.notifications || []
@@ -106,9 +93,9 @@ export default function LawyerDashboard() {
     } catch (_e) {
       setRecentActivity([])
     }
-  }
+  }, [])
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const res = await userAPI.getProfile()
       setUser(res.user)
@@ -127,7 +114,20 @@ export default function LawyerDashboard() {
         }
       } catch (_ignored) {}
     }
-  }
+  }, [])
+
+  // Fetch appointments on component mount
+  useEffect(() => {
+    // Use real auth token already stored by login flow
+    fetchProfile()
+    fetchAppointments()
+    fetchRecentActivity()
+    
+    // Set up polling to check for new appointments every 10 seconds (for testing)
+    const interval = setInterval(fetchAppointments, 10000)
+    
+    return () => clearInterval(interval)
+  }, [fetchProfile, fetchAppointments, fetchRecentActivity])
 
   const renderContent = () => {
     switch (activeTab) {

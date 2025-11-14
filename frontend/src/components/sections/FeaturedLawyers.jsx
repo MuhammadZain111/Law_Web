@@ -49,8 +49,10 @@ const FeaturedLawyers = () => {
         setError("")
       } catch (e) {
         console.error('Failed to load lawyers:', e)
-        let errorMessage = 'Network error'
-        if (e.message) {
+        let errorMessage = 'Failed to fetch'
+        if (e.message && e.message.includes('fetch')) {
+          errorMessage = 'Cannot connect to server. Please check if the backend is running on http://localhost:5000'
+        } else if (e.message) {
           errorMessage = e.message
         } else if (e.data?.message) {
           errorMessage = e.data.message

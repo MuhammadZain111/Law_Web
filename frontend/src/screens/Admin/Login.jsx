@@ -41,7 +41,8 @@ export default function Login() {
     if (token) {
       navigate('/admin');
     }
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // navigate is stable from react-router-dom, so we can safely omit it
 
   async function handleSubmit(e) {
     e.preventDefault();

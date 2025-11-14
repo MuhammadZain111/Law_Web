@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../shared/api.js';
 import { toast } from '../hooks/use-toast.js';
@@ -14,85 +14,9 @@ export default function UserDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const NOTIF_KEY = 'userNotifications';
 
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
-  // Realtime via socket
-  useEffect(() => {
-    try {
-      const userId = user?.id || user?._id;
-      if (!userId) return;
-      const s = socketIO(import.meta.env?.VITE_API_BASE || 'http://localhost:5000', {
-        path: '/socket.io',
-        transports: ['websocket'],
-        auth: { userId },
-      });
-      s.on('appointment:status', (payload) => {
-        setAppointments((prev) => prev.map((a) => (a._id === payload.id || a.id === payload.id ? { ...a, status: payload.status } : a)));
-        toast({
-          title: `Appointment ${payload.status?.toUpperCase()}`,
-          description: `Your appointment status changed to ${payload.status}.`,
-        });
-        try {
-          window.dispatchEvent(new CustomEvent('appt:notify', { detail: { title: 'Status Updated', description: `Appointment ${payload.status}`, time: Date.now() } }));
-        } catch (_) {}
-      });
-      return () => {
-        try { s.disconnect(); } catch (_) {}
-      };
-    } catch (_) {}
-  }, [user]);
-
-  // Simple in-app notification bus listener
-  useEffect(() => {
-    // Load persisted notifications once
-    try {
-      const saved = localStorage.getItem(NOTIF_KEY);
-      if (saved) setNotifications(JSON.parse(saved));
-    } catch (_) {}
-    const handler = (e) => {
-      const n = e.detail;
-      if (!n) return;
-      setNotifications((arr) => [{ ...n }, ...arr].slice(0, 20));
-    };
-    window.addEventListener('appt:notify', handler);
-    return () => window.removeEventListener('appt:notify', handler);
-  }, []);
-
-  // Persist notifications whenever they change
-  useEffect(() => {
-    try {
-      localStorage.setItem(NOTIF_KEY, JSON.stringify(notifications));
-    } catch (_) {}
-  }, [notifications]);
-
-  // Fetch notifications from server on load and occasionally (manual refresh or first open)
-  useEffect(() => {
-    const loadServerNotifications = async () => {
-      try {
-        const res = await api.get('/notifications');
-        const serverItems = res?.data?.notifications || [];
-        if (serverItems.length) {
-          // Merge with local, dedupe by _id/time/title
-          const merged = [...serverItems.map(n => ({ id: n._id, title: n.title, description: n.description, time: n.createdAt })), ...notifications];
-          const seen = new Set();
-          const uniq = [];
-          for (const n of merged) {
-            const key = n.id || `${n.title}|${n.time}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            uniq.push(n);
-          }
-          setNotifications(uniq.slice(0, 100));
-        }
-      } catch (_) {}
-    };
-    loadServerNotifications();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchUserProfile = async () => {
+  // Memoize fetchUserProfile to prevent recreation on every render
+  // Note: navigate from react-router-dom is stable, but we'll use it directly to avoid dependency issues
+  const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -126,7 +50,88 @@ export default function UserDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // navigate is stable from react-router-dom, so we can safely omit it
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
+
+  // Realtime via socket - use userId instead of entire user object to prevent infinite loops
+  // Memoize userId to prevent unnecessary socket reconnections and component re-renders
+  const userId = useMemo(() => user?.id || user?._id, [user?.id, user?._id]);
+  useEffect(() => {
+    if (!userId) return;
+    let s;
+    try {
+      s = socketIO(import.meta.env?.VITE_API_BASE || 'http://localhost:5000', {
+        path: '/socket.io',
+        transports: ['websocket'],
+        auth: { userId },
+      });
+      s.on('appointment:status', (payload) => {
+        // Use event dispatch instead of direct state update to avoid dependency issues
+        try {
+          window.dispatchEvent(new CustomEvent('appt:notify', { detail: { title: 'Status Updated', description: `Appointment ${payload.status}`, time: Date.now() } }));
+          window.dispatchEvent(new Event('appt:refetch'));
+        } catch (_) {}
+      });
+    } catch (_) {}
+    return () => {
+      if (s) {
+        try { s.disconnect(); } catch (_) {}
+      }
+    };
+  }, [userId]);
+
+  // Simple in-app notification bus listener
+  useEffect(() => {
+    // Load persisted notifications once
+    try {
+      const saved = localStorage.getItem(NOTIF_KEY);
+      if (saved) setNotifications(JSON.parse(saved));
+    } catch (_) {}
+    const handler = (e) => {
+      const n = e.detail;
+      if (!n) return;
+      setNotifications((arr) => [{ ...n }, ...arr].slice(0, 20));
+    };
+    window.addEventListener('appt:notify', handler);
+    return () => window.removeEventListener('appt:notify', handler);
+  }, []);
+
+  // Persist notifications whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(NOTIF_KEY, JSON.stringify(notifications));
+    } catch (_) {}
+  }, [notifications]);
+
+  // Fetch notifications from server on load and occasionally (manual refresh or first open)
+  useEffect(() => {
+    const loadServerNotifications = async () => {
+      try {
+        const res = await api.get('/notifications');
+        const serverItems = res?.data?.notifications || [];
+        if (serverItems.length) {
+          // Merge with local, dedupe by _id/time/title using functional update to avoid dependency
+          setNotifications((prevNotifications) => {
+            const merged = [...serverItems.map(n => ({ id: n._id, title: n.title, description: n.description, time: n.createdAt })), ...prevNotifications];
+            const seen = new Set();
+            const uniq = [];
+            for (const n of merged) {
+              const key = n.id || `${n.title}|${n.time}`;
+              if (seen.has(key)) continue;
+              seen.add(key);
+              uniq.push(n);
+            }
+            return uniq.slice(0, 100);
+          });
+        }
+      } catch (_) {}
+    };
+    loadServerNotifications();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -138,7 +143,7 @@ export default function UserDashboard() {
       case "profile":
         return <UserProfile user={user} onUpdate={fetchUserProfile} />;
       case "appointments":
-        return (user?.id || user?._id) ? <UserAppointments userId={user.id || user._id} /> : <div>Loading...</div>;
+        return userId ? <UserAppointments userId={userId} /> : <div>Loading...</div>;
       case "settings":
         return <UserSettings user={user} onUpdate={fetchUserProfile} />;
       default:
@@ -465,17 +470,7 @@ function UserAppointments({ userId }) {
   const [loading, setLoading] = useState(true);
   const prevStatusRef = React.useRef({});
 
-  useEffect(() => {
-    fetchAppointments();
-    // Optional: external trigger to refetch instantly (e.g., right after booking)
-    const refetch = () => fetchAppointments();
-    window.addEventListener('appt:refetch', refetch);
-    return () => {
-      window.removeEventListener('appt:refetch', refetch);
-    };
-  }, [userId]);
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
       console.log('🔍 Fetching appointments for user:', userId);
@@ -534,7 +529,17 @@ function UserAppointments({ userId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchAppointments();
+    // Optional: external trigger to refetch instantly (e.g., right after booking)
+    const refetch = () => fetchAppointments();
+    window.addEventListener('appt:refetch', refetch);
+    return () => {
+      window.removeEventListener('appt:refetch', refetch);
+    };
+  }, [fetchAppointments]);
 
   return (
     <div className="p-8">

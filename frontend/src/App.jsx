@@ -1,3 +1,4 @@
+import React from "react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import About from './screens/About';
 import Home from './screens/Home';
@@ -21,39 +22,57 @@ import LoginSelection from './screens/LoginSelection.jsx';
 import AdminLogin from './screens/Admin/Login.jsx';
 import { Toaster } from './hooks/use-toast.js';
 
-const App = () => {
-  const getRoleFromToken = () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return null;
-      const [, payload] = String(token).split('.');
-      if (!payload) return null;
-      const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')) || '{}');
-      return json?.role || json?.userType || null;
-    } catch (_e) {
-      return null;
-    }
-  };
-  const RequireAuth = ({ children }) => {
+// Move helper function outside component to prevent recreation
+const getRoleFromToken = () => {
+  try {
     const token = localStorage.getItem('token');
-    if (!token) return <Navigate to="/login" replace />;
-    return children;
-  };
-  const RequireRole = ({ role, children }) => {
-    const token = localStorage.getItem('token');
-    const userType = localStorage.getItem('userType') || localStorage.getItem('role') || getRoleFromToken();
-    if (!token) return <Navigate to={role === 'admin' ? "/admin/login" : "/login"} replace />;
-    if (role && userType !== role) return <Navigate to={role === 'admin' ? "/admin/login" : "/"} replace />;
-    return children;
-  };
+    if (!token) return null;
+    const [, payload] = String(token).split('.');
+    if (!payload) return null;
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')) || '{}');
+    return json?.role || json?.userType || null;
+  } catch (_e) {
+    return null;
+  }
+};
 
-  const RequireAdmin = ({ children }) => {
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('userType') || localStorage.getItem('role') || getRoleFromToken();
-    if (!token) return <Navigate to="/admin/login" replace />;
-    if (role !== 'admin') return <Navigate to="/admin/login" replace />;
-    return children;
-  };
+// Move RequireAuth outside component to prevent recreation
+// Use React.memo to prevent unnecessary re-renders
+const RequireAuth = React.memo(({ children }) => {
+  const token = localStorage.getItem('token');
+  if (!token) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+});
+
+// Move RequireRole outside component to prevent recreation
+// Use React.memo to prevent unnecessary re-renders
+const RequireRole = React.memo(({ role, children }) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to={role === 'admin' ? "/admin/login" : "/login"} replace />;
+  }
+  const userType = localStorage.getItem('userType') || localStorage.getItem('role') || getRoleFromToken();
+  if (role && userType !== role) {
+    return <Navigate to={role === 'admin' ? "/admin/login" : "/"} replace />;
+  }
+  return <>{children}</>;
+});
+
+// Move RequireAdmin outside component to prevent recreation
+// Use React.memo to prevent unnecessary re-renders
+const RequireAdmin = React.memo(({ children }) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  const role = localStorage.getItem('userType') || localStorage.getItem('role') || getRoleFromToken();
+  if (role !== 'admin') {
+    return <Navigate to="/admin/login" replace />;
+  }
+  return <>{children}</>;
+});
+
+const App = () => {
   return (
    <div>
       <Toaster />

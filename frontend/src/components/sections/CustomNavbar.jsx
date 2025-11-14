@@ -3,15 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { userAPI } from '@/services/api';
 
-function CustomNavbar() {
-  const customTheme = {
-    root: {
-      base: "backdrop-blur bg-white/70 border-b border-gray-200 px-4 md:px-8 py-3 sticky top-0 z-50",
-      rounded: "rounded-lg",
-      bordered: "",
-    },
-  };
+// Move theme outside component to prevent recreation on every render
+const customTheme = {
+  root: {
+    base: "backdrop-blur bg-white/70 border-b border-gray-200 px-4 md:px-8 py-3 sticky top-0 z-50",
+    rounded: "rounded-lg",
+    bordered: "",
+  },
+};
 
+function CustomNavbar() {
   const navigate = useNavigate();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -34,13 +35,14 @@ function CustomNavbar() {
           const data = res?.data || res; // handle either shape
           const u = data?.user || data; // some endpoints return { user }
           if (u) {
-            if (u.name) setUserName(u.name);
-            if (u.fullName) setUserName(u.fullName);
-            if (u.username) setUserName(u.username);
-            if (u.firstname || u.lastname) setUserName(`${u.firstname || ''} ${u.lastname || ''}`.trim() || userName);
-            if (u.avatarUrl) setAvatarUrl(u.avatarUrl);
-            if (u.profileImage) setAvatarUrl(u.profileImage);
-            if (u.photoUrl) setAvatarUrl(u.photoUrl);
+            // Set name in priority order, avoiding reference to userName state
+            const name = u.fullName || u.name || u.username || 
+              (u.firstname || u.lastname ? `${u.firstname || ''} ${u.lastname || ''}`.trim() : null);
+            if (name) setUserName(name);
+            
+            // Set avatar in priority order
+            const avatar = u.photoUrl || u.avatarUrl || u.profileImage;
+            if (avatar) setAvatarUrl(avatar);
           }
         } catch (_) {
           // fall back silently
