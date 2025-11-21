@@ -17,6 +17,7 @@ import {
 } from "./ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Calendar, Clock, User, Phone, Mail, CheckCircle, XCircle, RotateCcw, Filter, FileText, Download, Eye } from "lucide-react";
+import { api } from '@/shared/api';
 
 export function AppointmentManagement({ appointments = [], onUpdate }) {
   const [localAppointments, setLocalAppointments] = useState(appointments);
@@ -33,14 +34,18 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
     console.log('📋 AppointmentManagement received appointments:', appointments.length);
     console.log('📋 Appointments data:', appointments);
     
-    // Check for documents in appointments
+    // Check for documents and payment screenshots in appointments
     appointments.forEach((apt, index) => {
-      console.log(`📋 Appointment ${index}:`, {
+      console.log(`📋 Appointment ${index} (${apt.clientName}):`, {
         clientName: apt.clientName,
         documents: apt.documents,
         documentFiles: apt.documentFiles,
         hasDocuments: !!apt.documents,
-        hasFiles: apt.documentFiles?.length > 0
+        hasFiles: apt.documentFiles?.length > 0,
+        hasPaymentScreenshotFile: !!apt.paymentScreenshotFile,
+        hasPaymentScreenshot: !!apt.paymentScreenshot,
+        paymentScreenshotFile: apt.paymentScreenshotFile,
+        paymentScreenshot: apt.paymentScreenshot
       });
     });
     
@@ -121,12 +126,46 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
 
   // Function to handle document viewing
   const handleViewDocuments = (appointment) => {
-    setSelectedDocuments({
+    console.log('🔍 handleViewDocuments - Full appointment data:', appointment);
+    
+    // Handle payment screenshot - check both paymentScreenshotFile object and paymentScreenshot URL
+    let paymentScreenshotFile = appointment.paymentScreenshotFile || null;
+    
+    console.log('🔍 Payment screenshot check:', {
+      hasPaymentScreenshotFile: !!appointment.paymentScreenshotFile,
+      hasPaymentScreenshot: !!appointment.paymentScreenshot,
+      paymentScreenshotFile: appointment.paymentScreenshotFile,
+      paymentScreenshot: appointment.paymentScreenshot
+    });
+    
+    // If paymentScreenshotFile is not available but paymentScreenshot URL exists, create file object
+    if (!paymentScreenshotFile && appointment.paymentScreenshot) {
+      const paymentUrl = appointment.paymentScreenshot;
+      console.log('🔍 Creating payment screenshot file from URL:', paymentUrl);
+      // Check if it's a valid URL
+      if (typeof paymentUrl === 'string' && (paymentUrl.startsWith('http') || paymentUrl.startsWith('/'))) {
+        paymentScreenshotFile = {
+          name: 'payment_screenshot.jpg',
+          size: 0,
+          type: 'image/jpeg',
+          lastModified: Date.now(),
+          url: paymentUrl
+        };
+        console.log('✅ Created payment screenshot file object:', paymentScreenshotFile);
+      }
+    }
+    
+    const documentsData = {
       documents: appointment.documents || '',
       documentFiles: appointment.documentFiles || [],
-      paymentScreenshotFile: appointment.paymentScreenshotFile || null,
+      paymentScreenshotFile: paymentScreenshotFile,
       clientName: appointment.clientName
-    });
+      // Note: License certificates are lawyer's own documents, not part of appointment
+    };
+    
+    console.log('🔍 Setting selectedDocuments:', documentsData);
+    
+    setSelectedDocuments(documentsData);
     setShowDocumentModal(true);
   };
 
@@ -267,13 +306,31 @@ Current Status: File metadata only (no actual file content stored)
   const renderDocuments = (appointment) => {
     const documents = appointment.documents || '';
     const documentFiles = appointment.documentFiles || [];
-    const paymentScreenshotFile = appointment.paymentScreenshotFile;
+    
+    // Handle payment screenshot - check both paymentScreenshotFile object and paymentScreenshot URL
+    let paymentScreenshotFile = appointment.paymentScreenshotFile || null;
+    
+    // If paymentScreenshotFile is not available but paymentScreenshot URL exists, create file object
+    if (!paymentScreenshotFile && appointment.paymentScreenshot) {
+      const paymentUrl = appointment.paymentScreenshot;
+      // Check if it's a valid URL
+      if (typeof paymentUrl === 'string' && (paymentUrl.startsWith('http') || paymentUrl.startsWith('/'))) {
+        paymentScreenshotFile = {
+          name: 'payment_screenshot.jpg',
+          size: 0,
+          type: 'image/jpeg',
+          lastModified: Date.now(),
+          url: paymentUrl
+        };
+      }
+    }
     
     console.log('🔍 Rendering documents for appointment:', {
       clientName: appointment.clientName,
       documents: documents,
       documentFiles: documentFiles,
       paymentScreenshotFile: paymentScreenshotFile,
+      paymentScreenshot: appointment.paymentScreenshot,
       hasDocuments: !!documents,
       hasFiles: documentFiles.length > 0,
       hasPaymentScreenshot: !!paymentScreenshotFile
@@ -328,9 +385,12 @@ Current Status: File metadata only (no actual file content stored)
                   <span className="text-green-600 text-lg">📸</span>
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 truncate">{paymentScreenshotFile.name}</h4>
+                  <h4 className="font-medium text-gray-900 truncate">{paymentScreenshotFile.name || 'Payment Screenshot'}</h4>
                   <p className="text-sm text-gray-500">
-                    {(paymentScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • {paymentScreenshotFile.type?.split('/')[1]?.toUpperCase() || 'IMAGE'}
+                    {paymentScreenshotFile.size 
+                      ? `${(paymentScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • ` 
+                      : ''}
+                    {paymentScreenshotFile.type?.split('/')[1]?.toUpperCase() || paymentScreenshotFile.url?.split('.').pop()?.toUpperCase() || 'IMAGE'}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -696,28 +756,31 @@ Current Status: File metadata only (no actual file content stored)
           
           {selectedDocuments && (
             <div className="space-y-6">
-              {/* Payment Screenshot Section */}
-              {selectedDocuments.paymentScreenshotFile && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <span className="text-green-600 text-xl">💳</span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-green-800">Payment Screenshot</h3>
-                      <p className="text-sm text-green-600">Proof of payment for consultation fee</p>
-                    </div>
+              {/* Payment Screenshot Section - Always show */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <span className="text-green-600 text-xl">💳</span>
                   </div>
-                  
+                  <div>
+                    <h3 className="text-lg font-semibold text-green-800">Payment Screenshot</h3>
+                    <p className="text-sm text-green-600">Proof of payment for consultation fee</p>
+                  </div>
+                </div>
+                
+                {selectedDocuments.paymentScreenshotFile ? (
                   <div className="bg-white rounded-lg p-4 border border-green-200">
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center">
                         <span className="text-green-600 text-2xl">📸</span>
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">{selectedDocuments.paymentScreenshotFile.name}</h4>
+                        <h4 className="font-semibold text-gray-900">{selectedDocuments.paymentScreenshotFile.name || 'Payment Screenshot'}</h4>
                         <p className="text-sm text-gray-500">
-                          {(selectedDocuments.paymentScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • {selectedDocuments.paymentScreenshotFile.type?.split('/')[1]?.toUpperCase() || 'IMAGE'}
+                          {selectedDocuments.paymentScreenshotFile.size 
+                            ? `${(selectedDocuments.paymentScreenshotFile.size / 1024 / 1024).toFixed(2)} MB • ` 
+                            : ''}
+                          {selectedDocuments.paymentScreenshotFile.type?.split('/')[1]?.toUpperCase() || selectedDocuments.paymentScreenshotFile.url?.split('.').pop()?.toUpperCase() || 'IMAGE'}
                         </p>
                       </div>
                       <div className="flex gap-2 flex-wrap">
@@ -752,8 +815,15 @@ Current Status: File metadata only (no actual file content stored)
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <div className="text-center py-4">
+                      <p className="text-gray-500 text-sm">No payment screenshot uploaded by client</p>
+                      <p className="text-gray-400 text-xs mt-1">Client has not provided payment proof yet</p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Case Documents Section */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -777,7 +847,7 @@ Current Status: File metadata only (no actual file content stored)
                 </div>
               )}
               
-              {/* Uploaded Files */}
+              {/* Uploaded Files - Client's Documents */}
               {selectedDocuments.documentFiles.length > 0 && (
                 <div>
                   <h3 className="text-lg font-medium mb-3">Uploaded Files ({selectedDocuments.documentFiles.length})</h3>

@@ -76,6 +76,49 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Lawyer-specific fields (also stored in User model for backup)
+    barNumber: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    specialization: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    yearsOfExperience: {
+      type: Number,
+      default: 0,
+    },
+    firmName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    city: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    phoneCountryCode: {
+      type: String,
+      default: "+92",
+    },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    cnicNumber: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    licenseUrl: {
+      type: String,
+      default: "",
+    },
     paymentMethods: {
       jazzcash: {
         accountNumber: { type: String, default: "" },

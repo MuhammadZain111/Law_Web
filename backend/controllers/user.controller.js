@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import crypto from "crypto"
 import User from "../models/user.model.js"
+import { Lawyer } from "../models/Lawyer.js"
 
 // Register
 export const register = async (req, res) => {
@@ -14,6 +15,15 @@ export const register = async (req, res) => {
       password,
       userType,
       photoUrl,
+      specialization,
+      yearsOfExperience,
+      barNumber,
+      firmName,
+      city,
+      phoneCountryCode,
+      phone,
+      cnicNumber,
+      licenseUrl,
       nationalIdNumber,
       nationalIdFrontUrl,
       nationalIdBackUrl,
@@ -57,7 +67,128 @@ export const register = async (req, res) => {
     if (nationalIdBackUrl) userData.nationalIdBackUrl = nationalIdBackUrl
     if (photoUrl) userData.photoUrl = photoUrl
 
+    // For lawyers, also save lawyer-specific fields to User model (as backup)
+    if (userType === "lawyer") {
+      if (barNumber) userData.barNumber = barNumber.trim()
+      if (specialization) userData.specialization = specialization.trim()
+      if (yearsOfExperience !== undefined && yearsOfExperience !== null) {
+        userData.yearsOfExperience = Number.isFinite(Number(yearsOfExperience)) ? Number(yearsOfExperience) : 0
+      }
+      if (firmName) userData.firmName = firmName.trim()
+      if (city) userData.city = city.trim()
+      if (phoneCountryCode) userData.phoneCountryCode = phoneCountryCode
+      if (phone) userData.phone = phone.trim()
+      if (cnicNumber) userData.cnicNumber = cnicNumber.trim()
+      if (licenseUrl) userData.licenseUrl = licenseUrl
+    }
+
     const newUser = await User.create(userData)
+
+    if ((userType || "user") === "lawyer") {
+      try {
+        // Check if barNumber already exists before creating profile
+        if (barNumber) {
+          const existingLawyer = await Lawyer.findOne({ barNumber: barNumber.trim() })
+          if (existingLawyer) {
+            // Delete the user that was just created since registration failed
+            await User.findByIdAndDelete(newUser._id)
+            return res.status(400).json({ 
+              success: false, 
+              message: `Bar Number ${barNumber.trim()} is already registered. Please use a different bar number or contact support if this is an error.` 
+            })
+          }
+        }
+
+        const licenses = []
+        if (Array.isArray(req.body.licenses)) {
+          licenses.push(...req.body.licenses)
+        } else if (licenseUrl) {
+          licenses.push({ name: "license", url: licenseUrl })
+        }
+
+        const documents = Array.isArray(req.body.documents) ? req.body.documents : []
+
+        // Only create lawyer profile if required fields are provided
+        const fullName = `${firstname} ${lastname}`.trim()
+        if (!fullName || !barNumber || !specialization) {
+          console.warn("⚠️ Skipping lawyer profile creation - missing required fields:", {
+            hasFullName: !!fullName,
+            hasBarNumber: !!barNumber,
+            hasSpecialization: !!specialization
+          })
+        } else {
+          const lawyerProfileData = {
+            userId: newUser._id,
+            fullName: fullName,
+            barNumber: barNumber.trim(),
+            specialization: specialization.trim(),
+            yearsOfExperience: Number.isFinite(Number(yearsOfExperience))
+              ? Number(yearsOfExperience)
+              : 0,
+            firmName: firmName?.trim() || "",
+            city: city?.trim() || "",
+            phoneCountryCode: phoneCountryCode || "+92",
+            phone: phone?.trim() || "",
+            cnicNumber: cnicNumber?.trim() || "",
+            licenses,
+            documents,
+            status: "pending",
+          }
+
+          console.log("Creating lawyer profile with data:", {
+            userId: newUser._id,
+            fullName: lawyerProfileData.fullName,
+            barNumber: lawyerProfileData.barNumber,
+            specialization: lawyerProfileData.specialization,
+            city: lawyerProfileData.city,
+            phone: lawyerProfileData.phone,
+            cnicNumber: lawyerProfileData.cnicNumber,
+            licensesCount: licenses.length,
+            documentsCount: documents.length,
+          })
+
+          try {
+            const lawyerProfile = await Lawyer.findOneAndUpdate(
+              { userId: newUser._id },
+              lawyerProfileData,
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            )
+            
+            console.log("✅ Lawyer profile created/updated successfully:", lawyerProfile?._id)
+          } catch (lawyerError) {
+            // Handle duplicate key error specifically
+            if (lawyerError.code === 11000 || lawyerError.name === 'MongoServerError') {
+              // Delete the user that was just created since registration failed
+              await User.findByIdAndDelete(newUser._id)
+              return res.status(400).json({ 
+                success: false, 
+                message: `Bar Number ${barNumber.trim()} is already registered. Please use a different bar number or contact support if this is an error.` 
+              })
+            }
+            throw lawyerError
+          }
+        }
+      } catch (profileError) {
+        console.error("❌ Failed to seed lawyer profile during signup:", profileError)
+        console.error("Error details:", {
+          message: profileError.message,
+          name: profileError.name,
+          code: profileError.code,
+          stack: profileError.stack
+        })
+        
+        // If it's a duplicate key error, delete the user and return proper error
+        if (profileError.code === 11000 || (profileError.message && profileError.message.includes('duplicate key'))) {
+          await User.findByIdAndDelete(newUser._id)
+          return res.status(400).json({ 
+            success: false, 
+            message: `Bar Number ${barNumber?.trim() || 'provided'} is already registered. Please use a different bar number or contact support if this is an error.` 
+          })
+        }
+        
+        // For other errors, don't fail the registration, but log the error
+      }
+    }
     const { password: _, ...userResponse } = newUser.toObject()
     return res.status(201).json({ success: true, message: "Account Created Successfully", user: userResponse })
   } catch (error) {
@@ -69,7 +200,7 @@ export const register = async (req, res) => {
 // Login
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body
+    const { email, password, loginType } = req.body
     if (!email || !password) {
       return res.status(400).json({ success: false, message: "All fields are required" })
     }
@@ -85,8 +216,27 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid Credentials" })
     }
 
+    // Validate user type based on login endpoint
+    // If loginType is 'user', only allow regular users
+    if (loginType === 'user' && user.userType === 'lawyer') {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Lawyers cannot login from user login page. Please use lawyer login page.",
+        userType: user.userType
+      })
+    }
+
+    // If loginType is 'lawyer', only allow lawyers
+    if (loginType === 'lawyer' && user.userType !== 'lawyer') {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Regular users cannot login from lawyer login page. Please use user login page.",
+        userType: user.userType
+      })
+    }
+
     const jwtSecret = process.env.JWT_SECRET || "dev_secret"
-    const token = jwt.sign({ userId: user._id }, jwtSecret, { expiresIn: "1d" })
+    const token = jwt.sign({ userId: user._id, userType: user.userType }, jwtSecret, { expiresIn: "1d" })
 
     // remove password before sending
     const { password: _, ...userData } = user.toObject()

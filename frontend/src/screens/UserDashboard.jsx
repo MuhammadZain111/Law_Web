@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../shared/api.js';
 import { toast } from '../hooks/use-toast.js';
 import { io as socketIO } from 'socket.io-client';
+import LiveChat from './Lawyer/live-chat.jsx';
 
 export default function UserDashboard() {
   const navigate = useNavigate();
@@ -25,9 +26,40 @@ export default function UserDashboard() {
         return;
       }
 
+      // Check userType from localStorage first
+      const userType = localStorage.getItem('userType');
+      if (userType === 'lawyer' || userType === 'Lawyer') {
+        console.log('❌ Lawyer trying to access user dashboard - redirecting');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userType');
+        toast({
+          title: "Access Denied",
+          description: "Lawyers cannot access user dashboard. Please use lawyer login.",
+          variant: "destructive",
+        });
+        navigate('/lawyer/login');
+        return;
+      }
+
       const response = await api.get('/user/profile');
       const userData = response.data?.user || response.data;
       console.log('🔍 User profile data:', userData);
+      
+      // Double check userType from API response
+      const apiUserType = userData?.userType || userData?.role;
+      if (apiUserType === 'lawyer' || apiUserType === 'Lawyer') {
+        console.log('❌ API returned lawyer user - redirecting');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userType');
+        toast({
+          title: "Access Denied",
+          description: "Lawyers cannot access user dashboard. Please use lawyer login.",
+          variant: "destructive",
+        });
+        navigate('/lawyer/login');
+        return;
+      }
+      
       setUser(userData);
       
       // Try to link any existing appointments to this user
@@ -144,6 +176,12 @@ export default function UserDashboard() {
         return <UserProfile user={user} onUpdate={fetchUserProfile} />;
       case "appointments":
         return userId ? <UserAppointments userId={userId} /> : <div>Loading...</div>;
+      case "chat":
+        return (
+          <div className="w-full" style={{ height: 'calc(100vh - 200px)', minHeight: '600px' }}>
+            <LiveChat />
+          </div>
+        );
       case "settings":
         return <UserSettings user={user} onUpdate={fetchUserProfile} />;
       default:
@@ -305,6 +343,21 @@ export default function UserDashboard() {
                     <span className="text-blue-600">⚖️</span>
                   </div>
                   <span>Find Lawyers</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("chat")}
+                  className={`w-full text-left px-6 py-4 rounded-2xl font-medium transition-all duration-300 flex items-center space-x-3 ${
+                    activeTab === "chat"
+                      ? "bg-gradient-to-r from-gray-600 to-gray-800 text-white shadow-lg transform scale-105"
+                      : "text-gray-700 hover:bg-white/50 hover:shadow-md"
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    activeTab === "chat" ? "bg-white/20" : "bg-green-100"
+                  }`}>
+                    <span className="text-lg">💬</span>
+                  </div>
+                  <span>Messages</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("settings")}

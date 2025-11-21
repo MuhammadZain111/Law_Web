@@ -36,6 +36,26 @@ export function registerSocket(server) {
         console.log(`👤 User ${userId} joined room`);
       }
 
+      // Handle joining chat room
+      socket.on("join_chat", (chatId) => {
+        socket.join(`chat_${chatId}`);
+        console.log(`💬 User ${userId} joined chat ${chatId}`);
+      });
+
+      // Handle leaving chat room
+      socket.on("leave_chat", (chatId) => {
+        socket.leave(`chat_${chatId}`);
+        console.log(`💬 User ${userId} left chat ${chatId}`);
+      });
+
+      // Handle typing indicator
+      socket.on("typing", ({ chatId, isTyping }) => {
+        socket.to(`chat_${chatId}`).emit("user_typing", {
+          userId,
+          isTyping
+        });
+      });
+
       socket.on("disconnect", () => {
         console.log(`🔌 Socket disconnected: ${socket.id}`);
       });

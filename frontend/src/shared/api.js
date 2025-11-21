@@ -17,29 +17,45 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
   const token = localStorage.getItem('token');
   const fullUrl = `${BASE_URL}${path}`;
   console.log(`Making ${method} request to:`, fullUrl);
-  const res = await fetch(fullUrl, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    credentials: 'include',
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message = data?.message || data?.error || `Request failed with status ${res.status}`;
-    console.error('API Error:', { status: res.status, statusText: res.statusText, data });
+  
+  try {
+    const res = await fetch(fullUrl, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+      credentials: 'include',
+      body: body ? JSON.stringify(body) : undefined,
+    });
     
-    // Create error object with additional data for better error handling
-    const error = new Error(message);
-    error.status = res.status;
-    error.data = data;
-    error.missing = data?.missing; // For profile validation errors
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const message = data?.message || data?.error || `Request failed with status ${res.status}`;
+      console.error('API Error:', { status: res.status, statusText: res.statusText, data });
+      
+      // Create error object with additional data for better error handling
+      const error = new Error(message);
+      error.status = res.status;
+      error.data = data;
+      error.missing = data?.missing; // For profile validation errors
+      throw error;
+    }
+    return { data };
+  } catch (error) {
+    // Handle network errors (connection refused, timeout, etc.)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error('Network Error:', error);
+      const networkError = new Error('Network error. Please check your connection and ensure the backend server is running on http://localhost:5000');
+      networkError.status = 0;
+      networkError.isNetworkError = true;
+      networkError.originalError = error;
+      throw networkError;
+    }
+    // Re-throw other errors
     throw error;
   }
-  return { data };
 }
 
 export const api = {

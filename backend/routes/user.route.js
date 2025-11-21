@@ -59,14 +59,26 @@ const upload = multer({ storage });
 
 router.post("/upload-local", upload.single("file"), (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    if (!req.file) {
+      console.error("No file in upload request");
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    
+    // Ensure uploads directory exists
+    const uploadsDir = path.resolve("uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log("Created uploads directory:", uploadsDir);
+    }
+    
     const port = process.env.PORT || 5000;
     const base = process.env.BASE_URL || `http://localhost:${port}`;
     const url = `${base}/uploads/${req.file.filename}`;
+    console.log("✅ File uploaded successfully:", req.file.filename, "->", url);
     return res.json({ url });
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ message: "Failed to store file" });
+    console.error("❌ Local upload error:", e);
+    return res.status(500).json({ message: "Failed to store file: " + (e.message || "Unknown error") });
   }
 });
 

@@ -349,7 +349,10 @@ export const listAppointments = async (req, res) => {
       clientEmail: appointments[0].clientEmail,
       clientId: appointments[0].clientId,
       documents: appointments[0].documents,
-      documentFiles: appointments[0].documentFiles?.length || 0
+      documentFiles: appointments[0].documentFiles?.length || 0,
+      hasPaymentScreenshotFile: !!appointments[0].paymentScreenshotFile,
+      hasPaymentScreenshot: !!appointments[0].paymentScreenshot,
+      paymentScreenshotFile: appointments[0].paymentScreenshotFile
     } : 'No appointments');
 
     res.json({ 

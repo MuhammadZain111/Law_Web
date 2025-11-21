@@ -49,12 +49,36 @@ const RequireAuth = React.memo(({ children }) => {
 const RequireRole = React.memo(({ role, children }) => {
   const token = localStorage.getItem('token');
   if (!token) {
-    return <Navigate to={role === 'admin' ? "/admin/login" : "/login"} replace />;
+    return <Navigate to={role === 'admin' ? "/admin/login" : role === 'lawyer' ? "/lawyer/login" : "/user/login"} replace />;
   }
   const userType = localStorage.getItem('userType') || localStorage.getItem('role') || getRoleFromToken();
-  if (role && userType !== role) {
-    return <Navigate to={role === 'admin' ? "/admin/login" : "/"} replace />;
+  
+  // Strict role checking
+  if (role === 'user' && (userType === 'lawyer' || userType === 'Lawyer')) {
+    // Lawyer trying to access user dashboard - redirect to lawyer login
+    localStorage.removeItem('token');
+    localStorage.removeItem('userType');
+    return <Navigate to="/lawyer/login" replace />;
   }
+  
+  if (role === 'lawyer' && userType !== 'lawyer' && userType !== 'Lawyer') {
+    // Non-lawyer trying to access lawyer dashboard - redirect to user login
+    localStorage.removeItem('token');
+    localStorage.removeItem('userType');
+    return <Navigate to="/user/login" replace />;
+  }
+  
+  if (role && userType !== role && userType?.toLowerCase() !== role?.toLowerCase()) {
+    // Role mismatch - redirect based on userType
+    if (userType === 'lawyer' || userType === 'Lawyer') {
+      return <Navigate to="/lawyer/login" replace />;
+    } else if (userType === 'admin' || userType === 'Admin') {
+      return <Navigate to="/admin/login" replace />;
+    } else {
+      return <Navigate to="/user/login" replace />;
+    }
+  }
+  
   return <>{children}</>;
 });
 
@@ -104,7 +128,7 @@ const App = () => {
       <Route path="/registerLawyer" element={<RegisterLawyer />} />
       <Route path="/lawyerDashboard" element={<RequireRole role="lawyer"><LawyerDashboard /></RequireRole>} />
       <Route path="/lawyerdashboard" element={<RequireRole role="lawyer"><LawyerDashboard /></RequireRole>} />
-      <Route path="/userDashboard" element={<RequireAuth><UserDashboard /></RequireAuth>} />
+      <Route path="/userDashboard" element={<RequireRole role="user"><UserDashboard /></RequireRole>} />
       <Route path="/services" element={<Services />} />
       <Route path="/login" element={<LoginSelection />} />
       <Route path="/admin/login" element={<AdminLogin />} />

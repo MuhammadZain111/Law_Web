@@ -1,6 +1,6 @@
 import React from "react";
 
-export function DashboardOverview({ user, appointments = [], pendingCount = 0, todaysAppointments = [], recentActivity = [] }) {
+export function DashboardOverview({ user, appointments = [], pendingCount = 0, todaysAppointments = [], recentActivity = [], onNavigate }) {
   // Compute stats dynamically from props
   const activeCases = Array.isArray(appointments)
     ? appointments.filter(a => (a.caseStatus || '').toLowerCase() !== 'completed').length
@@ -73,7 +73,12 @@ export function DashboardOverview({ user, appointments = [], pendingCount = 0, t
               )
             })}
           </div>
-          <button className="w-full mt-4 border rounded py-2 bg-transparent">View All Appointments</button>
+          <button 
+            onClick={() => onNavigate && onNavigate("appointments")}
+            className="w-full mt-4 border rounded py-2 bg-transparent hover:bg-gray-50 transition-colors"
+          >
+            View All Appointments
+          </button>
         </div>
 
         {/* Recent Notifications */}

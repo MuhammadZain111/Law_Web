@@ -23,6 +23,7 @@ import userRoute from "./routes/user.route.js";
 import reminderRoutes from "./routes/reminder.routes.js";
 import notificationRoutes from "./routes/notifications.js";
 import chatbotRoutes from "./routes/chatbot.js";
+import chatRoutes from "./routes/chat.routes.js";
 import { registerSocket } from "./socket.js";
 import SchedulerService from "./services/schedulerService.js";
 
@@ -59,6 +60,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/lawyers", lawyerRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/chatbot", chatbotRoutes);
+app.use("/api/v1", chatRoutes);
 
 // 404 handler
 app.use((_req, _res, next) => next(createError(404, "Not found")));

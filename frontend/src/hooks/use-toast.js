@@ -2,7 +2,7 @@
 import * as React from "react"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 4000 // 4 seconds - auto dismiss after showing
 
 // --- Toast Types (doc only, no TS runtime) ---
 // ToasterToast = ToastProps & { id, title?, description?, action? }
@@ -40,11 +40,22 @@ const addToRemoveQueue = (toastId) => {
 // --- Reducer ---
 export const reducer = (state, action) => {
   switch (action.type) {
-    case "ADD_TOAST":
+    case "ADD_TOAST": {
+      // Automatically start dismiss timer when toast is added
+      const toastId = action.toast.id
+      // Start the auto-dismiss timer immediately after toast is added
+      setTimeout(() => {
+        dispatch({
+          type: "DISMISS_TOAST",
+          toastId,
+        })
+      }, TOAST_REMOVE_DELAY)
+      
       return {
         ...state,
         toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
       }
+    }
 
     case "UPDATE_TOAST":
       return {

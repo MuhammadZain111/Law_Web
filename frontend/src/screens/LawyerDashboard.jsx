@@ -55,6 +55,19 @@ export default function LawyerDashboard() {
               return String(lid) === String(currentLawyerId)
             })
           : response.appointments
+        
+        // Debug payment screenshots
+        filtered.forEach((apt, idx) => {
+          console.log(`📋 Appointment ${idx + 1} (${apt.clientName}):`, {
+            hasPaymentScreenshotFile: !!apt.paymentScreenshotFile,
+            hasPaymentScreenshot: !!apt.paymentScreenshot,
+            paymentScreenshotFile: apt.paymentScreenshotFile,
+            paymentScreenshot: apt.paymentScreenshot,
+            hasDocuments: !!apt.documents,
+            documentFilesCount: apt.documentFiles?.length || 0
+          });
+        });
+        
         setAppointments(filtered)
         // Filter pending appointments for notifications
         const pending = filtered.filter(apt => apt.status === 'pending')
@@ -97,8 +110,30 @@ export default function LawyerDashboard() {
 
   const fetchProfile = useCallback(async () => {
     try {
+      // Check userType from localStorage first
+      const userType = localStorage.getItem('userType')
+      if (userType && userType !== 'lawyer' && userType !== 'Lawyer') {
+        console.log('❌ Non-lawyer trying to access lawyer dashboard - redirecting')
+        localStorage.removeItem('token')
+        localStorage.removeItem('userType')
+        window.location.href = '/user/login'
+        return
+      }
+
       const res = await userAPI.getProfile()
-      setUser(res.user)
+      const userData = res.user || res
+      
+      // Double check userType from API response
+      const apiUserType = userData?.userType || userData?.role
+      if (apiUserType && apiUserType !== 'lawyer' && apiUserType !== 'Lawyer') {
+        console.log('❌ API returned non-lawyer user - redirecting')
+        localStorage.removeItem('token')
+        localStorage.removeItem('userType')
+        window.location.href = '/user/login'
+        return
+      }
+      
+      setUser(userData)
     } catch (e) {
       console.error('❌ Error fetching profile:', e)
       // Fallback: decode JWT and fetch public user endpoint
@@ -107,9 +142,31 @@ export default function LawyerDashboard() {
         if (token) {
           const payload = JSON.parse(atob(token.split('.')[1] || ''))
           const userId = payload.userId || payload.id
+          const userTypeFromToken = payload.userType || payload.role
+          
+          // Check userType from token
+          if (userTypeFromToken && userTypeFromToken !== 'lawyer' && userTypeFromToken !== 'Lawyer') {
+            console.log('❌ Token shows non-lawyer user - redirecting')
+            localStorage.removeItem('token')
+            localStorage.removeItem('userType')
+            window.location.href = '/user/login'
+            return
+          }
+          
           if (userId) {
             const resp = await api.get(`/user/${userId}`)
-            if (resp?.data?.user) setUser(resp.data.user)
+            if (resp?.data?.user) {
+              const userData = resp.data.user
+              // Final check on fetched user
+              if (userData.userType && userData.userType !== 'lawyer' && userData.userType !== 'Lawyer') {
+                console.log('❌ Fetched user is not a lawyer - redirecting')
+                localStorage.removeItem('token')
+                localStorage.removeItem('userType')
+                window.location.href = '/user/login'
+                return
+              }
+              setUser(userData)
+            }
           }
         }
       } catch (_ignored) {}
@@ -140,6 +197,7 @@ export default function LawyerDashboard() {
               pendingCount={pendingAppointments.length}
               todaysAppointments={todaysAppointments}
               recentActivity={recentActivity}
+              onNavigate={setActiveTab}
             />
             <UpcomingAppointments userRole="lawyer" userId={user?.id} />
           </div>
