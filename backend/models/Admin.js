@@ -21,3 +21,10 @@ adminSchema.methods.comparePassword = function(candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 export default mongoose.model('Admin', adminSchema);
+
+
+
+
+
+
+

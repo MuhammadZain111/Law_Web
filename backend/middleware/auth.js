@@ -1,9 +1,16 @@
 // middleware/auth.js
 import jwt from "jsonwebtoken";
 
+
+
+// Role-aware auth middleware: auth(['admin']) or auth(['lawyer']) or auth()
+
 const auth = (roles = []) => {
   return async (req, res, next) => {
-    const token = req.headers.authorization?.split(" ")[1];
+    const token =
+      req.headers.authorization?.split(" ")[1] ||
+      req.cookies?.token;
+
     if (!token) return res.status(401).json({ message: "No token" });
 
     try {
@@ -13,18 +20,19 @@ const auth = (roles = []) => {
       // Normalize id field for downstream consumers
       req.user.id = req.user.id || req.user.userId;
 
+      // Ensure role/userType is available on req.user
       // Ensure role/userType is available on req.user.
       // If token doesn't carry it, fetch minimal user info from DB.
+      
       if (!req.user.role && !req.user.userType && req.user.id) {
         try {
           const User = (await import("../models/user.model.js")).default;
           const userDoc = await User.findById(req.user.id).select("userType");
           if (userDoc) {
-            req.user.userType = userDoc.userType; // e.g., 'lawyer' | 'client' | 'admin'
+            req.user.userType = userDoc.userType; // e.g., 'lawyer' | 'user' | 'admin'
           }
-        } catch (fetchErr) {
-          // If we fail to fetch user role, proceed without it; route handlers may handle accordingly
-          // But do not block the request solely due to this lookup
+        } catch (_err) {
+          // Non-fatal; route handlers can still decide based on available info
         }
       }
 
@@ -34,17 +42,21 @@ const auth = (roles = []) => {
         return res.status(403).json({ message: "Forbidden" });
       }
 
+
+
       next();
-    } catch (err) {
+    } catch (_err) {
       res.status(401).json({ message: "Invalid token" });
     }
   };
 };
 
-// Standalone middleware
+// Simple helpers (optional) for routes that want a minimal check
+
 export function requireAuth(req, res, next) {
   try {
-    const token = req.cookies.token || req.headers.authorization?.replace("Bearer ", "");
+    const token =
+      req.cookies?.token || req.headers.authorization?.replace("Bearer ", "");
     if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     const payload = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
@@ -56,7 +68,8 @@ export function requireAuth(req, res, next) {
 }
 
 export function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== "admin") {
+  const role = req.user?.role || req.user?.userType;
+  if (role !== "admin") {
     return res.status(403).json({ error: "Forbidden" });
   }
   next();
@@ -111,3 +124,9 @@ export function optionalAuth() {
 }
 
 export default auth;
+
+
+
+
+
+

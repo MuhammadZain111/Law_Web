@@ -1,10 +1,22 @@
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
+<<<<<<< HEAD
 import { useState } from 'react';
+=======
+import { useEffect, useState } from 'react';
+>>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 import { useNavigate } from 'react-router-dom';
 
 function RegisterUser() {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [isRegistering, setIsRegistering] = useState(true);
+=======
+  const [isRegistering, setIsRegistering] = useState(false);
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) navigate('/');
+  }, [navigate]);
+>>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -143,7 +155,7 @@ function RegisterUser() {
       console.log('Sending user registration data:', userData);
 
       // Make API call to backend
-      const response = await fetch('http://localhost:5000/api/v1/user/register', {
+      const response = await fetch('http://localhost:3000/api/v1/user/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,6 +164,7 @@ function RegisterUser() {
       });
 
       const result = await response.json();
+      console.log('Registration response:', result);
 
       if (response.ok) {
         alert('User registration successful! You can now login.');
@@ -169,7 +182,11 @@ function RegisterUser() {
         setIsRegistering(false);
       } else {
         console.error('Registration failed:', result);
+<<<<<<< HEAD
         alert(result.message || 'Registration failed. Please try again.');
+=======
+        alert(result.message || result.error || 'Registration failed. Please try again.');
+>>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -202,7 +219,7 @@ function RegisterUser() {
 
       console.log('Sending login data:', loginData);
 
-      const response = await fetch('http://localhost:5000/api/v1/user/login', {
+      const response = await fetch('http://localhost:3000/api/v1/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

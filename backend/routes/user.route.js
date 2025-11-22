@@ -1,5 +1,6 @@
 import express from "express";
 import ImageKit from "imagekit";
+<<<<<<< HEAD
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -7,9 +8,15 @@ import { getAllLawyers, getProfile, getUserById, login, logout, register, update
 import auth from "../middleware/auth.js";
 import dotenv from "dotenv";
 dotenv.config();
+=======
+import { getUserById, login, logout, register } from "../controllers/user.controller.js";
+// import { isAuthenticated } from "../middleware/isAuthenticated.js";
+// import { singleUpload } from "../middleware/multer.js";
+>>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
-const router = express.Router()
+const router = express.Router();
 
+<<<<<<< HEAD
 router.route("/register").post(register)
 router.route("/login").post(login)
 router.route("/logout").get(logout)
@@ -23,6 +30,14 @@ console.log("[v0] ImageKit keys check:", {
   publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
   privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
 })
+=======
+router.route("/register").post(register);
+router.route("/login").post(login);
+router.route("/logout").get(logout);
+
+// Fetch single user by id (used by profile/booking lookups)
+router.route("/:id").get(getUserById);
+>>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
 router.get("/imagekit-auth", async (_req, res) => {
   try {

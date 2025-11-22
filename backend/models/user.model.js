@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+
 const userSchema = new mongoose.Schema(
   {
     firstname: {
@@ -28,19 +29,19 @@ const userSchema = new mongoose.Schema(
     userType: {
       type: String,
       required: true,
-      enum: ['user', 'lawyer'],
-      default: 'user',
+      enum: ["user", "lawyer"],
+      default: "user",
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: 'approved', // Regular users are approved by default
+      enum: ["pending", "approved", "rejected"],
+      default: "approved", // Regular users are approved by default; lawyers set to 'pending' at registration
     },
     password: {
       type: String,
       required: true,
-      minlength: 6, // at least 6 characters
-      select: false, // by default password query me return nahi hoga
+      minlength: 6,
+      select: false,
     },
     bio: {
       type: String,
@@ -99,6 +100,10 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const User = mongoose.model("User", userSchema);
+// Idempotent export to avoid model overwrite on hot reload
+
+const User = mongoose.models.User || mongoose.model("User", userSchema);
+
+
 
 export default User;
