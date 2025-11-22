@@ -105,12 +105,14 @@ const Services = () => {
             {SERVICES.map((service) => (
               <Card key={service.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4">
+                
                   <div className="flex justify-between items-start">
                     <div className="bg-primary/10 p-2 rounded-lg">
                       <service.icon className="h-6 w-6 text-primary" />
                     </div>
                     {service.popular && <Badge className="bg-primary">Popular</Badge>}
                   </div>
+
                   <CardTitle className="mt-4">{service.title}</CardTitle>
                   <CardDescription>{service.description}</CardDescription>
                 </CardHeader>
