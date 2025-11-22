@@ -1,7 +1,7 @@
-import { Button, Navbar, NavbarBrand, NavbarCollapse, NavbarLink, NavbarToggle } from "flowbite-react";
-import { Link, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { userAPI } from '@/services/api';
+import { Button, Navbar, NavbarBrand, NavbarCollapse, NavbarLink, NavbarToggle } from "flowbite-react";
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 function CustomNavbar() {
   const customTheme = {
@@ -92,7 +92,6 @@ function CustomNavbar() {
         <NavbarLink as={Link} to="/" className={linkClass} active>Home</NavbarLink>
         <NavbarLink as={Link} to="/about" className={linkClass}>About</NavbarLink>
         <NavbarLink as={Link} to="/services" className={linkClass}>Services</NavbarLink>
-        <NavbarLink as={Link} to="/pricing" className={linkClass}>Pricing</NavbarLink>
         <NavbarLink as={Link} to="/contact" className={linkClass}>Contact</NavbarLink>
       </NavbarCollapse>
 
@@ -105,7 +104,7 @@ function CustomNavbar() {
           >
             <button
               type="button"
-              className="inline-flex items-center justify-center w-10 h-10 rounded-full ring-1 ring-gray-200 overflow-hidden"
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full ring-1 ring-gray-200 overflow-hidden cursor-pointer"
               onClick={goToProfile}
               aria-label="Open profile"
             >
@@ -122,7 +121,7 @@ function CustomNavbar() {
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full text-left text-sm text-gray-700 hover:text-red-600"
+                    className="w-full text-left text-sm text-gray-700 hover:text-red-600 cursor-pointer"
                   >
                     Logout
                   </button>
@@ -132,10 +131,10 @@ function CustomNavbar() {
           </div>
         ) : (
           <>
-        <Button color="light" className="border border-gray-300 text-gray-700 hover:bg-gray-100" onClick={goToLogin}>Login</Button>
+        <Button color="light" className="border-2 bg-lightbrown  hover:bg-white hover:text-black  hover:border-black border-lightbrown    text-white transition-all duration-200 cursor-pointer" onClick={goToLogin}>Login</Button>
             <div className="relative">
               <Button
-                className="!bg-emerald-600 hover:!bg-emerald-700 text-white"
+                className="border-2 bg-lightbrown  hover:bg-white hover:text-black  hover:border-black border-lightbrown    text-white transition-all duration-200 cursor-pointer    "
                 onClick={() => setShowRegisterMenu((v) => !v)}
                 onBlur={() => setTimeout(() => setShowRegisterMenu(false), 120)}
               >
@@ -145,7 +144,7 @@ function CustomNavbar() {
                 <div className="absolute right-0 mt-2 w-44 rounded-lg border border-gray-200 bg-white shadow-lg p-1 z-50">
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50"
+                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50 cursor-pointer"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => { setShowRegisterMenu(false); navigate('/registerUser'); }}
                   >
@@ -153,7 +152,7 @@ function CustomNavbar() {
                   </button>
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50"
+                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50 cursor-pointer"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => { setShowRegisterMenu(false); navigate('/registerLawyer'); }}
                   >

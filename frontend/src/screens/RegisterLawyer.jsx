@@ -1,7 +1,7 @@
 "use client"
+import { Eye, EyeOff, Lock, Mail, Scale, User } from "lucide-react"
 import { useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { Eye, EyeOff, User, Mail, Lock, Scale } from "lucide-react"
 import { api } from "../shared/api.js"
 
 function RegisterLawyer() {
@@ -253,15 +253,15 @@ function RegisterLawyer() {
   }
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-b from-white via-emerald-50/40 to-white flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen relative bg-gradient-to-b from-white via-lightbrown/10 to-white flex items-center justify-center px-4 py-8">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -left-24 -top-24 h-64 w-64 bg-emerald-100 rounded-full blur-3xl opacity-40"></div>
-        <div className="absolute -right-24 bottom-0 h-72 w-72 bg-emerald-50 rounded-full blur-3xl opacity-60"></div>
+        <div className="absolute -left-24 -top-24 h-64 w-64 bg-lightbrown/20 rounded-full blur-3xl opacity-40"></div>
+        <div className="absolute -right-24 bottom-0 h-72 w-72 bg-lightbrown/10 rounded-full blur-3xl opacity-60"></div>
       </div>
       <div className="relative w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium mb-3">
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-lightbrown/10 text-lightbrown text-sm font-medium mb-3">
             <Scale className="w-4 h-4" /> Lawyer Portal
           </span>
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
@@ -273,23 +273,23 @@ function RegisterLawyer() {
         </div>
 
         {/* Form Card */}
-        <div className="relative bg-white/90 backdrop-blur rounded-2xl shadow-xl ring-1 ring-gray-100 p-8 transition-all hover:shadow-2xl hover:ring-emerald-200">
-          <div className="absolute inset-x-0 -top-[1px] h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-400 rounded-t-2xl" />
+        <div className="relative bg-white/90 backdrop-blur rounded-2xl shadow-xl ring-1 ring-gray-100 p-8 transition-all hover:shadow-2xl hover:ring-lightbrown/30">
+          <div className="absolute inset-x-0 -top-[1px] h-1 bg-gradient-to-r from-lightbrown via-lightbrown/80 to-lightbrown rounded-t-2xl" />
           <form onSubmit={isRegistering ? handleSubmit : handleLogin} className="space-y-6">
             {isRegistering && (
             <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
                 <div className="relative group">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-lightbrown transition-colors" />
                     <input
                       type="text"
                       name="firstname"
                       value={formData.firstname}
                       onChange={handleInputChange}
                     className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors duration-150 ${
-                      errors.firstname ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-emerald-500"
-                    } group-hover:border-emerald-300`}
+                      errors.firstname ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
+                    } group-hover:border-lightbrown/50`}
                       placeholder=""
                     />
                   </div>
@@ -299,15 +299,15 @@ function RegisterLawyer() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
                 <div className="relative group">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-lightbrown transition-colors" />
                     <input
                       type="text"
                       name="lastname"
                       value={formData.lastname}
                       onChange={handleInputChange}
                     className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors duration-150 ${
-                      errors.lastname ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-emerald-500"
-                    } group-hover:border-emerald-300`}
+                      errors.lastname ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
+                    } group-hover:border-lightbrown/50`}
                       placeholder=""
                     />
                   </div>
@@ -325,7 +325,7 @@ function RegisterLawyer() {
                   value={formData.specialization}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.specialization ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                    errors.specialization ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                   }`}
                 >
                   <option value="" disabled>Select specialization</option>
@@ -341,7 +341,7 @@ function RegisterLawyer() {
                   value={formData.yearsOfExperience}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.yearsOfExperience ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                    errors.yearsOfExperience ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                   }`}
                 >
                   {experienceYears.map((yr) => (
@@ -361,7 +361,7 @@ function RegisterLawyer() {
                     setFormData((prev) => ({ ...prev, barNumber: onlyDigits }))
                   }}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.barNumber ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                    errors.barNumber ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                   }`}
                   placeholder="13-digit number"
                 />
@@ -374,7 +374,7 @@ function RegisterLawyer() {
                   value={formData.firmName}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.firmName ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                    errors.firmName ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                   }`}
                   placeholder="e.g. Alpha Law Associates"
                 />
@@ -386,7 +386,7 @@ function RegisterLawyer() {
                   value={formData.city}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.city ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                    errors.city ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                   }`}
                 >
                   <option value="" disabled>Select city</option>
@@ -403,7 +403,7 @@ function RegisterLawyer() {
                     value={formData.phoneCountryCode}
                     onChange={handleInputChange}
                     className={`px-3 py-3 border-2 rounded-lg focus:outline-none ${
-                      errors.phoneCountryCode ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-green-500'
+                      errors.phoneCountryCode ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-lightbrown'
                     }`}
                   >
                     {['+92', '+91', '+971', '+1', '+44'].map((cc) => (
@@ -419,7 +419,7 @@ function RegisterLawyer() {
                       setFormData((prev) => ({ ...prev, phone: onlyDigits }))
                     }}
                     className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                      errors.phone ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                      errors.phone ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                     }`}
                     placeholder="3001234567 (11 digits)"
                   />
@@ -437,7 +437,7 @@ function RegisterLawyer() {
                     setFormData((prev) => ({ ...prev, cnicNumber: onlyDigits }))
                   }}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.cnicNumber ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                    errors.cnicNumber ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                   }`}
                   placeholder="13-digit number"
                 />
@@ -472,7 +472,7 @@ function RegisterLawyer() {
                       alert('License upload failed')
                     }
                   }}
-                  className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-lightbrown/10 file:text-lightbrown hover:file:bg-lightbrown/20"
                 />
                 </div>
               </div>
@@ -605,7 +605,7 @@ function RegisterLawyer() {
                         }
                   }
                 }}
-                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-lightbrown/10 file:text-lightbrown hover:file:bg-lightbrown/20"
               />
               {formData.photoUrl && (
                     <img
@@ -644,7 +644,7 @@ function RegisterLawyer() {
                     value={formData.username}
                     onChange={handleInputChange}
                     className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                      errors.username ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                      errors.username ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                     }`}
                     placeholder="johndoe123"
                   />
@@ -663,7 +663,7 @@ function RegisterLawyer() {
                   value={formData.email}
                   onChange={handleInputChange}
                   className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.email ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                    errors.email ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                   }`}
                   placeholder="lawyer@example.com"
                 />
@@ -681,7 +681,7 @@ function RegisterLawyer() {
                   value={formData.password}
                   onChange={handleInputChange}
                   className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
-                    errors.password ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-green-500"
+                    errors.password ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                   }`}
                   placeholder="Enter your password"
                 />
@@ -709,7 +709,7 @@ function RegisterLawyer() {
                     className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-0 transition-colors ${
                       errors.confirmPassword 
                         ? "border-red-300 focus:border-red-500"
-                        : "border-gray-200 focus:border-green-500"
+                        : "border-gray-200 focus:border-lightbrown"
                     }`}
                     placeholder="Confirm your password"
                   />
@@ -720,7 +720,7 @@ function RegisterLawyer() {
 
             <button
               type="submit"
-              className="relative w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-semibold transform hover:scale-[1.01] transition-all duration-150 shadow-lg hover:shadow-xl overflow-hidden"
+              className="relative w-full bg-lightbrown hover:bg-white hover:text-black hover:border-black border-2 border-lightbrown text-white py-3 rounded-lg font-semibold transform hover:scale-[1.01] transition-all duration-150 shadow-lg hover:shadow-xl overflow-hidden cursor-pointer"
             >
               <span className="absolute inset-0 opacity-0 hover:opacity-10 bg-white transition-opacity"></span>
               {isRegistering ? "Create Lawyer Account" : "Sign In"}
@@ -732,7 +732,7 @@ function RegisterLawyer() {
               {isRegistering ? "Already have an account?" : "Don't have an account?"}{" "}
               <button
                 onClick={() => setIsRegistering(!isRegistering)}
-                className="text-green-600 hover:text-green-700 font-semibold transition-colors"
+                className="text-lightbrown hover:text-darkbrown font-semibold transition-colors cursor-pointer"
               >
                 {isRegistering ? "Sign In" : "Create Account"}
               </button>

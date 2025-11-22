@@ -1,4 +1,4 @@
-import React from "react";
+import img1 from '../../assets/images/img1.jpg';
 
 const Vision = () => {
   return (
@@ -18,7 +18,7 @@ const Vision = () => {
 
         <div className="flex justify-center">
           <img
-            src="/vision.jpg" // Replace with your actual image path
+            src={img1}
             alt="Vision illustration"
             className="w-full max-w-md rounded-2xl shadow-md"
           />

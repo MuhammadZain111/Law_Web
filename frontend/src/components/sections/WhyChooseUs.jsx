@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 
 const AboutUs = () => {
@@ -61,7 +60,7 @@ const AboutUs = () => {
           <p className="text-xl text-gray-700 mb-6">
             Our mission is to modernize the legal profession by bringing efficiency, transparency, and innovation to every lawyer's fingertips.
           </p>
-          <button className="bg-lightbrown text-white px-8 py-3 rounded-full text-lg font-semibold shadow-md hover:bg-darkbrown hover:cursor-pointer transition">
+          <button className="bg-lightbrown text-white px-8 py-3 rounded-full text-lg font-semibold shadow-md hover:bg-darkbrown cursor-pointer transition">
             Join the Future of Legal Work
           </button>
         </motion.div>

@@ -41,13 +41,13 @@ export default function LoginSelection() {
             className="w-full text-left rounded-2xl border bg-white p-6 shadow-sm hover:shadow transition-shadow"
           >
             <div className="flex gap-4">
-              <div className="h-14 w-14 rounded-xl bg-emerald-100 flex items-center justify-center">
-                <Scale className="h-6 w-6 text-emerald-600" />
+              <div className="h-14 w-14 rounded-xl bg-lightbrown/20 flex items-center justify-center">
+                <Scale className="h-6 w-6 text-lightbrown" />
               </div>
               <div className="flex-1">
                 <h2 className="text-2xl font-bold">Lawyer Login</h2>
                 <p className="text-gray-600">Sign in to manage your profile and appointments</p>
-                <div className="mt-3 inline-flex items-center font-medium text-emerald-700">
+                <div className="mt-3 inline-flex items-center font-medium text-lightbrown">
                   Continue <ChevronRight className="ml-1 h-4 w-4" />
                 </div>
               </div>

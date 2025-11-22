@@ -1,20 +1,18 @@
-import React from 'react'
-import { useState, useEffect } from "react"
 import { appointmentAPI, userAPI } from '@/services/api'
 import { api } from '@/shared/api'
-import { mockLogin } from '@/utils/auth'
-import { LawyerSidebar } from "./Lawyer/lawyer-sidebar"
-import { DashboardOverview } from "./Lawyer/dashboard-overview"
+import { useCallback, useEffect, useState } from "react"
+import UpcomingAppointments from "../components/UpcomingAppointments"
 import { AppointmentManagement } from "./Lawyer/appointment-management"
 import { CaseManagement } from "./Lawyer/case-management"
-import  LiveChat  from "./Lawyer/live-chat"
-import  VirtualConsultation  from "./Lawyer/virtual-consultation"
+import { DashboardOverview } from "./Lawyer/dashboard-overview"
+import { LawyerSidebar } from "./Lawyer/lawyer-sidebar"
+import LiveChat from "./Lawyer/live-chat"
+import NotificationsPanel from "./Lawyer/notifications-panel"
 import { PaymentStatus } from "./Lawyer/payment-status"
-import  RecordsAccess  from "./Lawyer/records-access"
-import  ProfileManagement  from "./Lawyer/profile-management"
-import  NotificationsPanel  from "./Lawyer/notifications-panel"
+import ProfileManagement from "./Lawyer/profile-management"
+import RecordsAccess from "./Lawyer/records-access"
 import { UpgradeProfile } from "./Lawyer/upgrade-profile"
-import UpcomingAppointments from "../components/UpcomingAppointments"
+import VirtualConsultation from "./Lawyer/virtual-consultation"
 
 export default function LawyerDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -39,21 +37,7 @@ export default function LawyerDashboard() {
       return null
     }
   }
-
-  // Fetch appointments on component mount
-  useEffect(() => {
-    // Use real auth token already stored by login flow
-    fetchProfile()
-    fetchAppointments()
-    fetchRecentActivity()
-    
-    // Set up polling to check for new appointments every 10 seconds (for testing)
-    const interval = setInterval(fetchAppointments, 10000)
-    
-    return () => clearInterval(interval)
-  }, [])
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       console.log('🔍 Fetching appointments...')
       const response = await appointmentAPI.getAppointments()
@@ -96,9 +80,9 @@ export default function LawyerDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchRecentActivity = async () => {
+  const fetchRecentActivity = useCallback(async () => {
     try {
       const res = await api.get('/notifications')
       const items = res?.data?.notifications || []
@@ -106,9 +90,9 @@ export default function LawyerDashboard() {
     } catch (_e) {
       setRecentActivity([])
     }
-  }
+  }, [])
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const res = await userAPI.getProfile()
       setUser(res.user)
@@ -127,7 +111,20 @@ export default function LawyerDashboard() {
         }
       } catch (_ignored) {}
     }
-  }
+  }, [])
+
+  // Fetch appointments on component mount
+  useEffect(() => {
+    // Use real auth token already stored by login flow
+    fetchProfile()
+    fetchAppointments()
+    fetchRecentActivity()
+    
+    // Set up polling to check for new appointments every 10 seconds (for testing)
+    const interval = setInterval(fetchAppointments, 10000)
+    
+    return () => clearInterval(interval)
+  }, [fetchProfile, fetchAppointments, fetchRecentActivity])
 
   const renderContent = () => {
     switch (activeTab) {

@@ -1,25 +1,27 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import About from './screens/About';
+import Contact from './screens/Contact.jsx';
 import Home from './screens/Home';
 import LawyerDashboard from './screens/LawyerDashboard';
-import UserDashboard from './screens/UserDashboard.jsx';
 import NoPage from './screens/NoPage';
 import RegisterLawyer from './screens/RegisterLawyer';
 import RegisterUser from './screens/RegisterUser';
 import RegistrationSelection from './screens/RegistrationSelection';
+import ServiceDetail from './screens/ServiceDetail';
 import Services from './screens/Services';
+import UserDashboard from './screens/UserDashboard.jsx';
 // import LawyerPage from '@/components/sections/LawyerPage'
 
+import { Toaster } from './hooks/use-toast.js';
+import AdminLayout from './screens/Admin/AdminLayout';
+import Dashboard from './screens/Admin/Dashboard';
+import AdminLogin from './screens/Admin/Login.jsx';
+import NotificationBell from './screens/Admin/NotificationBell';
+import ProfileForm from './screens/Admin/ProfileForm';
 import AppointmentBooking from './screens/AppointmentBooking.jsx';
 import LawyerProfile from './screens/Lawyer/LawyerProfile.jsx';
 import Lawyers from './screens/Lawyers.jsx';
-import AdminLayout from './screens/Admin/AdminLayout';
-import Dashboard from './screens/Admin/Dashboard';
-import NotificationBell from './screens/Admin/NotificationBell';
-import ProfileForm from './screens/Admin/ProfileForm';
 import LoginSelection from './screens/LoginSelection.jsx';
-import AdminLogin from './screens/Admin/Login.jsx';
-import { Toaster } from './hooks/use-toast.js';
 
 const App = () => {
   const getRoleFromToken = () => {
@@ -57,12 +59,13 @@ const App = () => {
   return (
    <div>
       <Toaster />
-
-       <nav>
+      
+      <nav>
 
 
         <Link to="/"></Link> 
         <Link to="/about"></Link>
+        <Link to="/contact"></Link>
         <Link to="/registerLawyer"></Link>
         <Link to="/lawyerDashboard"></Link>
         <Link to="/services"></Link>
@@ -80,6 +83,8 @@ const App = () => {
 
 
       <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
+
       <Route path="/registration-selection" element={<RegistrationSelection />} />
       <Route path="/registerUser" element={<RegisterUser />} />
       <Route path="/registerLawyer" element={<RegisterLawyer />} />
@@ -87,6 +92,7 @@ const App = () => {
       <Route path="/lawyerdashboard" element={<RequireRole role="lawyer"><LawyerDashboard /></RequireRole>} />
       <Route path="/userDashboard" element={<RequireAuth><UserDashboard /></RequireAuth>} />
       <Route path="/services" element={<Services />} />
+      <Route path="/services/:serviceId" element={<ServiceDetail />} />
       <Route path="/login" element={<LoginSelection />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/user/login" element={<RegisterUser />} />

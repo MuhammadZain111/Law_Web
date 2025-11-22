@@ -1,24 +1,26 @@
 import React from "react";
 import OurPartner from "./OurPartner.jsx";
+import Images from '../../constants/Images.js'
+
 
 const lawyers = [
   {
     name: "Samantha Clarkson",
     title: "CEO & Founding Partner",
     description: "Strategic Legal Planning, Business Law",
-    image: "/samantha.jpg",
+    image: Images.partner1,
   },
   {
     name: "Samuel Andersen",
     title: "Head of Managing Partner",
     description: "Real Estate Law, Corporate Governance",
-    image: "/Law.jpeg",
+    image:  Images.partner2,
   },
   {
-    name: "Jessica Smith",
+    name: "Jamshaid Bodla",
     title: "Legal Senior Attorney",
     description: "Family Law, Mediation, Family Disputes",
-    image: "/Law1.jpeg",
+    image: Images.partner3,
   },
 ];
 

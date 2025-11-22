@@ -172,7 +172,7 @@ export default function LawyerProfile() {
 
         <div className="mt-6 w-full">
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
+            className="w-full bg-lightbrown hover:bg-white hover:text-black hover:border-black border-2 border-lightbrown text-white transition-all duration-200 cursor-pointer" 
             onClick={() => {
               console.log('🔍 Debug - Contact Lawyer button clicked');
               handleContactLawyer();

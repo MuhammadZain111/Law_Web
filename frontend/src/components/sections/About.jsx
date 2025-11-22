@@ -1,5 +1,6 @@
-import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import img5 from '../../assets/images/img5.jpg';
 
 const AboutUs = () => {
   const cards = [
@@ -16,7 +17,7 @@ const AboutUs = () => {
     {
       title: 'Mission-Focused Innovation',
       desc: 'We aim to make law accessible and efficient with design-first solutions tailored for legal professionals.',
-      image: '/logoo.png',
+      image: img5,
     },
   ];
 
@@ -39,6 +40,7 @@ const AboutUs = () => {
         </motion.div>
 
         {/* Cards Section */}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-16">
           {cards.map((card, i) => (
             <motion.div
@@ -75,9 +77,11 @@ const AboutUs = () => {
             Whether you're a solo lawyer or a large firm, our platform adapts to your needs — providing reliability, speed,
             and a seamless legal management experience. Let’s build the future of law together.
           </p>
-          <button className="bg-lightbrown text-white px-8 py-3 rounded-full text-lg font-semibold shadow-md hover:bg-darkbrown transition">
-            Get Started Now
-          </button>
+          <Link to="/registerLawyer">
+            <button className="bg-lightbrown text-white px-8 py-3 rounded-full text-lg font-semibold shadow-md hover:bg-darkbrown hover:scale-105 hover:shadow-lg transition-all duration-300 transform cursor-pointer">
+              Get Started Now
+            </button>
+          </Link>
         </motion.div>
       </div>
     </section>

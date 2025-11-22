@@ -1,5 +1,4 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom';
 
 function OurAreas() {
   
@@ -42,7 +41,7 @@ function OurAreas() {
 
             <h2 className="text-4xl font-serif font-semibold text-[#2c1f1a]">Our Legal Practice Areas</h2>
 
-            <Link to="/services#services" className="text-sm px-5 py-2 bg-[#ebe2dd] text-[#2c1f1a] rounded-md hover:bg-[#dfd1c8] transition">See More Legal Services</Link>
+            <Link to="/services#services" className="text-sm px-5 py-2 border-2 !bg-lightbrown  hover:!bg-white hover:text-black hover:border-black border-lightbrown text-white transition-all duration-200 cursor-pointer rounded-md  ">See More Legal Services</Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -60,7 +59,7 @@ function OurAreas() {
                 <h3 className="text-2xl font-serif font-semibold mb-2">{service.title}</h3>
                 <p className="text-sm">{service.description}</p>
                 {service.image && (
-                  <button className="mt-4 inline-block text-sm underline">Read More</button>
+                  <button className="mt-4 inline-block text-sm underline cursor-pointer">Read More</button>
                 )}
               </div>
             ))}

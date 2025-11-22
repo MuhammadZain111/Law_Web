@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 
 function RegisterUser() {
   const navigate = useNavigate();
@@ -250,7 +250,7 @@ function RegisterUser() {
             <div className="inline-flex mb-4 rounded-xl border border-gray-200 bg-white overflow-hidden">
               <button
                 type="button"
-                className="px-4 py-2 text-sm font-semibold bg-emerald-50 text-emerald-700"
+                className="px-4 py-2 text-sm font-semibold bg-lightbrown/10 text-lightbrown"
               >
                 User Signup
               </button>

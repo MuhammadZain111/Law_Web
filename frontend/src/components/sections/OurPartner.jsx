@@ -1,4 +1,6 @@
 import React from "react";
+import Images from '../../constants/Images.js'
+
 
 const OurPartner = ({ image, name, title, description }) => {
   return (

@@ -1,14 +1,14 @@
 // routes/appointment.route.js
 import express from "express";
 import {
-  createAppointment,
-  listAppointments,
-  getAppointment,
-  updateAppointmentStatus,
   cancelAppointment,
+  createAppointment,
   getAllLawyers,
+  getAppointment,
+  getAvailableTimeSlots,
   getLawyerById,
-  getAvailableTimeSlots
+  listAppointments,
+  updateAppointmentStatus
 } from "../controllers/appointmentController.js";
 import auth from "../middleware/auth.js";
 

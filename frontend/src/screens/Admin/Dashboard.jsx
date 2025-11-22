@@ -33,7 +33,7 @@ export default function Dashboard() {
       return
     }
     setAuthToken(token)
-    ;(async () => {
+    const loadData = async () => {
       try {
         // Load approved list for table (use enriched lawyers endpoint)
         const approved = await api.get("/lawyers?status=approved")
@@ -51,8 +51,10 @@ export default function Dashboard() {
       } finally {
         setLoading(false)
       }
-    })()
-  }, [navigate])
+    }
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // navigate is stable from react-router-dom, so we can safely omit it
 
   // Derived UI data
   const specializations = useMemo(() => {

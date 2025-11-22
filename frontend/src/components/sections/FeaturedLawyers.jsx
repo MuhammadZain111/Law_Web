@@ -74,7 +74,7 @@ const FeaturedLawyers = () => {
           <p className="text-gray-600">Top-rated legal professionals ready to help you</p>
         </div>
         <Link to="/lawyers">
-          <Button variant="outline" className="mt-4 md:mt-0">
+          <Button variant="outline" className="mt-4 md:mt-0  !bg-lightbrown  hover:!bg-white hover:text-black hover:border-black border-lightbrown text-white transition-all duration-200 cursor-pointer rounded-md  ">
             View All Lawyers
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -120,7 +120,7 @@ const FeaturedLawyers = () => {
                 ))}
               </div>
               <Link to={`/lawyers/${lawyer.id}`} className="block mt-4">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full !bg-lightbrown hover:!bg-white hover:text-black hover:border-black border-lightbrown text-white transition-all duration-200 cursor-pointer">
                   View Profile
                 </Button>
               </Link>

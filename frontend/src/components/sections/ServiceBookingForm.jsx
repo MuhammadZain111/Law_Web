@@ -2,15 +2,15 @@
 
 import { useState } from "react"
 import Button from "../../components/common/Button.jsx"
+import Calendar from "../../components/common/Calendar.jsx"
 import Input from "../../components/common/Input.jsx"
-import Textarea from "../../components/common/TextArea.jsx"
 import Label from "../../components/common/Label.jsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/common/Select.jsx"
-import Calendar from "../../components/common/Calendar.jsx"
+import Textarea from "../../components/common/TextArea.jsx"
 
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/common/Popover.jsx"
 
-import {CalendarIcon} from "../../assets/icons/Icons.jsx"
+import { CalendarIcon } from "../../assets/icons/Icons.jsx"
 
 import { Card, CardContent } from "../../components/common/Card.jsx"
 
@@ -68,13 +68,13 @@ const ServiceBookingForm = () => {
     return (
       <Card>
         <CardContent className="pt-6 flex flex-col items-center text-center">
-          <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
+          <CheckCircle2 className="h-16 w-16 text-lightbrown mb-4" />
           <h3 className="text-2xl font-bold mb-2">Request Submitted!</h3>
           <p className="text-gray-600 mb-6">
             Thank you for your service request. A member of our team will contact you within 24 hours to discuss your
             legal needs and match you with the right lawyer.
           </p>
-          <Button onClick={() => setIsSubmitted(false)}>Submit Another Request</Button>
+          <Button onClick={() => setIsSubmitted(false)} className="!bg-lightbrown hover:!bg-white hover:!text-black hover:!border-black border-2 border-lightbrown text-white transition-all duration-200 cursor-pointer">Submit Another Request</Button>
         </CardContent>
       </Card>
     )
@@ -119,7 +119,7 @@ const ServiceBookingForm = () => {
           <Label>Preferred Date</Label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full justify-start text-left font-normal">
+              <Button variant="outline" className="w-full justify-start text-left font-normal border-2 border-lightbrown bg-lightbrown text-white hover:bg-white hover:text-black hover:border-black transition-all duration-200 cursor-pointer">
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {date ? date.toLocaleDateString() : "Select a date"}
               </Button>
@@ -160,7 +160,7 @@ const ServiceBookingForm = () => {
         />
       </div>
 
-      <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+      <Button type="submit" className="w-full !bg-lightbrown hover:!bg-white hover:!text-black hover:!border-black border-2 border-lightbrown text-white transition-all duration-200 cursor-pointer" size="lg" disabled={isLoading}>
         {isLoading ? "Submitting..." : "Request Consultation"}
       </Button>
 

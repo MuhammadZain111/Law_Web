@@ -1,7 +1,7 @@
 import React from "react"
 
 const buttonVariants = {
-  default: "bg-primary text-white hover:bg-primary/90",
+  default: "bg-lightbrown text-white hover:bg-white hover:text-black hover:border-black border-2 border-lightbrown transition-all duration-200",
   outline: "border border-gray-300 bg-transparent hover:bg-gray-50",
   secondary: "bg-white text-gray-800 hover:bg-gray-100",
   ghost: "bg-transparent hover:bg-gray-100",
@@ -30,7 +30,7 @@ const Button = ({
 
   return (
     <Comp
-      className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none ${buttonVariants[variant]} ${buttonSizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${buttonVariants[variant]} ${buttonSizes[size]} ${className}`}
       disabled={disabled}
       onClick={onClick}
       {...props}

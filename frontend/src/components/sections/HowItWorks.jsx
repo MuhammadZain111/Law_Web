@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle, Search} from "../../assets/icons/Icons.jsx"
+import { ArrowRight, CheckCircle, Search } from "../../assets/icons/Icons.jsx";
 
 import { UserCheck } from 'lucide-react';
 
@@ -16,9 +16,9 @@ const HowItWorks = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="relative">
-            <div className="bg-primary/10 rounded-full h-16 w-16 flex items-center justify-center mb-6 mx-auto">
-              <Search className="h-8 w-8 text-primary" />
-              <div className="absolute top-0 right-0 bg-primary text-white h-8 w-8 rounded-full flex items-center justify-center font-bold">
+            <div className="bg-lightbrown/10 rounded-full h-16 w-16 flex items-center justify-center mb-6 mx-auto">
+              <Search className="h-8 w-8 text-lightbrown" />
+              <div className="absolute top-0 right-0 bg-lightbrown text-white h-8 w-8 rounded-full flex items-center justify-center font-bold">
                 1
               </div>
             </div>
@@ -32,9 +32,9 @@ const HowItWorks = () => {
           </div>
 
           <div className="relative">
-            <div className="bg-primary/10 rounded-full h-16 w-16 flex items-center justify-center mb-6 mx-auto">
-              <UserCheck className="h-8 w-8 text-primary" />
-              <div className="absolute top-0 right-0 bg-primary text-white h-8 w-8 rounded-full flex items-center justify-center font-bold">
+            <div className="bg-lightbrown/10 rounded-full h-16 w-16 flex items-center justify-center mb-6 mx-auto">
+              <UserCheck className="h-8 w-8 text-lightbrown" />
+              <div className="absolute top-0 right-0 bg-lightbrown text-white h-8 w-8 rounded-full flex items-center justify-center font-bold">
                 2
               </div>
             </div>
@@ -49,9 +49,9 @@ const HowItWorks = () => {
           </div>
 
           <div className="relative">
-            <div className="bg-primary/10 rounded-full h-16 w-16 flex items-center justify-center mb-6 mx-auto">
-              <CheckCircle className="h-8 w-8 text-primary" />
-              <div className="absolute top-0 right-0 bg-primary text-white h-8 w-8 rounded-full flex items-center justify-center font-bold">
+            <div className="bg-lightbrown/10 rounded-full h-16 w-16 flex items-center justify-center mb-6 mx-auto">
+              <CheckCircle className="h-8 w-8 text-lightbrown" />
+              <div className="absolute top-0 right-0 bg-lightbrown text-white h-8 w-8 rounded-full flex items-center justify-center font-bold">
                 3
               </div>
             </div>

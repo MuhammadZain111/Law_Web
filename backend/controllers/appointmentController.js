@@ -59,7 +59,32 @@ export const createAppointment = async (req, res) => {
     }
 
     // Get client ID from token (if available) or create without it
-    const clientId = req.user?.id || null;
+    let clientId = req.user?.id || req.user?.userId || null;
+    
+    console.log('🔍 Authentication info:', {
+      hasUser: !!req.user,
+      userId: req.user?.id || req.user?.userId,
+      userEmail: req.user?.email,
+      clientEmail: clientEmail
+    });
+    
+    // If user is authenticated, prioritize linking to their account
+    if (req.user && req.user.id) {
+      clientId = req.user.id;
+      console.log('✅ User is authenticated, linking appointment to user:', clientId);
+    } else if (!clientId && clientEmail) {
+      // If no authenticated user but we have an email, try to find user by email
+      try {
+        const User = (await import("../models/user.model.js")).default;
+        const user = await User.findOne({ email: clientEmail }).select("_id");
+        if (user) {
+          clientId = user._id;
+          console.log('🔍 Found user by email, linking appointment to user:', clientId);
+        }
+      } catch (error) {
+        console.log('❌ Error finding user by email:', error.message);
+      }
+    }
 
     // Validate lawyerId is a valid ObjectId
     console.log('🔍 Validating lawyerId:', lawyerId, 'Type:', typeof lawyerId);

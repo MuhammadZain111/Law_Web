@@ -116,11 +116,7 @@ const Services = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 text-gray-500 mr-2" />
-                      <span className="text-sm text-gray-500">{service.duration}</span>
-                    </div>
-                    <div className="text-xl font-bold text-primary">{service.price}</div>
+                          
                   </div>
                 </CardContent>
                 <CardFooter>
