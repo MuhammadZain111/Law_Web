@@ -1,8 +1,19 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
+import UserLogin from './components/common/Login.jsx';
+import { Toaster } from "./hooks/use-toast";
 import About from './screens/About';
+import AdminLayout from './screens/Admin/AdminLayout';
+import Dashboard from './screens/Admin/Dashboard';
+import AdminLogin from './screens/Admin/Login';
+import NotificationBell from './screens/Admin/NotificationBell';
+import ProfileForm from './screens/Admin/ProfileForm';
+import AppointmentBooking from './screens/AppointmentBooking.jsx';
 import Contact from './screens/Contact.jsx';
 import Home from './screens/Home';
+import LawyerProfile from './screens/Lawyer/LawyerProfile.jsx';
 import LawyerDashboard from './screens/LawyerDashboard';
+import Lawyers from './screens/Lawyers.jsx';
+import LoginSelection from './screens/LoginSelection.jsx';
 import NoPage from './screens/NoPage';
 import RegisterLawyer from './screens/RegisterLawyer';
 import RegisterUser from './screens/RegisterUser';
@@ -10,51 +21,30 @@ import RegistrationSelection from './screens/RegistrationSelection';
 import ServiceDetail from './screens/ServiceDetail';
 import Services from './screens/Services';
 import UserDashboard from './screens/UserDashboard.jsx';
-// import LawyerPage from '@/components/sections/LawyerPage'
-
-<<<<<<< HEAD
-import { Toaster } from './hooks/use-toast.js';
-import AdminLayout from './screens/Admin/AdminLayout';
-import Dashboard from './screens/Admin/Dashboard';
-import AdminLogin from './screens/Admin/Login.jsx';
-=======
- import AppointmentBooking from '@/screens/AppointmentBooking';
-import LawyerProfile from '@/screens/Lawyer/LawyerProfile';
-import UserLogin from './components/common/Login.jsx';
-import AdminLayout from './screens/Admin/AdminLayout';
-import Dashboard from './screens/Admin/Dashboard';
-import AdminLogin from './screens/Admin/Login';
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
-import NotificationBell from './screens/Admin/NotificationBell';
-import ProfileForm from './screens/Admin/ProfileForm';
-import AppointmentBooking from './screens/AppointmentBooking.jsx';
-import LawyerProfile from './screens/Lawyer/LawyerProfile.jsx';
-import Lawyers from './screens/Lawyers.jsx';
-import LoginSelection from './screens/LoginSelection.jsx';
-import UserDashboard from './screens/UserDashboard.jsx';
 
 const App = () => {
-<<<<<<< HEAD
-  const getRoleFromToken = () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return null;
-      const [, payload] = String(token).split('.');
-      if (!payload) return null;
-      const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')) || '{}');
-      return json?.role || json?.userType || null;
-    } catch (_e) {
-      return null;
-    }
-  };
-  const RequireAuth = ({ children }) => {
-=======
   const RequireAdminAuth = ({ children }) => {
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
     const token = localStorage.getItem('token');
     if (!token) return <Navigate to="/admin/login" replace />;
     return children;
   };
+  const getRoleFromToken = () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.userType || payload.role || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const RequireAuth = ({ children }) => {
+    const token = localStorage.getItem('token');
+    if (!token) return <Navigate to="/login" replace />;
+    return children;
+  };
+
   const RequireRole = ({ role, children }) => {
     const token = localStorage.getItem('token');
     const userType = localStorage.getItem('userType') || localStorage.getItem('role') || getRoleFromToken();
@@ -108,35 +98,18 @@ const App = () => {
       <Route path="/services" element={<Services />} />
       <Route path="/services/:serviceId" element={<ServiceDetail />} />
       <Route path="/login" element={<LoginSelection />} />
-<<<<<<< HEAD
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/user/login" element={<RegisterUser />} />
       <Route path="/lawyer/login" element={<RegisterLawyer />} />
-      {/* optional dedicated login routes if you have separate pages */}
-      {/* <Route path="/user/login" element={<UserLogin />} /> */}
-      {/* <Route path="/lawyer/login" element={<LawyerLogin />} /> */}
-      <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
-=======
       <Route path="/user/login" element={<UserLogin />} />
       <Route path="/user/dashboard" element={<UserDashboard />} />
-      <Route path="/lawyer/login" element={<AdminLogin />} />
-      <Route path="/admin/login" element={<AdminLogin />} />
-      {/* optional dedicated login routes if you have separate pages */}
-      {/* <Route path="/user/login" element={<UserLogin />} /> */}
-      {/* <Route path="/lawyer/login" element={<LawyerLogin />} /> */}
       <Route path="/admin" element={<RequireAdminAuth><AdminLayout /></RequireAdminAuth>}>
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
         <Route index element={<Dashboard />} />
         <Route path="dashboard" element={<Dashboard />} />
       </Route>
       <Route path="/lawyers" element={<Lawyers />} />
       <Route path="/lawyers/:id" element={<LawyerProfile />} />
       <Route path="/lawyers/:id/book" element={<AppointmentBooking />} />
-
-
-
-
-
 
 
         <Route path="*" element={<NoPage />} />

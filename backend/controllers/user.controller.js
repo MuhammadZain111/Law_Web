@@ -6,15 +6,6 @@ import User from "../models/user.model.js"
 // Register
 export const register = async (req, res) => {
   try {
-<<<<<<< HEAD
-    const {
-      firstname,
-      lastname,
-      username,
-      email,
-      password,
-      userType,
-=======
     console.log("Registration request body:", req.body);
     const { 
       firstname, 
@@ -23,49 +14,31 @@ export const register = async (req, res) => {
       email, 
       password, 
       userType, 
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
       photoUrl,
       nationalIdNumber,
       nationalIdFrontUrl,
       nationalIdBackUrl,
     } = req.body
 
-<<<<<<< HEAD
-    if (!firstname || !lastname || !username || !email || !password) {
-      return res.status(400).json({ success: false, message: "All required fields must be provided" })
-=======
     if (!firstname || !lastname || !email || !password) {
       return res.status(400).json({ success: false, message: "All required fields must be provided" });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
     }
 
     if (password.length < 6) {
       return res.status(400).json({ success: false, message: "Password must be at least 6 characters" })
     }
 
-<<<<<<< HEAD
-    // Check if email already exists
-    const existingEmail = await User.findOne({ email })
-=======
     const existingEmail = await User.findOne({ email });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
     if (existingEmail) {
       return res.status(400).json({ success: false, message: "Email already exists" })
     }
 
-<<<<<<< HEAD
-    // Check if username already exists
-    const existingUsername = await User.findOne({ username })
-    if (existingUsername) {
-      return res.status(400).json({ success: false, message: "Username already exists" })
-=======
     // Check username only if provided
     if (username) {
       const existingUsername = await User.findOne({ username });
       if (existingUsername) {
         return res.status(400).json({ success: false, message: "Username already exists" });
       }
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -76,7 +49,6 @@ export const register = async (req, res) => {
       email,
       password: hashedPassword,
       userType: userType || "user",
-<<<<<<< HEAD
       status: userType === "lawyer" ? "pending" : "approved",
     }
 
@@ -86,25 +58,10 @@ export const register = async (req, res) => {
     if (nationalIdBackUrl) userData.nationalIdBackUrl = nationalIdBackUrl
     if (photoUrl) userData.photoUrl = photoUrl
 
-    const newUser = await User.create(userData)
-    const { password: _, ...userResponse } = newUser.toObject()
-    return res.status(201).json({ success: true, message: "Account Created Successfully", user: userResponse })
-  } catch (error) {
-    console.log(error)
-    return res.status(500).json({ success: false, message: "Failed to register" })
-=======
-      status: userType === "lawyer" ? "pending" : "approved"
-    };
-
     // Add username only if provided
     if (username) {
       userData.username = username;
     }
-
-    if (nationalIdNumber) userData.nationalIdNumber = nationalIdNumber;
-    if (nationalIdFrontUrl) userData.nationalIdFrontUrl = nationalIdFrontUrl;
-    if (nationalIdBackUrl) userData.nationalIdBackUrl = nationalIdBackUrl;
-    if (photoUrl) userData.photoUrl = photoUrl;
 
     const newUser = await User.create(userData);
     const { password: _, ...userResponse } = newUser.toObject();
@@ -116,7 +73,6 @@ export const register = async (req, res) => {
       message: "Failed to register",
       error: error.message 
     });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   }
 }
 
@@ -131,12 +87,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: "All fields are required" })
     }
 
-<<<<<<< HEAD
-    // Explicitly select password
-    const user = await User.findOne({ email }).select("+password")
-=======
     const user = await User.findOne({ email }).select("+password");
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
     if (!user) {
       return res.status(400).json({ success: false, message: "Incorrect email or password" })
     }
@@ -166,11 +117,7 @@ export const login = async (req, res) => {
         token,
         userType: user.userType,
         user: userData,
-<<<<<<< HEAD
-      })
-=======
       });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   } catch (error) {
     console.log(error)
     return res.status(500).json({ success: false, message: "Failed to Login" })
@@ -183,11 +130,7 @@ export const logout = async (_req, res) => {
     return res.status(200).cookie("token", "", { maxAge: 0 }).json({
       message: "Logged out successfully.",
       success: true,
-<<<<<<< HEAD
-    })
-=======
     });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   } catch (error) {
     console.log(error)
   }
@@ -222,7 +165,6 @@ export const updateProfile = async (req, res) => {
       return res.status(404).json({ message: "User not found", success: false })
     }
 
-<<<<<<< HEAD
     if (firstname) user.firstname = firstname
     if (lastname) user.lastname = lastname
     if (occupation) user.occupation = occupation
@@ -232,21 +174,8 @@ export const updateProfile = async (req, res) => {
     if (github) user.github = github
     if (bio) user.bio = bio
 
-    await user.save()
-    return res.status(200).json({ message: "Profile updated successfully", success: true, user })
-=======
-    if (firstname) user.firstname = firstname;
-    if (lastname) user.lastname = lastname;
-    if (occupation) user.occupation = occupation;
-    if (instagram) user.instagram = instagram;
-    if (facebook) user.facebook = facebook;
-    if (linkedin) user.linkedin = linkedin;
-    if (github) user.github = github;
-    if (bio) user.bio = bio;
-
     await user.save();
     return res.status(200).json({ message: "Profile updated successfully", success: true, user });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   } catch (error) {
     console.log(error)
     return res.status(500).json({ success: false, message: "Failed to update profile" })
@@ -267,17 +196,10 @@ export const getAllUsers = async (_req, res) => {
 // Get All Lawyers
 export const getAllLawyers = async (_req, res) => {
   try {
-<<<<<<< HEAD
-    const lawyers = await User.find({ userType: "lawyer" }).select("-password")
-    return res
-      .status(200)
-      .json({ success: true, message: "Lawyer list fetched successfully", total: lawyers.length, lawyers })
-=======
     const lawyers = await User.find({ userType: "lawyer" }).select("-password");
     return res
       .status(200)
       .json({ success: true, message: "Lawyer list fetched successfully", total: lawyers.length, lawyers });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   } catch (error) {
     console.error("Error fetching lawyer list:", error)
     return res.status(500).json({ success: false, message: "Failed to fetch lawyers" })
@@ -297,7 +219,6 @@ export const getUserById = async (req, res) => {
     console.error("Error fetching user:", error)
     res.status(500).json({ success: false, message: "Failed to fetch user" })
   }
-<<<<<<< HEAD
 }
 
 // ImageKit Auth - generates signature for client-side upload
@@ -466,8 +387,3 @@ export const updatePaymentMethods = async (req, res) => {
     })
   }
 }
-=======
-};
-
-
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf

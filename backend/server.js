@@ -89,11 +89,6 @@ export const io = new SocketIOServer(server, {
 });
 registerSocket(io);
 
-<<<<<<< HEAD
-  // DB connection
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://localhost:27017/lawSphere";
-let PORT = Number(process.env.PORT) || 5000;
-=======
 // DB connection
 const MONGO_URI =
   process.env.MONGODB_URI ||
@@ -103,7 +98,6 @@ let PORT = Number(process.env.PORT) || 3000;
 
 // Debug: print which DB URI will be used
 console.log("Attempting to connect to MongoDB at:", MONGO_URI);
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
 mongoose
   .connect(MONGO_URI)

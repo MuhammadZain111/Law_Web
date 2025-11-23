@@ -7,27 +7,8 @@ export default function AdminLayout() {
   const location = useLocation();
   useEffect(() => {
     const token = localStorage.getItem('token');
-<<<<<<< HEAD
-    if (!token) {
-      navigate('/admin/login', { replace: true });
-      return;
-    }
-    setAuthToken(token);
-    try {
-      const [, payload] = String(token).split('.');
-      if (payload) {
-        const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')) || '{}');
-        const role = json?.role || json?.userType;
-        if (role && (!localStorage.getItem('userType') || !localStorage.getItem('role'))) {
-          try { localStorage.setItem('userType', role); } catch (_) {}
-          try { localStorage.setItem('role', role); } catch (_) {}
-        }
-      }
-    } catch (_e) {}
-=======
     if (!token) navigate('/admin/login');
     else setAuthToken(token);
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   }, [navigate]);
 
   async function logout() {

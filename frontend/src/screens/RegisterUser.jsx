@@ -1,22 +1,14 @@
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
-<<<<<<< HEAD
-import { useState } from 'react';
-=======
 import { useEffect, useState } from 'react';
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 import { useNavigate } from 'react-router-dom';
 
 function RegisterUser() {
   const navigate = useNavigate();
-<<<<<<< HEAD
-  const [isRegistering, setIsRegistering] = useState(true);
-=======
   const [isRegistering, setIsRegistering] = useState(false);
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) navigate('/');
   }, [navigate]);
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -182,11 +174,7 @@ function RegisterUser() {
         setIsRegistering(false);
       } else {
         console.error('Registration failed:', result);
-<<<<<<< HEAD
-        alert(result.message || 'Registration failed. Please try again.');
-=======
         alert(result.message || result.error || 'Registration failed. Please try again.');
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
       }
     } catch (error) {
       console.error('Registration error:', error);

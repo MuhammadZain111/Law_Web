@@ -1,13 +1,7 @@
-<<<<<<< HEAD
 import { userAPI } from '@/services/api';
 import { Button, Navbar, NavbarBrand, NavbarCollapse, NavbarLink, NavbarToggle } from "flowbite-react";
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-=======
-import { Avatar, Button, Navbar, NavbarBrand, NavbarCollapse, NavbarLink, NavbarToggle } from "flowbite-react";
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
 function CustomNavbar() {
   const customTheme = {
@@ -81,7 +75,6 @@ function CustomNavbar() {
   };
 
   const goToProfile = () => {
-<<<<<<< HEAD
     // Decide which dashboard/profile to show based on saved userType
     if (userType === 'lawyer') {
       navigate('/lawyerDashboard');
@@ -103,19 +96,6 @@ function CustomNavbar() {
 
   const linkClass = "text-gray-700 hover:text-gray-900 transition-colors"
 
-=======
-    const userType = (localStorage.getItem('userType') || '').toLowerCase();
-    if (userType === 'lawyer') navigate('/lawyerDashboard');
-    else navigate('/user/dashboard');
-  };
-
-  const handleLogout = () => {
-    try { localStorage.removeItem('token'); } catch (_e) {}
-    try { localStorage.removeItem('userType'); } catch (_e) {}
-    navigate('/login');
-  };
-
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   return (
     <Navbar fluid rounded theme={customTheme} className='px-0'>
       <NavbarBrand href="/" className="items-center">
@@ -132,7 +112,6 @@ function CustomNavbar() {
         <NavbarLink as={Link} to="/contact" className={linkClass}>Contact</NavbarLink>
       </NavbarCollapse>
 
-<<<<<<< HEAD
       <div className="flex md:order-2 gap-2 items-center">
         {isLoggedIn && userType === 'user' ? (
           <div
@@ -200,54 +179,6 @@ function CustomNavbar() {
               )}
             </div>
           </>
-=======
-      <div className="flex md:order-2 gap-2">
-        {!isAuthenticated && (
-          <>
-            <Button className="!bg-lightbrown !text-white cursor-pointer" onClick={goToLogin}>Login</Button>
-            <Button className="!bg-lightbrown cursor-pointer !hover:bg-darkbrown text-white" onClick={goToRegister}>Register</Button>
-          </>
-        )}
-        {isAuthenticated && (
-          <div
-            className="relative"
-            onMouseEnter={() => {
-              if (hideTimerRef.current) {
-                clearTimeout(hideTimerRef.current);
-                hideTimerRef.current = null;
-              }
-              setIsMenuOpen(true);
-            }}
-            onMouseLeave={() => {
-              hideTimerRef.current = setTimeout(() => {
-                setIsMenuOpen(false);
-                hideTimerRef.current = null;
-              }, 150);
-            }}
-          >
-            <div className="cursor-pointer">
-              <Avatar alt="Profile" img={undefined} rounded className="ring-2 ring-white/50" />
-            </div>
-            {isMenuOpen && (
-              <div className="absolute right-0 top-full w-44 rounded-md border border-gray-200 bg-white py-2 shadow-xl z-[100]">
-                <div className="px-3 pb-2 text-xs font-semibold text-gray-500">Account</div>
-                <button
-                  onClick={goToProfile}
-                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Profile
-                </button>
-                <div className="my-1 h-px bg-gray-200" />
-                <button
-                  onClick={handleLogout}
-                  className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
         )}
       </div>
     </Navbar>

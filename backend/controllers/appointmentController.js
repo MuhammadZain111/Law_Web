@@ -1,17 +1,12 @@
 // controllers/appointment.controller.js
 import mongoose from "mongoose";
-<<<<<<< HEAD
 import { sendEmail, buildStatusEmail } from "../utils/mailer.js";
 import { createNotification } from "../services/notificationService.js";
 
-=======
-import Appointment from "../models/appointment.model.js";
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
 // Create appointment
 export const createAppointment = async (req, res) => {
   try {
-<<<<<<< HEAD
     console.log('📋 Creating appointment with data:', {
       lawyerId: req.body.lawyerId,
       clientName: req.body.clientName,
@@ -44,20 +39,6 @@ export const createAppointment = async (req, res) => {
       documents,
       documentFiles,
       specialRequirements
-=======
-    const {
-      lawyerId,
-      clientName,
-      clientEmail,
-      clientPhone,
-      caseType,
-      caseDescription,
-      appointmentDate,
-      timeSlot,
-      consultationFee,
-      paymentMethod,
-      paymentScreenshot,
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
     } = req.body;
 
     // Validate required fields
@@ -88,38 +69,8 @@ export const createAppointment = async (req, res) => {
       });
     }
 
-<<<<<<< HEAD
-    // Get client ID from token (if available) or create without it
-    let clientId = req.user?.id || req.user?.userId || null;
-    
-    console.log('🔍 Authentication info:', {
-      hasUser: !!req.user,
-      userId: req.user?.id || req.user?.userId,
-      userEmail: req.user?.email,
-      clientEmail: clientEmail
-    });
-    
-    // If user is authenticated, prioritize linking to their account
-    if (req.user && req.user.id) {
-      clientId = req.user.id;
-      console.log('✅ User is authenticated, linking appointment to user:', clientId);
-    } else if (!clientId && clientEmail) {
-      // If no authenticated user but we have an email, try to find user by email
-      try {
-        const User = (await import("../models/user.model.js")).default;
-        const user = await User.findOne({ email: clientEmail }).select("_id");
-        if (user) {
-          clientId = user._id;
-          console.log('🔍 Found user by email, linking appointment to user:', clientId);
-        }
-      } catch (error) {
-        console.log('❌ Error finding user by email:', error.message);
-      }
-    }
-=======
     // Get client ID from token (if available)
     const clientId = req.user?.id || req.user?.userId || null;
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
     // Validate lawyerId is a valid ObjectId
     console.log('🔍 Validating lawyerId:', lawyerId, 'Type:', typeof lawyerId);
@@ -127,11 +78,7 @@ export const createAppointment = async (req, res) => {
       console.log('❌ Invalid lawyer ID:', lawyerId);
       return res.status(400).json({
         success: false,
-<<<<<<< HEAD
-        message: "Invalid lawyer ID format"
-=======
         message: "Invalid lawyer ID",
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
       });
     }
 
@@ -202,7 +149,6 @@ export const createAppointment = async (req, res) => {
       consultationFee,
       paymentMethod,
       paymentScreenshot,
-<<<<<<< HEAD
       paymentScreenshotFile: paymentScreenshotFileObj,
       // Additional fields
       clientAddress,
@@ -243,19 +189,10 @@ export const createAppointment = async (req, res) => {
 
     res.status(201).json({ 
       success: true, 
-=======
-      status: "pending",
-      paymentStatus: "unpaid",
-    });
-
-    res.status(201).json({
-      success: true,
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
       message: "Appointment created successfully",
       appointment,
     });
   } catch (err) {
-<<<<<<< HEAD
     console.error("createAppointment error:", err);
     
     // Handle validation errors
@@ -286,12 +223,6 @@ export const createAppointment = async (req, res) => {
       success: false, 
       message: "Server error",
       error: err.message
-=======
-    console.error("createAppointment:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
     });
   }
 };
@@ -300,7 +231,6 @@ export const createAppointment = async (req, res) => {
 export const listAppointments = async (req, res) => {
   try {
     const q = {};
-<<<<<<< HEAD
     const userId = req.user.userId || req.user.id; // Handle both userId and id
     const userRole = req.user.role || req.user.userType; // Handle both role and userType
     
@@ -331,18 +261,6 @@ export const listAppointments = async (req, res) => {
       .populate("clientId", "firstname lastname email photoUrl")
       .populate("lawyerId", "firstname lastname email photoUrl")
       .sort({ appointmentDate: -1, createdAt: -1 });
-=======
-    const userId = req.user?.userId || req.user?.id;
-    const userRole = req.user?.role || req.user?.userType;
-
-    if (userRole === "client") q.clientId = userId;
-    if (userRole === "lawyer") q.lawyerId = userId;
-
-    const appointments = await Appointment.find(q)
-      .populate("clientId", "name email")
-      .populate("lawyerId", "name email")
-      .sort({ createdAt: -1 });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
     console.log('📋 Returning appointments:', appointments.length, 'appointments');
     console.log('📋 Sample appointment data:', appointments[0] ? {
@@ -418,7 +336,6 @@ export const updateAppointmentStatus = async (req, res) => {
 
     appt.status = status;
     await appt.save();
-<<<<<<< HEAD
     
     // Send email and notification to client on key status changes
     const shouldNotify = ['confirmed', 'rejected', 'cancelled', 'completed'].includes(status);
@@ -485,9 +402,6 @@ export const updateAppointmentStatus = async (req, res) => {
       }
     } catch (_) {}
     res.json({ appointment: appt });
-=======
-   res.json({ appointment: appt });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
   } catch (err) {
     console.error("updateAppointmentStatus:", err);
     res.status(500).json({ message: "Server error" });
@@ -503,7 +417,6 @@ export const cancelAppointment = async (req, res) => {
 export const getAllLawyers = async (req, res) => {
   try {
     const User = (await import("../models/user.model.js")).default;
-<<<<<<< HEAD
     const { status } = req.query;
     
     // Build query based on status filter
@@ -514,12 +427,9 @@ export const getAllLawyers = async (req, res) => {
     
     console.log('🔍 Debug - getAllLawyers query:', query);
     
-    const lawyers = await User.find(query)
-      .select('-password')
-=======
+   
     const lawyers = await User.find({ userType: "lawyer" })
       .select("-password")
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
       .sort({ createdAt: -1 });
 
     console.log('🔍 Debug - Found lawyers:', lawyers.length);

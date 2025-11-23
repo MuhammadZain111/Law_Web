@@ -1,15 +1,8 @@
-<<<<<<< HEAD
 "use client"
 import { Eye, EyeOff, Lock, Mail, Scale, User } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { api } from "../shared/api.js"
-=======
-import { Eye, EyeOff, Lock, Mail, Scale, User } from 'lucide-react';
-import { useEffect, useState } from "react";
-import { useNavigate } from 'react-router-dom';
-import { api } from '../shared/api.js';
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
 function RegisterLawyer() {
   const navigate = useNavigate()
@@ -160,9 +153,6 @@ function RegisterLawyer() {
       console.log("Sending lawyer registration data:", lawyerData)
 
       // Make API call to backend
-<<<<<<< HEAD
-    const { data: result } = await api.post("/user/register", lawyerData)
-=======
       const response = await fetch('http://localhost:3000/api/v1/user/register', {
         method: 'POST',
         headers: {
@@ -170,10 +160,10 @@ function RegisterLawyer() {
         },
         body: JSON.stringify(lawyerData),
       });
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
-    if (result?.user) {
-        
+      const result = await response.json();
+
+      if (response.ok && result?.user) {
         try {
           const lawyerProfileData = {
             userId: result.user?._id || result.user?.id,
@@ -192,11 +182,6 @@ function RegisterLawyer() {
             licenses: formData.licenseUrl ? [{ name: 'license', url: formData.licenseUrl }] : [],
           }
 
-<<<<<<< HEAD
-          const { data: profileCreated } = await api.post("/lawyers/profile", lawyerProfileData)
-          if (profileCreated) {
-            alert("Lawyer registration successful! Your profile is pending admin approval. You can now login.")
-=======
           const profileResponse = await fetch('http://localhost:3000/api/lawyers/profile', {
             method: 'POST',
             headers: {
@@ -207,7 +192,6 @@ function RegisterLawyer() {
 
           if (profileResponse.ok) {
             alert('Lawyer registration successful! Your profile is pending admin approval. You can now login.');
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
           } else {
             alert("User account created but profile creation failed. Please contact support.")
           }
@@ -271,10 +255,6 @@ function RegisterLawyer() {
 
       console.log("Sending lawyer login data:", loginData)
 
-<<<<<<< HEAD
-      const { data: result } = await api.post("/user/login", loginData)
-      if (result?.token) {
-=======
       const response = await fetch('http://localhost:3000/api/v1/user/login', {
         method: 'POST',
         headers: {
@@ -285,8 +265,7 @@ function RegisterLawyer() {
 
       const result = await response.json();
 
-      if (response.ok) {
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
+      if (response.ok && result?.token) {
         // Store token in localStorage
         localStorage.setItem("token", result.token)
         localStorage.setItem("userType", result.userType || "lawyer")
@@ -300,7 +279,6 @@ function RegisterLawyer() {
       alert("Network error. Please check your connection and try again.")
     }
   }
-
   return (
     <div className="min-h-screen relative bg-gradient-to-b from-white via-lightbrown/10 to-white flex items-center justify-center px-4 py-8">
       <div className="absolute inset-0 pointer-events-none">
