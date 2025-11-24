@@ -3,7 +3,7 @@ import ImageKit from "imagekit";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { getAllLawyers, getProfile, getUserById, login, logout, register, updateProfile, updatePaymentMethods } from "../controllers/user.controller.js";
+import { getAllLawyers, getAllUsers, getProfile, getUserById, login, logout, register, updateProfile, updatePaymentMethods } from "../controllers/user.controller.js";
 import auth from "../middleware/auth.js";
 import dotenv from "dotenv";
 dotenv.config();
@@ -14,6 +14,7 @@ router.route("/register").post(register)
 router.route("/login").post(login)
 router.route("/logout").get(logout)
 router.route("/lawyers").get(getAllLawyers)
+router.route("/").get(getAllUsers)
 router.route("/profile").get(auth(), getProfile)
 router.route("/profile").put(auth(), updateProfile)
 router.route("/payment-methods").put(auth(), updatePaymentMethods)

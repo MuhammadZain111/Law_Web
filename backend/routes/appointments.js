@@ -5,6 +5,7 @@ import {
   listAppointments,
   getAppointment,
   updateAppointmentStatus,
+  updatePaymentStatus,
   cancelAppointment,
   getAllLawyers,
   getLawyerById,
@@ -35,6 +36,9 @@ router.get("/:id", auth(), getAppointment);
 
 // status updates (lawyer/admin or client cancel)
 router.patch("/:id/status", auth(), updateAppointmentStatus);
+
+// payment status updates (lawyer only)
+router.patch("/:id/payment-status", auth(), updatePaymentStatus);
 
 // convenience cancel
 router.post("/:id/cancel", auth(), cancelAppointment);

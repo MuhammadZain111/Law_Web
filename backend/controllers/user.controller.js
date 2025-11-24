@@ -295,8 +295,8 @@ export const getProfile = async (req, res) => {
 // Update Profile
 export const updateProfile = async (req, res) => {
   try {
-    const userId = req.id
-    const { firstname, lastname, occupation, bio, instagram, facebook, linkedin, github } = req.body
+    const userId = req.user?.id || req.user?.userId || req.id
+    const { firstname, lastname, occupation, bio, instagram, facebook, linkedin, github, photoUrl } = req.body
 
     const user = await User.findById(userId).select("-password")
     if (!user) {
@@ -306,11 +306,12 @@ export const updateProfile = async (req, res) => {
     if (firstname) user.firstname = firstname
     if (lastname) user.lastname = lastname
     if (occupation) user.occupation = occupation
-    if (instagram) user.instagram = instagram
-    if (facebook) user.facebook = facebook
-    if (linkedin) user.linkedin = linkedin
-    if (github) user.github = github
+    if (instagram) user.socialMedia.instagram = instagram
+    if (facebook) user.socialMedia.facebook = facebook
+    if (linkedin) user.socialMedia.linkedin = linkedin
+    if (github) user.socialMedia.github = github
     if (bio) user.bio = bio
+    if (photoUrl) user.photoUrl = photoUrl
 
     await user.save()
     return res.status(200).json({ message: "Profile updated successfully", success: true, user })

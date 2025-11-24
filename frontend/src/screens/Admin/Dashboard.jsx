@@ -1,7 +1,7 @@
 import { Activity, AlertCircle, BarChart3, Bell, Calendar, FileText, Search, Settings, Shield, UserCheck, Users } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { mockAppointments, mockDisputes, mockLogs, mockPendingLawyerRegistrations, mockUsers } from "../../data/mockData.js"
+import { mockDisputes, mockLogs } from "../../data/mockData.js"
 import { api, setAuthToken } from "../../shared/api.js"
 import { Button } from "../Lawyer/ui/button.jsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Lawyer/ui/card.jsx"
@@ -12,6 +12,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [lawyers, setLawyers] = useState([])
   const [pendingLawyers, setPendingLawyers] = useState([])
+  const [users, setUsers] = useState([])
+  const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -35,12 +37,16 @@ export default function Dashboard() {
       }
       setAuthToken(token)
       try {
-        // Load approved list for table (use enriched lawyers endpoint)
-        const approved = await api.get("/lawyers?status=approved")
+        const [approved, pending, usersRes, appointmentsRes] = await Promise.all([
+          api.get("/lawyers?status=approved"),
+          api.get("/lawyers?status=pending"),
+          api.get("/user"),
+          api.get("/appointments"),
+        ])
         setLawyers(approved.data?.lawyers || approved.data || [])
-        // Load pending list for approvals
-        const pending = await api.get("/lawyers?status=pending")
         setPendingLawyers(pending.data?.lawyers || pending.data || [])
+        setUsers(usersRes.data?.users || usersRes.data || [])
+        setAppointments(appointmentsRes.data?.appointments || appointmentsRes.data || [])
       } catch (e) {
         if (e?.response?.status === 401 || e?.status === 401) {
           localStorage.removeItem('token')
@@ -102,6 +108,28 @@ export default function Dashboard() {
 
     return list
   }, [lawyers, q, spec, sortKey, sortDir])
+
+  const filteredUsers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    return users.filter((user) => {
+      const fullName = `${user.firstname || ""} ${user.lastname || ""}`.trim()
+      const email = user.email || ""
+      const type = user.userType || user.type || ""
+      return (
+        !query ||
+        fullName.toLowerCase().includes(query) ||
+        email.toLowerCase().includes(query) ||
+        type.toLowerCase().includes(query)
+      )
+    })
+  }, [users, searchQuery])
+
+  const scheduledAppointments = useMemo(() => {
+    return appointments.filter((appt) => {
+      const status = (appt.status || "").toLowerCase()
+      return status === "confirmed"
+    })
+  }, [appointments])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const pageData = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -179,11 +207,73 @@ export default function Dashboard() {
   const uniqueSpecs = specializations.length
 
   const stats = {
-    totalUsers: mockUsers.length,
+    totalUsers: users.length,
     totalLawyers: total,
-    pendingAppointments: mockAppointments.filter((a) => a.status === "Pending").length,
+    pendingAppointments: appointments.filter((a) => (a.status || "").toLowerCase() === "pending").length,
     openDisputes: mockDisputes.filter((d) => d.status === "Open").length,
   };
+
+  const formatDate = (date) => {
+    if (!date) return "—"
+    try {
+      return new Date(date).toLocaleDateString()
+    } catch {
+      return date
+    }
+  }
+
+  const formatTime = (date, slot) => {
+    if (slot) return slot
+    if (!date) return "—"
+    try {
+      return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    } catch {
+      return "—"
+    }
+  }
+
+  const getClientName = (appt) => {
+    if (appt.clientName) return appt.clientName
+    if (appt.clientId) {
+      const first = appt.clientId.firstname || ""
+      const last = appt.clientId.lastname || ""
+      const full = `${first} ${last}`.trim()
+      return full || appt.clientId.email || "Client"
+    }
+    return "Client"
+  }
+
+  const getLawyerName = (appt) => {
+    if (appt.lawyerName) return appt.lawyerName
+    if (appt.lawyerId) {
+      const first = appt.lawyerId.firstname || ""
+      const last = appt.lawyerId.lastname || ""
+      const full = `${first} ${last}`.trim()
+      return full || appt.lawyerId.email || "Lawyer"
+    }
+    return "Lawyer"
+  }
+
+  const getAppointmentType = (appt) => appt.caseType || appt.consultationType || "Consultation"
+
+  const renderStatusBadge = (status) => {
+    const normalized = (status || "").toLowerCase()
+    const common = "inline-flex items-center rounded-full text-xs px-2 py-0.5 font-medium"
+    switch (normalized) {
+      case "confirmed":
+        return <span className={`${common} bg-green-600/15 text-green-600`}>Confirmed</span>
+      case "pending":
+        return <span className={`${common} bg-amber-500/15 text-amber-600`}>Pending</span>
+      case "completed":
+        return <span className={`${common} bg-blue-600/15 text-blue-600`}>Completed</span>
+      case "cancelled":
+        return <span className={`${common} bg-gray-500/15 text-gray-600`}>Cancelled</span>
+      case "rejected":
+        return <span className={`${common} bg-red-500/15 text-red-600`}>Rejected</span>
+      default:
+        return <span className={`${common} bg-gray-400/15 text-gray-600`}>{status || "Unknown"}</span>
+    }
+  }
 
   return (
     <div className="flex h-screen bg-white text-gray-900">
@@ -226,9 +316,9 @@ export default function Dashboard() {
             >
               <UserCheck className="h-5 w-5" />
               Lawyer Verification
-              {mockPendingLawyerRegistrations.length > 0 && (
+              {pendingLawyers.length > 0 && (
                 <span className="ml-auto bg-red-600 text-white text-xs px-2 py-1 rounded-full">
-                  {mockPendingLawyerRegistrations.length}
+                  {pendingLawyers.length}
                 </span>
               )}
             </button>
@@ -555,10 +645,10 @@ export default function Dashboard() {
                 <h2 className="text-3xl font-bold">User Management</h2>
                 <p className="text-gray-500 mt-1">Monitor and manage all registered clients</p>
   
-                <div className="mt-6 overflow-x-auto">
-                  <table className="w-full border">
+                <div className="mt-6 overflow-x-auto border rounded-lg">
+                  <table className="w-full border-collapse">
                     <thead>
-                      <tr className="bg-gray-100">
+                      <tr className="bg-gray-100 text-gray-700 text-sm">
                         <th className="px-4 py-2 text-left">Name</th>
                         <th className="px-4 py-2 text-left">Email</th>
                         <th className="px-4 py-2 text-left">Type</th>
@@ -567,15 +657,41 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockUsers.map((user) => (
-                        <tr key={user.id} className="border-t">
-                          <td className="px-4 py-2">{user.name}</td>
-                          <td className="px-4 py-2">{user.email}</td>
-                          <td className="px-4 py-2">{user.type}</td>
-                          <td className="px-4 py-2">{user.status}</td>
-                          <td className="px-4 py-2">{user.joined}</td>
+                      {filteredUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                            {users.length === 0
+                              ? "No registered users yet."
+                              : "No users match your search."}
+                          </td>
                         </tr>
-                      ))}
+                      ) : (
+                        filteredUsers.map((user) => {
+                          const name =
+                            `${user.firstname || ""} ${user.lastname || ""}`.trim() ||
+                            user.fullName ||
+                            user.name ||
+                            "User"
+                          const type = (user.userType || user.type || "Client")
+                            .toString()
+                            .replace(/\b\w/g, (l) => l.toUpperCase())
+                          const status = user.status
+                            ? user.status.replace(/\b\w/g, (l) => l.toUpperCase())
+                            : "Active"
+                          const joined = user.createdAt
+                            ? new Date(user.createdAt).toISOString().split("T")[0]
+                            : "—"
+                          return (
+                            <tr key={user._id || user.id || user.email} className="border-t text-sm">
+                              <td className="px-4 py-2">{name}</td>
+                              <td className="px-4 py-2">{user.email || "—"}</td>
+                              <td className="px-4 py-2">{type}</td>
+                              <td className="px-4 py-2">{status}</td>
+                              <td className="px-4 py-2">{joined}</td>
+                            </tr>
+                          )
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -594,52 +710,80 @@ export default function Dashboard() {
                     <CardDescription>New lawyer registrations awaiting approval</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {mockPendingLawyerRegistrations.length === 0 ? (
+                    {pendingLawyers.length === 0 ? (
                       <div className="text-gray-400">No pending registrations.</div>
                     ) : (
                       <div className="space-y-4">
-                        {mockPendingLawyerRegistrations.map((l) => (
-                          <div key={l.id} className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr_1fr_auto] items-start gap-4 border border-gray-200 rounded-lg p-4 bg-white">
-                            <div className="space-y-1">
-                                <div className="font-semibold text-gray-900">{l.name}</div>
-                              <div className="text-sm text-gray-400">{l.email}</div>
-                              <div className="text-sm text-gray-400">Bar: {l.barNumber}</div>
+                        {pendingLawyers.map((l) => {
+                          const id = l.userId || l._id || l.id
+                          const name =
+                            l.fullName ||
+                            (l.firstname && l.lastname ? `${l.firstname} ${l.lastname}`.trim() : l.name || "Lawyer")
+                          const email = l.email || l.userId?.email || l.contactEmail || "N/A"
+                          const specialization = l.specialization || "—"
+                          const experience =
+                            l.yearsOfExperience !== undefined && l.yearsOfExperience !== null
+                              ? `${l.yearsOfExperience} years`
+                              : l.experience || "—"
+                          const location = [l.city, l.state, l.country].filter(Boolean).join(", ") || "—"
+                          const documents = l.submittedDocuments ?? l.documents?.length ?? 0
+
+                          return (
+                            <div
+                              key={id || email}
+                              className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr_1fr_auto] items-start gap-4 border border-gray-200 rounded-lg p-4 bg-white"
+                            >
+                              <div className="space-y-1">
+                                <div className="font-semibold text-gray-900">{name}</div>
+                                <div className="text-sm text-gray-500">{email}</div>
+                                <div className="text-sm text-gray-500">Bar: {l.barNumber || "—"}</div>
+                                <div className="text-xs text-gray-400">{location}</div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="text-xs uppercase text-gray-500">Specialization</div>
+                                <div className="text-sm text-gray-800">{specialization}</div>
+                                <div className="text-xs uppercase text-gray-500 mt-3">Documents</div>
+                                <div className="text-sm text-gray-800">{documents}</div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="text-xs uppercase text-gray-500">Experience</div>
+                                <div className="text-sm text-gray-800">{experience}</div>
+                                <div className="text-xs uppercase text-gray-500 mt-3">Status</div>
+                                <div className="text-sm text-amber-600 capitalize">{l.status || "Pending"}</div>
+                              </div>
+                              <div className="flex flex-col gap-2 lg:justify-center">
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  disabled={!id}
+                                  onClick={async () => {
+                                    if (!id) return
+                                    try {
+                                      await api.post(`/lawyers/${id}/approve`)
+                                      const [approvedRes, pendingRes] = await Promise.all([
+                                        api.get("/lawyers?status=approved"),
+                                        api.get("/lawyers?status=pending"),
+                                      ])
+                                      setLawyers(approvedRes.data?.lawyers || approvedRes.data || [])
+                                      setPendingLawyers(pendingRes.data?.lawyers || pendingRes.data || [])
+                                    } catch (err) {
+                                      console.error(err)
+                                      alert(err?.message || "Failed to approve lawyer. Please check profile completeness.")
+                                    }
+                                  }}
+                                >
+                                  Approve & Create Profile
+                                </Button>
+                                <Button size="sm" variant="outline">
+                                  Review Documents
+                                </Button>
+                                <Button size="sm" variant="destructive">
+                                  Reject
+                                </Button>
+                              </div>
                             </div>
-                            <div className="space-y-1">
-                              <div className="text-xs uppercase text-gray-500">Specialization</div>
-                              <div className="text-sm text-gray-200">{l.specialization}</div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="text-xs uppercase text-gray-500">Experience</div>
-                              <div className="text-sm text-gray-200">{l.experience}</div>
-                            </div>
-                            <div className="flex flex-col gap-2 lg:justify-center">
-                              <Button
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700"
-                                onClick={async () => {
-                                  try {
-                                    // For demo, assume pending list fetched separately; here you should have id
-                                    // Map mock to real when API is wired
-                                    if (!l._id && !l.id) return;
-                                    const id = l._id || l.id;
-                                    await api.post(`/lawyers/${id}/approve`);
-                                    // Refresh lists
-                                    const approved = await api.get("/appointments/lawyers?status=approved");
-                                    setLawyers(approved.data?.lawyers || approved.data || []);
-                                  } catch (err) {
-                                    console.error(err);
-                                    alert(err?.message || 'Failed to approve lawyer. Please check profile completeness.');
-                                  }
-                                }}
-                              >
-                                Approve & Create Profile
-                              </Button>
-                              <Button size="sm" variant="outline">Review Documents</Button>
-                              <Button size="sm" variant="destructive">Reject</Button>
-                            </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </CardContent>
@@ -700,43 +844,41 @@ export default function Dashboard() {
                     <CardDescription>Confirmed appointments scheduled without admin approval</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="rounded-md border overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Client</TableHead>
-                            <TableHead>Lawyer</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Time</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {mockAppointments
-                            .filter((a) => a.status === 'Scheduled' || a.status === 'Confirmed')
-                            .map((a) => (
-                              <TableRow key={a.id}>
-                                <TableCell>{a.client}</TableCell>
-                                <TableCell>{a.lawyer}</TableCell>
-                                <TableCell>{a.type}</TableCell>
-                                <TableCell>{a.date}</TableCell>
-                                <TableCell>{a.time}</TableCell>
-                                <TableCell>
-                                  <span className="inline-flex items-center rounded-full bg-green-600/15 text-green-600 text-xs px-2 py-0.5">
-                                    {a.status === 'Confirmed' ? 'Confirmed' : 'Scheduled'}
-                                  </span>
-                                </TableCell>
+                    {scheduledAppointments.length === 0 ? (
+                      <div className="text-gray-500 text-sm">No confirmed appointments yet.</div>
+                    ) : (
+                      <div className="rounded-md border overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Lawyer</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Time</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {scheduledAppointments.map((a) => (
+                              <TableRow key={a._id}>
+                                <TableCell>{getClientName(a)}</TableCell>
+                                <TableCell>{getLawyerName(a)}</TableCell>
+                                <TableCell>{getAppointmentType(a)}</TableCell>
+                                <TableCell>{formatDate(a.appointmentDate)}</TableCell>
+                                <TableCell>{formatTime(a.appointmentDate, a.timeSlot)}</TableCell>
+                                <TableCell>{renderStatusBadge(a.status)}</TableCell>
                                 <TableCell className="text-right space-x-2">
                                   <Button size="sm" variant="outline">View Details</Button>
                                   <Button size="sm" variant="outline">Reschedule</Button>
                                 </TableCell>
                               </TableRow>
                             ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -747,44 +889,40 @@ export default function Dashboard() {
                     <CardDescription>Complete appointment history</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="rounded-md border overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Client</TableHead>
-                            <TableHead>Lawyer</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Time</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {mockAppointments.map((a) => (
-                            <TableRow key={a.id}>
-                              <TableCell>{a.client}</TableCell>
-                              <TableCell>{a.lawyer}</TableCell>
-                              <TableCell>{a.type}</TableCell>
-                              <TableCell>{a.date}</TableCell>
-                              <TableCell>{a.time}</TableCell>
-                              <TableCell>
-                                {a.status === 'Pending' ? (
-                                  <span className="inline-flex items-center rounded-full bg-yellow-500/15 text-yellow-600 text-xs px-2 py-0.5">Pending</span>
-                                ) : a.status === 'Confirmed' || a.status === 'Scheduled' ? (
-                                  <span className="inline-flex items-center rounded-full bg-green-600/15 text-green-600 text-xs px-2 py-0.5">{a.status === 'Confirmed' ? 'Confirmed' : 'Scheduled'}</span>
-                                ) : (
-                                  <span className="inline-flex items-center rounded-full bg-gray-500/15 text-gray-600 text-xs px-2 py-0.5">{a.status}</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button size="sm" variant="outline">View</Button>
-                              </TableCell>
+                    {appointments.length === 0 ? (
+                      <div className="text-gray-500 text-sm">No appointments have been booked yet.</div>
+                    ) : (
+                      <div className="rounded-md border overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Lawyer</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Time</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                          </TableHeader>
+                          <TableBody>
+                            {appointments.map((a) => (
+                              <TableRow key={a._id}>
+                                <TableCell>{getClientName(a)}</TableCell>
+                                <TableCell>{getLawyerName(a)}</TableCell>
+                                <TableCell>{getAppointmentType(a)}</TableCell>
+                                <TableCell>{formatDate(a.appointmentDate)}</TableCell>
+                                <TableCell>{formatTime(a.appointmentDate, a.timeSlot)}</TableCell>
+                                <TableCell>{renderStatusBadge(a.status)}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button size="sm" variant="outline">View</Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>

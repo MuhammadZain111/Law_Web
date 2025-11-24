@@ -164,11 +164,13 @@ export default function LiveChat() {
   // Fetch available users for starting conversation
   const fetchAvailableUsers = async () => {
     try {
+      console.log("🚀 fetchAvailableUsers called - Starting...");
       const token = getAuthToken();
       const userId = getUserId();
       const userType = localStorage.getItem("userType");
       
       console.log("🔍 Fetching available users - userId:", userId, "userType:", userType);
+      console.log("🔍 API URL will be:", `${API_BASE_URL}/api/v1/users`);
       
       const response = await fetch(`${API_BASE_URL}/api/v1/users`, {
         headers: {
@@ -324,13 +326,22 @@ export default function LiveChat() {
 
   // Handle starting new conversation
   const handleStartConversation = async () => {
+    console.log("🚀 handleStartConversation called - selectedUser:", selectedUser);
+    
     if (!selectedUser) {
+      console.error("❌ No user selected");
       toast({
         title: "Error",
-        description: "Please select a user",
+        description: "Please select a user from the dropdown",
+        variant: "destructive",
       });
       return;
     }
+    
+    console.log("✅ User selected, proceeding with chat creation:", {
+      selectedUserId: selectedUser._id?.toString() || selectedUser.id?.toString(),
+      selectedUserName: `${selectedUser?.firstname || ""} ${selectedUser?.lastname || ""}`.trim()
+    });
 
     try {
       const token = getAuthToken();
@@ -468,10 +479,13 @@ export default function LiveChat() {
 
   // Open start conversation modal
   const handleOpenStartModal = () => {
+    console.log("🚀 Opening start conversation modal");
     // Reset selected user when opening modal
     setSelectedUser(null);
     setInitialMessage("");
     setShowStartModal(true);
+    // Fetch available users when modal opens
+    console.log("📥 Fetching available users...");
     fetchAvailableUsers();
   };
 
@@ -573,7 +587,7 @@ export default function LiveChat() {
             <Button
               onClick={handleOpenStartModal}
               size="sm"
-              className="h-8 w-8 p-0 rounded-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="h-8 w-8 p-0 rounded-full bg-amber-600 hover:bg-amber-700 text-white"
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -584,7 +598,7 @@ export default function LiveChat() {
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 rounded-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              className="pl-9 rounded-full border-gray-300 focus:border-amber-500 focus:ring-amber-500"
             />
           </div>
         </div>
@@ -609,14 +623,14 @@ export default function LiveChat() {
                 <div
                   key={conv._id}
                   onClick={() => setSelectedChat(conv)}
-                  className={`p-3 cursor-pointer hover:bg-blue-50 transition-colors border-l-4 ${
+                  className={`p-3 cursor-pointer hover:bg-amber-50 transition-colors border-l-4 ${
                     isSelected 
-                      ? "bg-blue-50 border-blue-600" 
-                      : "border-transparent hover:border-blue-200"
+                      ? "bg-amber-50 border-amber-600" 
+                      : "border-transparent hover:border-amber-200"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-amber-600 text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
                       {other?.firstname?.[0]?.toUpperCase() ||
                         other?.email?.[0]?.toUpperCase() ||
                         "U"}
@@ -637,7 +651,7 @@ export default function LiveChat() {
                       </p>
                     </div>
                     {unreadCount > 0 && (
-                      <div className="h-5 w-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center flex-shrink-0 font-medium">
+                      <div className="h-5 w-5 rounded-full bg-amber-600 text-white text-xs flex items-center justify-center flex-shrink-0 font-medium">
                         {unreadCount}
                       </div>
                     )}
@@ -663,7 +677,7 @@ export default function LiveChat() {
                   
                   return (
                     <>
-                      <div className="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-amber-600 text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
                         {initial}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -684,7 +698,7 @@ export default function LiveChat() {
 
             {/* Connection Status Banner */}
             {connectionStatus !== "connected" && (
-              <div className="bg-blue-600 text-white px-4 py-2 text-sm text-center flex-shrink-0">
+              <div className="bg-amber-600 text-white px-4 py-2 text-sm text-center flex-shrink-0">
                 {connectionStatus === "error" ? (
                   <span>Connection failed - refresh page</span>
                 ) : (
@@ -726,7 +740,7 @@ export default function LiveChat() {
                         <div
                           className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${
                             isOwn
-                              ? "bg-blue-600 text-white"
+                              ? "bg-amber-600 text-white"
                               : "bg-white text-gray-900 border border-gray-200"
                           }`}
                         >
@@ -735,7 +749,7 @@ export default function LiveChat() {
                           </p>
                           <p
                             className={`text-xs mt-1.5 ${
-                              isOwn ? "text-blue-100" : "text-gray-500"
+                              isOwn ? "text-amber-100" : "text-gray-500"
                             }`}
                           >
                             {formatTime(msg.createdAt)}
@@ -762,12 +776,12 @@ export default function LiveChat() {
                       handleSendMessage();
                     }
                   }}
-                  className="flex-1 rounded-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="flex-1 rounded-full border-gray-300 focus:border-amber-500 focus:ring-amber-500"
                 />
                 <Button 
                   onClick={handleSendMessage} 
                   disabled={!inputMessage.trim()}
-                  className="rounded-full h-10 w-10 p-0 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="rounded-full h-10 w-10 p-0 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
           <Send className="h-4 w-4" />
         </Button>
@@ -802,7 +816,7 @@ export default function LiveChat() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                   <MessageCircle className="h-5 w-5 text-white" />
@@ -834,6 +848,11 @@ export default function LiveChat() {
                   onValueChange={(value) => {
                     console.log("🔍 onValueChange triggered with value:", value);
                     console.log("🔍 Available users count:", availableUsers.length);
+                    console.log("🔍 All available user IDs:", availableUsers.map(u => ({
+                      _id: u._id?.toString(),
+                      id: u.id?.toString(),
+                      name: `${u.firstname || ""} ${u.lastname || ""}`.trim()
+                    })));
                     
                     // Value should be _id string - find exact match
                     const valueStr = value?.toString();
@@ -844,7 +863,16 @@ export default function LiveChat() {
                       const uIdAlt = u.id?.toString();
                       
                       // Exact match only - no email matching to avoid conflicts
-                      return uId === valueStr || uIdAlt === valueStr;
+                      const matches = uId === valueStr || uIdAlt === valueStr;
+                      if (matches) {
+                        console.log("✅ Found matching user:", {
+                          value: valueStr,
+                          uId,
+                          uIdAlt,
+                          user: u
+                        });
+                      }
+                      return matches;
                     });
                     
                     if (user) {
@@ -859,27 +887,26 @@ export default function LiveChat() {
                       console.error("❌ Available user IDs:", availableUsers.map(u => ({
                         _id: u._id?.toString(),
                         id: u.id?.toString(),
-                        name: `${u.firstname} ${u.lastname}`
+                        name: `${u.firstname || ""} ${u.lastname || ""}`.trim()
                       })));
                       setSelectedUser(null);
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white hover:border-gray-300 transition-colors">
+                  <SelectTrigger className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white hover:border-gray-300 transition-colors">
                     <SelectValue placeholder="Select a person...">
-                      {selectedUser 
-                        ? (
-                          <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
-                              {selectedUser?.firstname?.[0]?.toUpperCase() || selectedUser?.email?.[0]?.toUpperCase() || "U"}
-                            </div>
-                            <span className="text-gray-900">
-                              {`${selectedUser?.firstname || ""} ${selectedUser?.lastname || ""}`.trim() || selectedUser?.email || "Selected"}
-                            </span>
+                      {selectedUser ? (
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-semibold">
+                            {selectedUser?.firstname?.[0]?.toUpperCase() || selectedUser?.email?.[0]?.toUpperCase() || "U"}
                           </div>
-                        )
-                        : "Select a person..."
-                      }
+                          <span className="text-gray-900">
+                            {`${selectedUser?.firstname || ""} ${selectedUser?.lastname || ""}`.trim() || selectedUser?.email || "Selected"}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-500">Select a person...</span>
+                      )}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent 
@@ -892,6 +919,9 @@ export default function LiveChat() {
                         <p className="text-xs">Clients with confirmed appointments will appear here</p>
                         <p className="text-xs mt-2 text-gray-400">
                           Only clients whose appointments have been confirmed are shown here.
+                        </p>
+                        <p className="text-xs mt-2 text-amber-600">
+                          Make sure clients are registered users and appointments are confirmed.
                         </p>
                       </div>
                     ) : (
@@ -914,10 +944,10 @@ export default function LiveChat() {
                           <SelectItem
                             key={itemKey}
                             value={userValue}
-                            className="cursor-pointer py-3 px-4 hover:bg-blue-50 focus:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                            className="cursor-pointer py-3 px-4 hover:bg-amber-50 focus:bg-amber-50"
                           >
                             <div className="flex items-center gap-3 w-full">
-                              <div className="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                              <div className="h-10 w-10 rounded-full bg-amber-600 text-white flex items-center justify-center text-sm font-semibold flex-shrink-0">
                                 {user?.firstname?.[0]?.toUpperCase() ||
                                   user?.email?.[0]?.toUpperCase() ||
                                   "U"}
@@ -950,7 +980,7 @@ export default function LiveChat() {
                   placeholder="Say something..."
                   value={initialMessage}
                   onChange={(e) => setInitialMessage(e.target.value)}
-                  className="w-full min-h-[120px] p-4 border-2 border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm bg-gray-50/50 hover:bg-gray-50 transition-colors"
+                  className="w-full min-h-[120px] p-4 border-2 border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-sm bg-gray-50/50 hover:bg-gray-50 transition-colors"
                 />
               </div>
 
@@ -968,11 +998,16 @@ export default function LiveChat() {
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleStartConversation}
+                  className="flex-1 h-11 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    console.log("🔘 Start Chat button clicked");
+                    console.log("🔍 Current selectedUser state:", selectedUser);
+                    console.log("🔍 Available users:", availableUsers.length);
+                    handleStartConversation();
+                  }}
                   disabled={!selectedUser}
                 >
-                  Start Chat
+                  {selectedUser ? `Start Chat with ${selectedUser?.firstname || selectedUser?.email || 'Client'}` : 'Please select a person first'}
                 </Button>
               </div>
             </div>

@@ -31,7 +31,6 @@ export function LawyerSidebar({ activeTab, setActiveTab, collapsed, setCollapsed
     { id: "appointments", label: "Appointments", icon: "📅" },
     { id: "cases", label: "Cases", icon: "📁" },
     { id: "chat", label: "Live Chat", icon: "💬" },
-    { id: "consultation", label: "Virtual Consultation", icon: "🎥" },
     { id: "payments", label: "Payments", icon: "💳" },
     { id: "upgrade", label: "Upgrade Profile", icon: "⭐" },
     { id: "records", label: "Records", icon: "📋" },

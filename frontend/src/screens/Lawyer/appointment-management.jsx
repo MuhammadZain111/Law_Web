@@ -100,10 +100,29 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
     }
   };
 
-  const filteredAppointments = localAppointments.filter((apt) => {
-    if (filterStatus === "all") return true;
-    return apt.status === filterStatus;
-  });
+  const filteredAppointments = localAppointments
+    .filter((apt) => {
+      if (filterStatus === "all") return true;
+      return apt.status === filterStatus;
+    })
+    .sort((a, b) => {
+      // Sort by createdAt (when appointment was created) - newest first
+      // This ensures newly created appointments appear on top
+      const createdAtA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const createdAtB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      
+      // If createdAt is not available, extract timestamp from MongoDB _id
+      // MongoDB ObjectId contains timestamp in first 8 characters
+      const idTimeA = a._id ? parseInt(a._id.toString().substring(0, 8), 16) * 1000 : 0;
+      const idTimeB = b._id ? parseInt(b._id.toString().substring(0, 8), 16) * 1000 : 0;
+      
+      // Use createdAt if available, otherwise use _id timestamp
+      const timeA = createdAtA || idTimeA;
+      const timeB = createdAtB || idTimeB;
+      
+      // Sort in descending order (newest first)
+      return timeB - timeA;
+    });
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -366,23 +385,23 @@ Current Status: File metadata only (no actual file content stored)
       <div className="mt-3 space-y-4">
         {/* Payment Screenshot Section */}
         {paymentScreenshotFile && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <span className="text-green-600 text-lg">💳</span>
+                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <span className="text-amber-600 text-lg">💳</span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-green-800">Payment Screenshot</h4>
-                  <p className="text-xs text-green-600">Proof of payment for consultation fee</p>
+                  <h4 className="text-sm font-semibold text-amber-800">Payment Screenshot</h4>
+                  <p className="text-xs text-amber-600">Proof of payment for consultation fee</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg p-3 border border-green-200">
+            <div className="bg-white rounded-lg p-3 border border-amber-200">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <span className="text-green-600 text-lg">📸</span>
+                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <span className="text-amber-600 text-lg">📸</span>
                 </div>
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-900 truncate">{paymentScreenshotFile.name || 'Payment Screenshot'}</h4>
@@ -397,7 +416,7 @@ Current Status: File metadata only (no actual file content stored)
                   <Button 
                     size="default" 
                     variant="default"
-                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                     onClick={() => handleViewFile(paymentScreenshotFile)}
                   >
                     <Eye className="h-5 w-5 mr-2" />
@@ -406,7 +425,7 @@ Current Status: File metadata only (no actual file content stored)
                   <Button 
                     size="default" 
                     variant="default"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                    className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                     onClick={() => handleDownloadFile(paymentScreenshotFile)}
                     disabled={downloadingFile === paymentScreenshotFile.name}
                   >
@@ -430,21 +449,21 @@ Current Status: File metadata only (no actual file content stored)
 
         {/* Case Documents Section */}
         {(documents || documentFiles.length > 0) && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-blue-600" />
+                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-amber-600" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-blue-800">Case Documents</h4>
-                  <p className="text-xs text-blue-600">Legal documents and case-related files</p>
+                  <h4 className="text-sm font-semibold text-amber-800">Case Documents</h4>
+                  <p className="text-xs text-amber-600">Legal documents and case-related files</p>
                 </div>
               </div>
               <Button 
                 size="default" 
                 variant="outline" 
-                className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold px-3 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                className="border-2 border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white font-semibold px-3 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                 onClick={() => handleViewDocuments(appointment)}
               >
                 <Eye className="h-4 w-4 mr-2" />
@@ -468,8 +487,8 @@ Current Status: File metadata only (no actual file content stored)
               {documentFiles.slice(0, 2).map((file, index) => (
                 <div key={index} className="flex items-center gap-2 bg-white p-2 rounded border">
                   {file.type?.startsWith('image/') ? (
-                    <div className="w-5 h-5 bg-blue-100 rounded flex items-center justify-center">
-                      <span className="text-blue-600 text-xs font-bold">IMG</span>
+                    <div className="w-5 h-5 bg-amber-100 rounded flex items-center justify-center">
+                      <span className="text-amber-600 text-xs font-bold">IMG</span>
                     </div>
                   ) : file.type === 'application/pdf' ? (
                     <div className="w-5 h-5 bg-red-100 rounded flex items-center justify-center">
@@ -509,11 +528,11 @@ Current Status: File metadata only (no actual file content stored)
           <p className="text-muted-foreground">Manage client appointment requests and scheduling</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-40">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-48 border-2 border-gray-300 hover:border-amber-500 focus:border-amber-500 font-medium shadow-sm hover:shadow-md transition-all duration-200">
+            <Filter className="h-4 w-4 mr-2 text-amber-600" />
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Appointments</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
@@ -526,48 +545,56 @@ Current Status: File metadata only (no actual file content stored)
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-l-4 border-l-amber-500 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-amber-50 to-white">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold">{getStatusCount("pending")}</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Pending</p>
+                <p className="text-3xl font-bold text-gray-900">{getStatusCount("pending")}</p>
               </div>
-              <Clock className="h-8 w-8 text-secondary" />
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shadow-inner">
+                <Clock className="h-6 w-6 text-amber-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="border-l-4 border-l-amber-600 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-amber-50/80 to-white">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Confirmed</p>
-                <p className="text-2xl font-bold">{getStatusCount("confirmed")}</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Confirmed</p>
+                <p className="text-3xl font-bold text-gray-900">{getStatusCount("confirmed")}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-primary" />
+              <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center shadow-inner">
+                <CheckCircle className="h-6 w-6 text-amber-700" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="border-l-4 border-l-amber-400 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-amber-50/60 to-white">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold">{getStatusCount("completed")}</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Completed</p>
+                <p className="text-3xl font-bold text-gray-900">{getStatusCount("completed")}</p>
               </div>
-              <Calendar className="h-8 w-8 text-primary" />
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shadow-inner">
+                <Calendar className="h-6 w-6 text-amber-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
+        <Card className="border-l-4 border-l-amber-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-amber-50/40 to-white">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Rejected</p>
-                <p className="text-2xl font-bold">{getStatusCount("rejected")}</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Rejected</p>
+                <p className="text-3xl font-bold text-gray-900">{getStatusCount("rejected")}</p>
               </div>
-              <XCircle className="h-8 w-8 text-destructive" />
+              <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center shadow-inner">
+                <XCircle className="h-6 w-6 text-amber-500" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -592,68 +619,59 @@ Current Status: File metadata only (no actual file content stored)
               filteredAppointments.map((appointment) => (
                 <div
                   key={appointment._id || appointment.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                  className="group p-6 border-2 border-gray-200 rounded-xl bg-white hover:border-amber-300 hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-full">
-                      <User className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{appointment.clientName}</h3>
-                        {getStatusBadge(appointment.status)}
+                  <div className="flex items-start justify-between gap-6">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-amber-600 to-amber-700 rounded-full shadow-md group-hover:shadow-lg transition-shadow">
+                        <User className="h-7 w-7 text-white" />
                       </div>
-                      <p className="text-sm text-muted-foreground">{appointment.caseType || appointment.appointmentType}</p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString() : appointment.requestedDate}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {appointment.timeSlot || appointment.requestedTime}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {appointment.clientEmail}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {appointment.clientPhone}
-                        </span>
-                      </div>
-                      {(appointment.caseDescription || appointment.notes) && (
-                        <p className="text-sm text-muted-foreground italic">Note: {appointment.caseDescription || appointment.notes}</p>
-                      )}
-                      
-                      {/* Display documents if available */}
-                      {renderDocuments(appointment)}
-                      
-                      {/* Test button to show documents (temporary) */}
-                      <div className="mt-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => {
-                            console.log('🧪 Test button clicked for appointment:', appointment);
-                            handleViewDocuments(appointment);
-                          }}
-                          className="h-6 px-2 text-xs"
-                        >
-                          🧪 Test Documents
-                        </Button>
-                      </div>
-                      
-                      {/* Always show document info for debugging */}
-                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                        <p><strong>Debug Info:</strong></p>
-                        <p>Documents: "{appointment.documents || 'None'}"</p>
-                        <p>Document Files: {appointment.documentFiles?.length || 0} files</p>
-                        <p>Has Documents: {appointment.documents ? 'Yes' : 'No'}</p>
-                        <p>Has Files: {appointment.documentFiles?.length > 0 ? 'Yes' : 'No'}</p>
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <h3 className="text-lg font-semibold text-gray-900">{appointment.clientName}</h3>
+                          {getStatusBadge(appointment.status)}
+                        </div>
+                        <div className="inline-block px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-sm font-medium">
+                          {appointment.caseType || appointment.appointmentType || 'General'}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Calendar className="h-4 w-4 text-gray-600" />
+                            </div>
+                            <span className="font-medium">{appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString() : appointment.requestedDate || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Clock className="h-4 w-4 text-gray-600" />
+                            </div>
+                            <span className="font-medium">{appointment.timeSlot || appointment.requestedTime || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Mail className="h-4 w-4 text-gray-600" />
+                            </div>
+                            <span className="font-medium truncate">{appointment.clientEmail}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Phone className="h-4 w-4 text-gray-600" />
+                            </div>
+                            <span className="font-medium">{appointment.clientPhone}</span>
+                          </div>
+                        </div>
+                        {(appointment.caseDescription || appointment.notes) && (
+                          <div className="p-3 bg-gray-50 rounded-lg border-l-4 border-l-amber-500">
+                            <p className="text-sm text-gray-700">
+                              <span className="font-semibold">Note:</span> {appointment.caseDescription || appointment.notes}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Display documents if available */}
+                        {renderDocuments(appointment)}
                       </div>
                     </div>
-                  </div>
 
                   <div className="flex items-center gap-2">
                     {appointment.status === "pending" && (
@@ -661,7 +679,7 @@ Current Status: File metadata only (no actual file content stored)
                         <Button
                           size="default"
                           onClick={() => handleAcceptAppointment(appointment._id || appointment.id)}
-                          className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                          className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 border-0"
                         >
                           <CheckCircle className="h-5 w-5 mr-2" />
                           Accept
@@ -671,7 +689,7 @@ Current Status: File metadata only (no actual file content stored)
                             <Button 
                               size="default" 
                               variant="outline" 
-                              className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                              className="border-2 border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                               onClick={() => setSelectedAppointment(appointment)}
                             >
                               <RotateCcw className="h-5 w-5 mr-2" />
@@ -715,27 +733,51 @@ Current Status: File metadata only (no actual file content stored)
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
-                        <Button size="sm" variant="destructive" onClick={() => handleRejectAppointment(appointment._id || appointment.id)}>
-                          <XCircle className="h-4 w-4 mr-1" />
+                        <Button 
+                          size="default" 
+                          variant="outline"
+                          onClick={() => handleRejectAppointment(appointment._id || appointment.id)}
+                          className="border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600 hover:text-red-700 font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                        >
+                          <XCircle className="h-5 w-5 mr-2" />
                           Reject
                         </Button>
                       </>
                     )}
                     {appointment.status === "confirmed" && (
-                      <Button size="sm" variant="outline" disabled>
+                      <Button 
+                        size="default" 
+                        variant="outline" 
+                        disabled
+                        className="bg-amber-50 text-amber-700 border-amber-200 font-semibold px-6 py-3 rounded-lg"
+                      >
+                        <CheckCircle className="h-5 w-5 mr-2" />
                         Confirmed
                       </Button>
                     )}
                     {appointment.status === "completed" && (
-                      <Button size="sm" variant="outline" disabled>
+                      <Button 
+                        size="default" 
+                        variant="outline" 
+                        disabled
+                        className="bg-amber-50 text-amber-700 border-amber-200 font-semibold px-6 py-3 rounded-lg"
+                      >
+                        <CheckCircle className="h-5 w-5 mr-2" />
                         Completed
                       </Button>
                     )}
                     {appointment.status === "rejected" && (
-                      <Button size="sm" variant="outline" disabled>
+                      <Button 
+                        size="default" 
+                        variant="outline" 
+                        disabled
+                        className="bg-red-50 text-red-700 border-red-200 font-semibold px-6 py-3 rounded-lg"
+                      >
+                        <XCircle className="h-5 w-5 mr-2" />
                         Rejected
                       </Button>
                     )}
+                  </div>
                   </div>
                 </div>
               ))
@@ -757,22 +799,22 @@ Current Status: File metadata only (no actual file content stored)
           {selectedDocuments && (
             <div className="space-y-6">
               {/* Payment Screenshot Section - Always show */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <span className="text-green-600 text-xl">💳</span>
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <span className="text-amber-600 text-xl">💳</span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-green-800">Payment Screenshot</h3>
-                    <p className="text-sm text-green-600">Proof of payment for consultation fee</p>
+                    <h3 className="text-lg font-semibold text-amber-800">Payment Screenshot</h3>
+                    <p className="text-sm text-amber-600">Proof of payment for consultation fee</p>
                   </div>
                 </div>
                 
                 {selectedDocuments.paymentScreenshotFile ? (
-                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                  <div className="bg-white rounded-lg p-4 border border-amber-200">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center">
-                        <span className="text-green-600 text-2xl">📸</span>
+                      <div className="w-16 h-16 bg-amber-100 rounded-lg flex items-center justify-center">
+                        <span className="text-amber-600 text-2xl">📸</span>
                       </div>
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900">{selectedDocuments.paymentScreenshotFile.name || 'Payment Screenshot'}</h4>
@@ -787,7 +829,7 @@ Current Status: File metadata only (no actual file content stored)
                         <Button 
                           size="sm" 
                           variant="default"
-                          className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
+                          className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
                           onClick={() => handleViewFile(selectedDocuments.paymentScreenshotFile)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
@@ -796,7 +838,7 @@ Current Status: File metadata only (no actual file content stored)
                         <Button 
                           size="sm" 
                           variant="default"
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
+                          className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
                           onClick={() => handleDownloadFile(selectedDocuments.paymentScreenshotFile)}
                           disabled={downloadingFile === selectedDocuments.paymentScreenshotFile.name}
                         >
@@ -816,7 +858,7 @@ Current Status: File metadata only (no actual file content stored)
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                  <div className="bg-white rounded-lg p-4 border border-amber-200">
                     <div className="text-center py-4">
                       <p className="text-gray-500 text-sm">No payment screenshot uploaded by client</p>
                       <p className="text-gray-400 text-xs mt-1">Client has not provided payment proof yet</p>
@@ -826,14 +868,14 @@ Current Status: File metadata only (no actual file content stored)
               </div>
 
               {/* Case Documents Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <FileText className="h-6 w-6 text-blue-600" />
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-amber-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-blue-800">Case Documents</h3>
-                    <p className="text-sm text-blue-600">Legal documents and case-related files</p>
+                    <h3 className="text-lg font-semibold text-amber-800">Case Documents</h3>
+                    <p className="text-sm text-amber-600">Legal documents and case-related files</p>
                   </div>
                 </div>
 
@@ -858,8 +900,8 @@ Current Status: File metadata only (no actual file content stored)
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0">
                             {file.type?.startsWith('image/') ? (
-                              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <span className="text-blue-600 text-sm font-bold">IMG</span>
+                              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <span className="text-amber-600 text-sm font-bold">IMG</span>
                               </div>
                             ) : file.type === 'application/pdf' ? (
                               <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -880,7 +922,7 @@ Current Status: File metadata only (no actual file content stored)
                               <Button 
                                 size="sm" 
                                 variant="default"
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
+                                className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
                                 onClick={() => handleViewFile(file)}
                               >
                                 <Eye className="h-4 w-4 mr-1" />
@@ -889,7 +931,7 @@ Current Status: File metadata only (no actual file content stored)
                               <Button 
                                 size="sm" 
                                 variant="default"
-                                className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
+                                className="bg-amber-600 hover:bg-amber-700 text-white font-medium px-3 py-2 rounded-md shadow-sm hover:shadow-md transition-all duration-200 text-sm"
                                 onClick={() => handleDownloadFile(file)}
                                 disabled={downloadingFile === file.name}
                               >

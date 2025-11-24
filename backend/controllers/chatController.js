@@ -346,14 +346,22 @@ export const getAvailableUsers = async (req, res) => {
     const userId = req.user?.id || req.user?.userId;
     const userType = req.user?.userType || req.user?.role;
 
+    console.log('🔍 getAvailableUsers called - userId:', userId, 'userType:', userType);
+    console.log('🔍 Request user object:', JSON.stringify(req.user, null, 2));
+
     if (!userId) {
+      console.error('❌ No userId found in request');
       return res.status(401).json({
         success: false,
         message: 'Unauthorized'
       });
     }
 
-    if (userType === 'lawyer') {
+    // Check if user is lawyer (case insensitive)
+    const isLawyer = userType === 'lawyer' || userType === 'Lawyer' || req.user?.userType === 'lawyer' || req.user?.role === 'lawyer';
+    console.log('🔍 Is lawyer check:', isLawyer, 'userType:', userType);
+
+    if (isLawyer) {
       // Get all unique clients who have appointments with this lawyer
       const Appointment = (await import('../models/appointment.model.js')).default;
       
@@ -377,36 +385,53 @@ export const getAvailableUsers = async (req, res) => {
           ]
         : [{ lawyerId: userId }];
       
+      // Find appointments with confirmed, accepted, or completed status
+      // TEMPORARILY: Also include pending appointments to show all clients for testing
       const appointments = await Appointment.find({ 
         $and: [
           { $or: lawyerQuery },
-          { status: { $in: ['confirmed', 'completed'] } } // Only confirmed or completed appointments
+          { status: { $in: ['confirmed', 'completed', 'accepted', 'pending'] } } // Include pending temporarily
         ]
       }).select('clientId clientEmail clientName lawyerId status').lean();
+      
+      console.log(`📋 Found ${appointments.length} appointments (confirmed/pending) for lawyer ${userId}`);
+      
+      // Debug: Also check all appointments for this lawyer to see what statuses exist
+      const allAppointments = await Appointment.find({ 
+        $or: lawyerQuery
+      }).select('status clientEmail clientName').lean();
+      console.log(`📊 Total appointments for lawyer: ${allAppointments.length}`);
+      const statusBreakdown = allAppointments.reduce((acc, apt) => {
+        acc[apt.status] = (acc[apt.status] || 0) + 1;
+        return acc;
+      }, {});
+      console.log(`📊 Appointment status breakdown:`, statusBreakdown);
 
-      console.log(`📋 Found ${appointments.length} CONFIRMED appointments for lawyer ${userId}`);
+      console.log(`📋 Found ${appointments.length} CONFIRMED/ACCEPTED/COMPLETED appointments for lawyer ${userId}`);
       if (appointments.length > 0) {
         console.log(`📋 Sample confirmed appointments:`, appointments.slice(0, 3).map(a => ({
-          clientId: a.clientId,
+          clientId: a.clientId?.toString() || 'null',
           clientEmail: a.clientEmail,
           clientName: a.clientName,
           status: a.status,
-          lawyerId: a.lawyerId
+          lawyerId: a.lawyerId?.toString() || a.lawyerId
         })));
       } else {
-        console.warn(`⚠️ No confirmed appointments found for lawyer ${userId}.`);
-        // Check total appointments (including pending)
+        console.warn(`⚠️ No confirmed/accepted/completed appointments found for lawyer ${userId}.`);
+        // Check total appointments (including pending) to help debug
         const totalAppointments = await Appointment.find({ 
-          $or: [
-            { lawyerId: new mongoose.Types.ObjectId(userId) },
-            { lawyerId: userId }
-          ]
-        }).select('status').lean();
+          $or: lawyerQuery
+        }).select('status clientEmail clientName').lean();
         const statusCounts = totalAppointments.reduce((acc, apt) => {
           acc[apt.status] = (acc[apt.status] || 0) + 1;
           return acc;
         }, {});
         console.log(`📋 Total appointments by status:`, statusCounts);
+        console.log(`📋 All appointments for this lawyer (${totalAppointments.length}):`, totalAppointments.map(a => ({
+          status: a.status,
+          clientEmail: a.clientEmail,
+          clientName: a.clientName
+        })));
       }
 
       // Extract unique client IDs (from linked appointments)
@@ -428,14 +453,25 @@ export const getAvailableUsers = async (req, res) => {
       const clientEmails = [...new Set(
         appointments
           .map(a => {
-            const email = a.clientEmail?.toLowerCase().trim();
-            if (email) {
-              console.log(`📧 Found clientEmail in appointment:`, email, `for client:`, a.clientName);
+            if (!a.clientEmail) {
+              console.warn(`⚠️ Appointment missing clientEmail for client:`, a.clientName);
+              return null;
             }
-            return email;
+            const email = String(a.clientEmail).toLowerCase().trim();
+            if (email && email.includes('@')) {
+              console.log(`📧 Found clientEmail in appointment:`, email, `for client:`, a.clientName);
+              return email;
+            }
+            console.warn(`⚠️ Invalid email format for client:`, a.clientName, `email:`, a.clientEmail);
+            return null;
           })
           .filter(Boolean)
       )];
+      
+      console.log(`📧 Total unique client emails extracted: ${clientEmails.length}`);
+      if (clientEmails.length > 0) {
+        console.log(`📧 All client emails from appointments:`, clientEmails);
+      }
 
       console.log(`👥 SUMMARY: Found ${clientIds.length} client IDs and ${clientEmails.length} unique emails`);
       console.log(`📧 ALL client emails (${clientEmails.length}):`, clientEmails);
@@ -454,7 +490,7 @@ export const getAvailableUsers = async (req, res) => {
       // Build query to find ALL clients by ID or email
       const orConditions = [];
 
-      // Add clientId matches (if any)
+      // Add clientId matches (if any) - these are clients who were logged in when creating appointment
       if (clientIds.length > 0) {
         try {
           const validObjectIds = clientIds
@@ -465,11 +501,15 @@ export const getAvailableUsers = async (req, res) => {
             orConditions.push({ 
               _id: { $in: validObjectIds } 
             });
-            console.log(`✅ Added ${validObjectIds.length} valid client IDs to query`);
+            console.log(`✅ Added ${validObjectIds.length} valid client IDs to query (from appointment.clientId)`);
+          } else {
+            console.warn(`⚠️ No valid client IDs found (all ${clientIds.length} IDs were invalid)`);
           }
         } catch (error) {
           console.error('❌ Error processing client IDs:', error);
         }
+      } else {
+        console.log(`ℹ️ No clientId found in appointments - will search by email only`);
       }
 
       // Add email matches - User model has email with lowercase: true
@@ -478,18 +518,25 @@ export const getAvailableUsers = async (req, res) => {
         console.log(`📧 ALL emails from appointments:`, clientEmails);
         
         // Since User model has email with lowercase: true, convert all emails to lowercase
-        const emailLowercase = clientEmails.map(e => e.toLowerCase().trim());
+        // Also remove any null/undefined values and ensure they're strings
+        const emailLowercase = clientEmails
+          .filter(Boolean) // Remove null/undefined
+          .map(e => String(e).toLowerCase().trim()) // Convert to string, lowercase, trim
+          .filter(e => e.length > 0 && e.includes('@')); // Basic email validation
+        
         const uniqueLowercaseEmails = [...new Set(emailLowercase)];
         
         console.log(`📧 Unique lowercase emails to search (${uniqueLowercaseEmails.length}):`, uniqueLowercaseEmails);
         
-        // Use direct $in match since emails are stored in lowercase in User model
-        // Add each email as a separate condition to ensure all are matched
-        for (const email of uniqueLowercaseEmails) {
-          orConditions.push({ email: email });
+        // Use $in with lowercase emails for exact match (emails are stored lowercase in User model)
+        if (uniqueLowercaseEmails.length > 0) {
+          orConditions.push({ 
+            email: { $in: uniqueLowercaseEmails } 
+          });
+          console.log(`✅ Added email condition with ${uniqueLowercaseEmails.length} emails to query`);
+        } else {
+          console.warn(`⚠️ No valid emails to search after filtering`);
         }
-        
-        console.log(`✅ Added ${uniqueLowercaseEmails.length} email conditions to query`);
       }
 
       // If no OR conditions, return empty
@@ -502,6 +549,7 @@ export const getAvailableUsers = async (req, res) => {
       }
 
       // Build final query - use all conditions in $or
+      // Exclude lawyers, include all other user types (user, client, etc.)
       const query = {
         userType: { $ne: 'lawyer' },
         $or: orConditions
@@ -518,12 +566,21 @@ export const getAvailableUsers = async (req, res) => {
       console.log(`🔍 Sample query conditions:`, orConditions.slice(0, 3));
 
       // Get client user details - use lean() for better performance
+      console.log(`🔍 Executing User query:`, JSON.stringify(query, null, 2));
       const clients = await User.find(query)
-        .select('firstname lastname email photoUrl _id')
+        .select('firstname lastname email photoUrl _id userType')
         .sort({ firstname: 1, lastname: 1 })
         .lean();
         
       console.log(`🔍 Raw query result: ${clients.length} clients found`);
+      if (clients.length > 0) {
+        console.log(`✅ Sample clients found:`, clients.slice(0, 3).map(c => ({
+          _id: c._id?.toString(),
+          name: `${c.firstname} ${c.lastname}`,
+          email: c.email,
+          userType: c.userType
+        })));
+      }
 
       console.log(`✅ Found ${clients.length} matching users from database`);
       
@@ -586,9 +643,49 @@ export const getAvailableUsers = async (req, res) => {
         email: c.email
       })));
 
+      // If no clients found but appointments exist, log helpful message
+      if (uniqueClients.length === 0 && appointments.length > 0) {
+        console.warn(`⚠️ WARNING: Found ${appointments.length} confirmed appointments but 0 registered clients.`);
+        console.warn(`💡 This means clients from appointments are not registered as users in the system.`);
+        console.warn(`💡 Clients must register/login to appear in chat list.`);
+        console.warn(`📧 Appointment client emails that were searched:`, clientEmails);
+        console.warn(`📋 Appointment details:`, appointments.map(a => ({
+          clientName: a.clientName,
+          clientEmail: a.clientEmail,
+          clientId: a.clientId?.toString() || 'null',
+          status: a.status
+        })));
+        
+        // Try to find users by email one more time with more detailed logging
+        if (clientEmails.length > 0) {
+          console.log(`🔍 Double-checking: Searching for users with emails:`, clientEmails);
+          const testUsers = await User.find({ 
+            email: { $in: clientEmails },
+            userType: { $ne: 'lawyer' }
+          }).select('email firstname lastname userType').lean();
+          console.log(`🔍 Found ${testUsers.length} users in double-check:`, testUsers.map(u => ({
+            email: u.email,
+            name: `${u.firstname} ${u.lastname}`,
+            userType: u.userType
+          })));
+        }
+      }
+
       res.json({
         success: true,
-        users: uniqueClients
+        users: uniqueClients,
+        debug: {
+          appointmentsFound: appointments.length,
+          clientsFound: uniqueClients.length,
+          clientEmailsFromAppointments: clientEmails.length,
+          clientIdsFromAppointments: clientIds.length,
+          searchedEmails: clientEmails,
+          appointmentDetails: appointments.map(a => ({
+            clientName: a.clientName,
+            clientEmail: a.clientEmail,
+            hasClientId: !!a.clientId
+          }))
+        }
       });
     } else {
       // For clients, get all approved lawyers
