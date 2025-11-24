@@ -18,16 +18,16 @@ export default function LawyerProfileSection() {
   }, []);
 
   const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      const res = await api.get('/user/profile');
-      const user = res?.data?.user || res?.data || res?.user || null;
-      setProfile(user);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await api.get('/user/profile');
+        const user = res?.data?.user || res?.data || res?.user || null;
+        setProfile(user);
       console.log('📋 Profile data:', user);
-    } catch (_) {
-      // ignore
-    }
+      } catch (_) {
+        // ignore
+      }
   };
 
   const handleImageSelect = async (e) => {
@@ -163,11 +163,11 @@ export default function LawyerProfileSection() {
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center">
               <div className="relative mb-4">
-                <img
-                  src={profile?.photoUrl || 'https://i.pravatar.cc/120'}
-                  alt="avatar"
+          <img
+            src={profile?.photoUrl || 'https://i.pravatar.cc/120'}
+            alt="avatar"
                   className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg"
-                />
+          />
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading || updating}
@@ -217,7 +217,7 @@ export default function LawyerProfileSection() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Personal Information */}
-            <div>
+          <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <User className="h-5 w-5 text-amber-600" />
                 Personal Information
@@ -264,11 +264,11 @@ export default function LawyerProfileSection() {
                     </p>
                   </div>
                 )}
-              </div>
-            </div>
+          </div>
+        </div>
 
             {/* Professional Information */}
-            <div>
+          <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-amber-600" />
                 Professional Information
@@ -303,9 +303,9 @@ export default function LawyerProfileSection() {
                     <span className="text-sm font-medium">City</span>
                   </div>
                   <p className="text-gray-900 font-semibold">{profile?.city || '—'}</p>
-                </div>
-              </div>
-            </div>
+          </div>
+          </div>
+        </div>
 
             {/* Bio */}
             {profile?.bio && (
@@ -383,7 +383,7 @@ export default function LawyerProfileSection() {
                       <span className="text-sm font-medium text-gray-700">GitHub</span>
                     </a>
                   )}
-                </div>
+        </div>
               </div>
             )}
 

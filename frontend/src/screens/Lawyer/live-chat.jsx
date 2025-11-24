@@ -896,14 +896,14 @@ export default function LiveChat() {
                   <SelectTrigger className="w-full h-12 px-4 border-2 border-gray-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 bg-white hover:border-gray-300 transition-colors">
                     <SelectValue placeholder="Select a person...">
                       {selectedUser ? (
-                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                           <div className="h-6 w-6 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-semibold">
-                            {selectedUser?.firstname?.[0]?.toUpperCase() || selectedUser?.email?.[0]?.toUpperCase() || "U"}
+                              {selectedUser?.firstname?.[0]?.toUpperCase() || selectedUser?.email?.[0]?.toUpperCase() || "U"}
+                            </div>
+                            <span className="text-gray-900">
+                              {`${selectedUser?.firstname || ""} ${selectedUser?.lastname || ""}`.trim() || selectedUser?.email || "Selected"}
+                            </span>
                           </div>
-                          <span className="text-gray-900">
-                            {`${selectedUser?.firstname || ""} ${selectedUser?.lastname || ""}`.trim() || selectedUser?.email || "Selected"}
-                          </span>
-                        </div>
                       ) : (
                         <span className="text-gray-500">Select a person...</span>
                       )}

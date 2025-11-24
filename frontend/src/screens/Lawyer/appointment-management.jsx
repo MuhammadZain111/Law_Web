@@ -102,8 +102,8 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
 
   const filteredAppointments = localAppointments
     .filter((apt) => {
-      if (filterStatus === "all") return true;
-      return apt.status === filterStatus;
+    if (filterStatus === "all") return true;
+    return apt.status === filterStatus;
     })
     .sort((a, b) => {
       // Sort by createdAt (when appointment was created) - newest first
@@ -122,7 +122,7 @@ export function AppointmentManagement({ appointments = [], onUpdate }) {
       
       // Sort in descending order (newest first)
       return timeB - timeA;
-    });
+  });
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -528,11 +528,11 @@ Current Status: File metadata only (no actual file content stored)
           <p className="text-muted-foreground">Manage client appointment requests and scheduling</p>
         </div>
         <div className="flex items-center gap-2">
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-48 border-2 border-gray-300 hover:border-amber-500 focus:border-amber-500 font-medium shadow-sm hover:shadow-md transition-all duration-200">
             <Filter className="h-4 w-4 mr-2 text-amber-600" />
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Appointments</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
@@ -625,12 +625,12 @@ Current Status: File metadata only (no actual file content stored)
                     <div className="flex items-start gap-4 flex-1">
                       <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-amber-600 to-amber-700 rounded-full shadow-md group-hover:shadow-lg transition-shadow">
                         <User className="h-7 w-7 text-white" />
-                      </div>
+                    </div>
                       <div className="flex-1 space-y-3">
                         <div className="flex items-center gap-3 flex-wrap">
                           <h3 className="text-lg font-semibold text-gray-900">{appointment.clientName}</h3>
-                          {getStatusBadge(appointment.status)}
-                        </div>
+                        {getStatusBadge(appointment.status)}
+                      </div>
                         <div className="inline-block px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-sm font-medium">
                           {appointment.caseType || appointment.appointmentType || 'General'}
                         </div>
@@ -659,19 +659,19 @@ Current Status: File metadata only (no actual file content stored)
                             </div>
                             <span className="font-medium">{appointment.clientPhone}</span>
                           </div>
-                        </div>
-                        {(appointment.caseDescription || appointment.notes) && (
+                      </div>
+                      {(appointment.caseDescription || appointment.notes) && (
                           <div className="p-3 bg-gray-50 rounded-lg border-l-4 border-l-amber-500">
                             <p className="text-sm text-gray-700">
                               <span className="font-semibold">Note:</span> {appointment.caseDescription || appointment.notes}
                             </p>
                           </div>
-                        )}
-                        
-                        {/* Display documents if available */}
-                        {renderDocuments(appointment)}
-                      </div>
+                      )}
+                      
+                      {/* Display documents if available */}
+                      {renderDocuments(appointment)}
                     </div>
+                  </div>
 
                   <div className="flex items-center gap-2">
                     {appointment.status === "pending" && (

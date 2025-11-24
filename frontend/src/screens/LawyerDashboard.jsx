@@ -303,12 +303,12 @@ export default function LawyerDashboard() {
                 <div 
                   className={`initials-fallback w-full h-full flex items-center justify-center absolute inset-0 ${user?.photoUrl ? 'hidden' : ''}`}
                 >
-                  {(() => {
-                    const first = (user?.firstname || user?.firstName || (user?.fullName || user?.name || '').split(' ')[0] || '').trim()
-                    const last = (user?.lastname || user?.lastName || (user?.fullName || user?.name || '').split(' ')[1] || '').trim()
-                    const initials = `${first?.[0] || ''}${last?.[0] || ''}` || (user?.username?.slice(0,2) || user?.email?.slice(0,2) || '').toUpperCase()
-                    return <span className="text-white text-sm font-medium">{initials}</span>
-                  })()}
+                {(() => {
+                  const first = (user?.firstname || user?.firstName || (user?.fullName || user?.name || '').split(' ')[0] || '').trim()
+                  const last = (user?.lastname || user?.lastName || (user?.fullName || user?.name || '').split(' ')[1] || '').trim()
+                  const initials = `${first?.[0] || ''}${last?.[0] || ''}` || (user?.username?.slice(0,2) || user?.email?.slice(0,2) || '').toUpperCase()
+                  return <span className="text-white text-sm font-medium">{initials}</span>
+                })()}
                 </div>
               </div>
               {(() => {
