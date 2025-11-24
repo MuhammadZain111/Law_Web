@@ -1,43 +1,21 @@
 import express from "express";
+import fs from "fs";
 import ImageKit from "imagekit";
-<<<<<<< HEAD
 import multer from "multer";
 import path from "path";
-import fs from "fs";
-import { getAllLawyers, getProfile, getUserById, login, logout, register, updateProfile, updatePaymentMethods } from "../controllers/user.controller.js";
-import auth from "../middleware/auth.js";
-import dotenv from "dotenv";
-dotenv.config();
-=======
 import { getUserById, login, logout, register } from "../controllers/user.controller.js";
+import auth from "../middleware/auth.js";
 // import { isAuthenticated } from "../middleware/isAuthenticated.js";
 // import { singleUpload } from "../middleware/multer.js";
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
 const router = express.Router();
 
-<<<<<<< HEAD
-router.route("/register").post(register)
-router.route("/login").post(login)
-router.route("/logout").get(logout)
-router.route("/lawyers").get(getAllLawyers)
-router.route("/profile").get(auth(), getProfile)
-router.route("/profile").put(auth(), updateProfile)
-router.route("/payment-methods").put(auth(), updatePaymentMethods)
-
-console.log("[v0] ImageKit keys check:", {
-  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
-  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
-})
-=======
 router.route("/register").post(register);
 router.route("/login").post(login);
 router.route("/logout").get(logout);
 
 // Fetch single user by id (used by profile/booking lookups)
 router.route("/:id").get(getUserById);
->>>>>>> c6f8526e07d7162144cd0716876751c0573db4cf
 
 router.get("/imagekit-auth", async (_req, res) => {
   try {
@@ -50,8 +28,8 @@ router.get("/imagekit-auth", async (_req, res) => {
     if (!process.env.IMAGEKIT_URL_ENDPOINT || !process.env.IMAGEKIT_PUBLIC_KEY || !process.env.IMAGEKIT_PRIVATE_KEY) {
       return res.status(500).json({ message: "ImageKit is not configured on server" });
     }
-    const auth = imagekit.getAuthenticationParameters();
-    return res.json({ ...auth, publicKey: process.env.IMAGEKIT_PUBLIC_KEY });
+    const imagekitAuth = imagekit.getAuthenticationParameters();
+    return res.json({ ...imagekitAuth, publicKey: process.env.IMAGEKIT_PUBLIC_KEY });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ message: "Failed to create ImageKit signature" });
@@ -74,14 +52,45 @@ const upload = multer({ storage });
 
 router.post("/upload-local", upload.single("file"), (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    console.log("📤 Upload request received:", {
+      hasFile: !!req.file,
+      contentType: req.headers['content-type'],
+      method: req.method,
+      url: req.url
+    });
+    
+    if (!req.file) {
+      console.error("❌ No file in upload request");
+      console.log("Request body keys:", Object.keys(req.body || {}));
+      console.log("Request files:", req.files);
+      return res.status(400).json({ message: "No file uploaded. Please ensure the file field is named 'file'." });
+    }
+    
+    // Ensure uploads directory exists
+    const uploadsDir = path.resolve("uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log("📁 Created uploads directory:", uploadsDir);
+    }
+    
     const port = process.env.PORT || 5000;
     const base = process.env.BASE_URL || `http://localhost:${port}`;
     const url = `${base}/uploads/${req.file.filename}`;
+    console.log("✅ File uploaded successfully:", {
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      url: url
+    });
     return res.json({ url });
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ message: "Failed to store file" });
+    console.error("❌ Local upload error:", e);
+    console.error("Error stack:", e.stack);
+    return res.status(500).json({ 
+      message: "Failed to store file: " + (e.message || "Unknown error"),
+      error: process.env.NODE_ENV === 'development' ? e.message : undefined
+    });
   }
 });
 

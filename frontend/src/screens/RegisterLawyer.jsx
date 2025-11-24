@@ -2,6 +2,7 @@
 import { Eye, EyeOff, Lock, Mail, Scale, User } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
+import { toast } from "../hooks/use-toast.js"
 import { api } from "../shared/api.js"
 
 function RegisterLawyer() {
@@ -69,6 +70,7 @@ function RegisterLawyer() {
     phone: "",
   })
   const [errors, setErrors] = useState({})
+  const [isUploadingLicense, setIsUploadingLicense] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -97,6 +99,26 @@ function RegisterLawyer() {
       if (!formData.firstname.trim()) newErrors.firstname = "First name is required"
       if (!formData.lastname.trim()) newErrors.lastname = "Last name is required"
       if (!formData.username.trim()) newErrors.username = "Username is required"
+      
+      // Lawyer-specific required fields
+      if (!formData.barNumber.trim()) newErrors.barNumber = "Bar Number is required"
+      if (!formData.specialization) newErrors.specialization = "Specialization is required"
+      if (formData.yearsOfExperience === "" || formData.yearsOfExperience === null) {
+        newErrors.yearsOfExperience = "Experience is required"
+      }
+      if (!formData.city) newErrors.city = "City is required"
+      if (!formData.cnicNumber.trim()) newErrors.cnicNumber = "CNIC/ID is required"
+      if (!formData.phone.trim()) {
+        newErrors.phone = "Phone number is required"
+      } else if (formData.phone.length < 10) {
+        newErrors.phone = "Phone number must be at least 10 digits"
+      }
+      // Check if license is uploaded (licenseUrl should be a non-empty string)
+      const hasLicense = formData.licenseUrl && formData.licenseUrl.trim() !== ""
+      const hasLicensesArray = formData.licenses && formData.licenses.length > 0
+      if (!hasLicense && !hasLicensesArray) {
+        newErrors.licenseUrl = "At least one document/license is required"
+      }
     }
     
     if (!formData.email.trim()) {
@@ -148,12 +170,14 @@ function RegisterLawyer() {
         phone: formData.phone,
         city: formData.city,
         cnicNumber: formData.cnicNumber,
+        licenseUrl: formData.licenseUrl,
       }
 
       console.log("Sending lawyer registration data:", lawyerData)
 
       // Make API call to backend
-      const response = await fetch('http://localhost:3000/api/v1/user/register', {
+      const apiBase = import.meta.env?.VITE_API_BASE || 'http://localhost:5000';
+      const response = await fetch(`${apiBase}/api/v1/user/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,6 +188,8 @@ function RegisterLawyer() {
       const result = await response.json();
 
       if (response.ok && result?.user) {
+        // The Lawyer profile should already be created by the register endpoint
+        // But we'll update it with any additional data if needed
         try {
           const lawyerProfileData = {
             userId: result.user?._id || result.user?.id,
@@ -182,7 +208,9 @@ function RegisterLawyer() {
             licenses: formData.licenseUrl ? [{ name: 'license', url: formData.licenseUrl }] : [],
           }
 
-          const profileResponse = await fetch('http://localhost:3000/api/lawyers/profile', {
+          console.log("Updating lawyer profile with data:", lawyerProfileData)
+          const apiBase = import.meta.env?.VITE_API_BASE || 'http://localhost:5000';
+          const profileResponse = await fetch(`${apiBase}/api/v1/lawyers/profile`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -190,17 +218,115 @@ function RegisterLawyer() {
             body: JSON.stringify(lawyerProfileData),
           });
 
+          const profileData = await profileResponse.json();
+          
           if (profileResponse.ok) {
-            alert('Lawyer registration successful! Your profile is pending admin approval. You can now login.');
+            toast({
+              title: "Registration successful",
+              description: "Your profile is pending admin approval. You can now login.",
+            });
+            // Reset form and switch to login tab
+            setFormData({
+              firstname: "",
+              lastname: "",
+              username: "",
+              email: "",
+              password: "",
+              confirmPassword: "",
+              photoUrl: "",
+              specialization: "",
+              yearsOfExperience: "",
+              barNumber: "",
+              firmName: "",
+              phoneCountryCode: "",
+              phone: "",
+              city: "",
+              cnicNumber: "",
+              licenseUrl: "",
+            });
+            setErrors({});
+            setIsRegistering(false);
           } else {
-            alert("User account created but profile creation failed. Please contact support.")
+            // Get error message from response
+            const errorMessage = profileData?.message || profileData?.error?.message || profileData?.error || "Profile creation failed";
+            console.error("Profile creation failed:", profileData);
+            
+            // Check if it's a duplicate bar number error
+            if (errorMessage.includes("Bar Number") && errorMessage.includes("already registered")) {
+              toast({
+                title: "Bar Number already exists",
+                description: errorMessage,
+                variant: "destructive",
+              });
+              setErrors((prev) => ({ ...prev, barNumber: "This bar number is already registered" }));
+              return; // Don't reset form or switch to login
+            }
+            
+            toast({
+              title: "Profile update issue",
+              description: errorMessage || "User account created but profile creation failed. Please contact support.",
+              variant: "destructive",
+            });
           }
         } catch (profileError) {
-          console.error("Profile creation error:", profileError)
-          alert("User account created but profile creation failed. Please contact support.")
+          console.error("Profile creation error (network/exception):", profileError)
+          
+          // Check if it's a network error
+          if (profileError.message?.includes('fetch') || profileError.message?.includes('Failed to fetch')) {
+            toast({
+              title: "Connection error",
+              description: "Cannot connect to server. Please ensure the backend server is running.",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          const profileErrorMessage = profileError.message || profileError.data?.message || ""
+          
+          // Check if it's a duplicate bar number error
+          if (profileErrorMessage.includes("Bar Number") && profileErrorMessage.includes("already registered")) {
+            toast({
+              title: "Bar Number already exists",
+              description: profileErrorMessage || "This bar number is already registered. Please use a different bar number.",
+              variant: "destructive",
+            })
+            setErrors((prev) => ({ ...prev, barNumber: "This bar number is already registered" }))
+            return // Don't reset form or switch to login
+          }
+          
+          // For other errors, the profile might already exist from registration endpoint
+          // So we'll show a success message but note that profile update may have failed
+          console.warn("Profile update failed, but user account was created. Profile may already exist from registration.");
+          toast({
+            title: "Registration successful",
+            description: "Your account has been created. You can now login. If profile update failed, you can update it later.",
+          });
+          
+          // Reset form and switch to login
+          setFormData({
+            firstname: "",
+            lastname: "",
+            username: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+            photoUrl: "",
+            specialization: "",
+            yearsOfExperience: "",
+            barNumber: "",
+            firmName: "",
+            phoneCountryCode: "",
+            phone: "",
+            city: "",
+            cnicNumber: "",
+            licenseUrl: "",
+          });
+          setErrors({});
+          setIsRegistering(false);
+          return;
         }
 
-        // Reset form
+        // Reset form (only reached if profile update was successful)
         setFormData({
           firstname: "",
           lastname: "",
@@ -222,20 +348,49 @@ function RegisterLawyer() {
         // Switch to login mode
         setIsRegistering(false)
       } else {
-        alert(result?.message || "Registration failed. Please try again.")
+        toast({
+          title: "Registration failed",
+          description: result?.message || "Registration failed. Please try again.",
+        })
       }
     } catch (error) {
       console.error("Registration error:", error)
       
+      const errorMessage = error.message || error.data?.message || ""
+      
       // Handle specific error cases
-      if (error.message && error.message.includes("Email already exists")) {
-        alert("This email address is already registered. Please use a different email or try logging in instead.")
-      } else if (error.message && error.message.includes("400")) {
-        alert("Invalid registration data. Please check all fields and try again.")
-      } else if (error.message && error.message.includes("500")) {
-        alert("Server error. Please try again later.")
+      if (errorMessage.includes("Bar Number") && errorMessage.includes("already registered")) {
+        toast({
+          title: "Bar Number already exists",
+          description: errorMessage || "This bar number is already registered. Please use a different bar number or contact support.",
+        })
+        // Set error on barNumber field
+        setErrors((prev) => ({ ...prev, barNumber: "This bar number is already registered" }))
+      } else if (errorMessage.includes("Email already exists") || errorMessage.includes("email already")) {
+        toast({
+          title: "Email already registered",
+          description: "Please use a different email or try logging in instead.",
+        })
+      } else if (errorMessage.includes("Username already exists") || errorMessage.includes("username already")) {
+        toast({
+          title: "Username already taken",
+          description: "Please choose a different username.",
+        })
+      } else if (error.status === 400) {
+        toast({
+          title: "Invalid registration data",
+          description: errorMessage || "Please check all fields and try again.",
+        })
+      } else if (error.status === 500) {
+        toast({
+          title: "Server error",
+          description: "Please try again later.",
+        })
       } else {
-        alert(`Registration failed: ${error.message || "Please check your connection and try again."}`)
+        toast({
+          title: "Registration failed",
+          description: errorMessage || "Please check your connection and try again.",
+        })
       }
     }
   }
@@ -251,11 +406,13 @@ function RegisterLawyer() {
       const loginData = {
         email: formData.email,
         password: formData.password,
+        loginType: 'lawyer' // Specify this is lawyer login
       }
 
       console.log("Sending lawyer login data:", loginData)
 
-      const response = await fetch('http://localhost:3000/api/v1/user/login', {
+      const apiBase = import.meta.env?.VITE_API_BASE || 'http://localhost:5000';
+      const response = await fetch(`${apiBase}/api/v1/user/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -266,17 +423,66 @@ function RegisterLawyer() {
       const result = await response.json();
 
       if (response.ok && result?.token) {
+        // Check userType from response
+        const userType = result.userType || result?.user?.userType || 'lawyer';
+        
+        // Check if non-lawyer is trying to login from lawyer login page
+        if (userType !== 'lawyer' && userType !== 'Lawyer') {
+          toast({
+            title: "Invalid login",
+            description: userType === 'admin' 
+              ? "Admins cannot login from lawyer login page. Please use admin login page."
+              : "Regular users cannot login from lawyer login page. Please use user login page.",
+          })
+          if (userType === 'admin') {
+            navigate('/admin/login')
+          } else {
+            navigate('/user/login')
+          }
+          return;
+        }
+        
         // Store token in localStorage
         localStorage.setItem("token", result.token)
-        localStorage.setItem("userType", result.userType || "lawyer")
-        alert("Login successful!")
+        localStorage.setItem("userType", userType || "lawyer")
+        toast({
+          title: "Login successful",
+          description: "Welcome back! Redirecting to your dashboard...",
+        })
         goToDashboard()
       } else {
-        alert(result.message || "Login failed. Please check your credentials.")
+        toast({
+          title: "Login failed",
+          description: result.message || "Please check your credentials.",
+        })
       }
     } catch (error) {
       console.error("Login error:", error)
-      alert("Network error. Please check your connection and try again.")
+      
+      // Handle different types of errors
+      let errorTitle = "Login failed";
+      let errorDescription = "Please check your connection and try again.";
+      
+      if (error.isNetworkError || error.status === 0) {
+        errorTitle = "Connection Error";
+        errorDescription = "Cannot connect to server. Please ensure the backend server is running on http://localhost:5000";
+      } else if (error.status === 401) {
+        errorTitle = "Invalid Credentials";
+        errorDescription = error.message || "Email or password is incorrect. Please try again.";
+      } else if (error.status === 400) {
+        errorTitle = "Invalid Request";
+        errorDescription = error.message || "Please check your email and password format.";
+      } else if (error.status === 500) {
+        errorTitle = "Server Error";
+        errorDescription = "Server encountered an error. Please try again later.";
+      } else if (error.message) {
+        errorDescription = error.message;
+      }
+      
+      toast({
+        title: errorTitle,
+        description: errorDescription,
+      })
     }
   }
   return (
@@ -360,6 +566,7 @@ function RegisterLawyer() {
                     <option key={sp} value={sp}>{sp}</option>
                   ))}
                 </select>
+                {errors.specialization && <p className="mt-1 text-sm text-red-600">{errors.specialization}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Experience (in years)</label>
@@ -371,10 +578,12 @@ function RegisterLawyer() {
                     errors.yearsOfExperience ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-lightbrown"
                   }`}
                 >
+                  <option value="" disabled>Select experience</option>
                   {experienceYears.map((yr) => (
                     <option key={yr} value={yr}>{yr} {yr === 1 ? 'year' : 'years'}</option>
                   ))}
                 </select>
+                {errors.yearsOfExperience && <p className="mt-1 text-sm text-red-600">{errors.yearsOfExperience}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Bar Council Registration Number</label>
@@ -392,6 +601,7 @@ function RegisterLawyer() {
                   }`}
                   placeholder="13-digit number"
                 />
+                {errors.barNumber && <p className="mt-1 text-sm text-red-600">{errors.barNumber}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Law Firm / Office Name</label>
@@ -421,6 +631,7 @@ function RegisterLawyer() {
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
+                {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
@@ -451,6 +662,7 @@ function RegisterLawyer() {
                     placeholder="3001234567 (11 digits)"
                   />
                 </div>
+                {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">CNIC / ID Number</label>
@@ -468,39 +680,130 @@ function RegisterLawyer() {
                   }`}
                   placeholder="13-digit number"
                 />
+                {errors.cnicNumber && <p className="mt-1 text-sm text-red-600">{errors.cnicNumber}</p>}
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">License / Certificate Upload</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">License / Certificate Upload <span className="text-red-600">*</span></label>
                 <input
                   type="file"
                   accept="image/*,application/pdf"
                   onChange={async (e) => {
                     const file = e.target.files?.[0]
-                    if (!file) return
+                    if (!file) {
+                      // Clear licenseUrl if file is removed
+                      setFormData((prev) => ({ ...prev, licenseUrl: "" }))
+                      setErrors((prev) => {
+                        const newErrors = { ...prev }
+                        delete newErrors.licenseUrl
+                        return newErrors
+                      })
+                      setIsUploadingLicense(false)
+                      return
+                    }
+                    
+                    setIsUploadingLicense(true)
+                    // Clear any previous errors immediately
+                    setErrors((prev) => {
+                      const newErrors = { ...prev }
+                      delete newErrors.licenseUrl
+                      return newErrors
+                    })
+                    
                     try {
-                      // reuse ImageKit upload flow
-                      const { data: sig } = await api.get('/user/imagekit-auth')
-                      const form = new FormData()
-                      form.append('file', file)
-                      form.append('publicKey', sig.publicKey)
-                      form.append('signature', sig.signature)
-                      form.append('expire', sig.expire)
-                      form.append('token', sig.token)
-                      form.append('fileName', file.name)
-                      const folder = (import.meta.env.VITE_IMAGEKIT_FOLDER || 'lawyer-licenses').replace(/^\/+/, '')
-                      form.append('folder', folder)
-                      form.append('useUniqueFileName', 'true')
-                      const uploadUrl = 'https://upload.imagekit.io/api/v1/files/upload'
-                      const resp = await fetch(uploadUrl, { method: 'POST', body: form })
-                      const json = await resp.json()
-                      if (!resp.ok || !json?.url) throw new Error(json?.message || 'Upload failed')
-                      setFormData((prev) => ({ ...prev, licenseUrl: json.url }))
+                      // Try ImageKit upload first
+                      try {
+                        const { data: sig } = await api.get('/user/imagekit-auth')
+                        if (!sig || !sig.signature) {
+                          throw new Error('ImageKit authentication failed')
+                        }
+                        const form = new FormData()
+                        form.append('file', file)
+                        form.append('publicKey', sig.publicKey)
+                        form.append('signature', sig.signature)
+                        form.append('expire', sig.expire)
+                        form.append('token', sig.token)
+                        form.append('fileName', file.name)
+                        const folder = (import.meta.env.VITE_IMAGEKIT_FOLDER || 'lawyer-licenses').replace(/^\/+/, '')
+                        form.append('folder', folder)
+                        form.append('useUniqueFileName', 'true')
+                        const uploadUrl = 'https://upload.imagekit.io/api/v1/files/upload'
+                        const resp = await fetch(uploadUrl, { method: 'POST', body: form })
+                        const json = await resp.json()
+                        if (!resp.ok || !json?.url) {
+                          throw new Error(json?.message || json?.error || 'ImageKit upload failed')
+                        }
+                        setFormData((prev) => ({ ...prev, licenseUrl: json.url }))
+                        console.log("✅ License uploaded to ImageKit:", json.url)
+                        setIsUploadingLicense(false)
+                      } catch (imageKitError) {
+                        console.log("ImageKit upload failed, trying local upload:", imageKitError)
+                        // Fallback to local upload
+                        try {
+                          const localForm = new FormData()
+                          localForm.append('file', file)
+                          // Use consistent API base URL
+                          const apiBase = (import.meta.env?.VITE_API_BASE || 'http://localhost:5000').replace(/\/$/, '')
+                          const uploadUrl = `${apiBase}/api/v1/user/upload-local`
+                          console.log("🔄 Attempting local upload to:", uploadUrl)
+                          
+                          const localResp = await fetch(uploadUrl, {
+                            method: 'POST',
+                            body: localForm,
+                            credentials: 'include',
+                            headers: {
+                              // Don't set Content-Type - let browser set it with boundary for multipart/form-data
+                              ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
+                            }
+                          })
+                          
+                          if (!localResp.ok) {
+                            const errorText = await localResp.text()
+                            let errorData
+                            try {
+                              errorData = JSON.parse(errorText)
+                            } catch {
+                              errorData = { message: errorText || `HTTP ${localResp.status}: ${localResp.statusText}` }
+                            }
+                            throw new Error(errorData.message || `Upload failed with status ${localResp.status}`)
+                          }
+                          
+                          const localData = await localResp.json()
+                          if (localData?.url) {
+                            setFormData((prev) => ({ ...prev, licenseUrl: localData.url }))
+                            console.log("✅ License uploaded locally:", localData.url)
+                            setIsUploadingLicense(false)
+                          } else {
+                            throw new Error('Local upload returned no URL in response')
+                          }
+                        } catch (localError) {
+                          console.error("❌ Local upload error:", localError)
+                          const errorMsg = localError.message || 'Upload failed'
+                          // Check if it's a network error
+                          if (localError.message?.includes('fetch') || localError.message?.includes('Failed to fetch')) {
+                            throw new Error(`Cannot connect to server. Please ensure the backend server is running on ${import.meta.env?.VITE_API_BASE || 'http://localhost:5000'}`)
+                          }
+                          throw new Error(`Both ImageKit and local upload failed. ${errorMsg}`)
+                        }
+                      }
                     } catch (err) {
-                      alert('License upload failed')
+                      console.error("License upload error:", err)
+                      const errorMessage = err.message || "Failed to upload license. Please try again."
+                      setErrors((prev) => ({ ...prev, licenseUrl: errorMessage }))
+                      setFormData((prev) => ({ ...prev, licenseUrl: "" }))
+                      setIsUploadingLicense(false)
                     }
                   }}
                   className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-lightbrown/10 file:text-lightbrown hover:file:bg-lightbrown/20"
                 />
+                {isUploadingLicense && (
+                  <p className="mt-1 text-sm text-blue-600">⏳ Uploading license...</p>
+                )}
+                {errors.licenseUrl && !isUploadingLicense && (
+                  <p className="mt-1 text-sm text-red-600">{errors.licenseUrl}</p>
+                )}
+                {formData.licenseUrl && !isUploadingLicense && (
+                  <p className="mt-1 text-sm text-green-600">✓ License uploaded successfully</p>
+                )}
                 </div>
               </div>
             )}
@@ -581,31 +884,63 @@ function RegisterLawyer() {
 
                           if (!disableFallback) {
                             console.log("[v0] Attempting local upload fallback...")
-                            const formLocal = new FormData()
-                            formLocal.append("file", file)
-                            const apiBase = (import.meta.env?.VITE_API_BASE || "http://localhost:5000").replace(
-                              /\/$/,
-                              "",
-                            )
-                            const respLocal = await fetch(`${apiBase}/api/v1/user/upload-local`, {
-                              method: "POST",
-                              body: formLocal,
-                            })
+                            try {
+                              const formLocal = new FormData()
+                              formLocal.append("file", file)
+                              const apiBase = (import.meta.env?.VITE_API_BASE || "http://localhost:5000").replace(
+                                /\/$/, 
+                                "",
+                              )
+                              const uploadUrl = `${apiBase}/api/v1/user/upload-local`
+                              console.log("[v0] Uploading to:", uploadUrl)
+                              
+                              const respLocal = await fetch(uploadUrl, {
+                                method: "POST",
+                                body: formLocal,
+                                credentials: 'include',
+                                headers: {
+                                  ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
+                                }
+                              })
 
-                            console.log("[v0] Local upload response status:", respLocal.status)
-                            const jsonLocal = await respLocal.json()
-                            console.log("[v0] Local upload response:", jsonLocal)
+                              console.log("[v0] Local upload response status:", respLocal.status)
+                              
+                              if (!respLocal.ok) {
+                                const errorText = await respLocal.text()
+                                let errorData
+                                try {
+                                  errorData = JSON.parse(errorText)
+                                } catch {
+                                  errorData = { message: errorText || `HTTP ${respLocal.status}: ${respLocal.statusText}` }
+                                }
+                                throw new Error(errorData.message || `Upload failed with status ${respLocal.status}`)
+                              }
+                              
+                              const jsonLocal = await respLocal.json()
+                              console.log("[v0] Local upload response:", jsonLocal)
 
-                            if (jsonLocal?.url) {
-                              uploadedUrl = jsonLocal.url
-                              console.log("[v0] Local upload successful:", uploadedUrl)
+                              if (jsonLocal?.url) {
+                                uploadedUrl = jsonLocal.url
+                                console.log("[v0] Local upload successful:", uploadedUrl)
+                              } else {
+                                throw new Error('Local upload returned no URL in response')
+                              }
+                            } catch (localErr) {
+                              console.error("[v0] Local upload error:", localErr)
+                              if (localErr.message?.includes('fetch') || localErr.message?.includes('Failed to fetch')) {
+                                throw new Error(`Cannot connect to server. Please ensure the backend server is running on ${import.meta.env?.VITE_API_BASE || 'http://localhost:5000'}`)
+                              }
+                              throw localErr
                             }
                           } else {
                             const msg =
                               _ikErr && _ikErr.message
                                 ? _ikErr.message
                                 : "Network or CORS error while uploading to ImageKit"
-                            alert(`ImageKit upload failed: ${msg}`)
+                            toast({
+                              title: "ImageKit upload failed",
+                              description: msg,
+                            })
                             throw _ikErr
                           }
                         }
@@ -613,22 +948,27 @@ function RegisterLawyer() {
                         if (uploadedUrl) {
                           console.log("[v0] Setting photoUrl:", uploadedUrl)
                           setFormData((prev) => ({ ...prev, photoUrl: uploadedUrl }))
-                          alert("Image uploaded successfully!")
+                          // Image uploaded successfully - no alert needed
                     } else {
                           console.error("[v0] No URL returned from upload")
-                          alert(
-                            "Failed to upload image. Please verify ImageKit keys and endpoint, or use local fallback.",
-                          )
+                          toast({
+                            title: "Image upload failed",
+                            description: "Please verify ImageKit keys and endpoint, or use local fallback.",
+                          })
                     }
                   } catch (err) {
                         console.error("[v0] Image upload error:", err)
                         const message = err?.message || ""
                         if (message?.toLowerCase().includes("not configured")) {
-                          alert(
-                            "Image upload failed: ImageKit is not configured on the server. Please set IMAGEKIT_* env vars and restart the server.",
-                          )
+                          toast({
+                            title: "Image upload failed",
+                            description: "ImageKit is not configured on the server. Please set IMAGEKIT_* env vars and restart the server.",
+                          })
                         } else {
-                          alert(`Image upload failed: ${message}`)
+                          toast({
+                            title: "Image upload failed",
+                            description: message || "Unknown error occurred.",
+                          })
                         }
                   }
                 }}

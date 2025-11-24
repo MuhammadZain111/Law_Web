@@ -266,7 +266,10 @@ export const listAppointments = async (req, res) => {
     console.log('📋 Sample appointment data:', appointments[0] ? {
       clientName: appointments[0].clientName,
       documents: appointments[0].documents,
-      documentFiles: appointments[0].documentFiles?.length || 0
+      documentFiles: appointments[0].documentFiles?.length || 0,
+      hasPaymentScreenshotFile: !!appointments[0].paymentScreenshotFile,
+      hasPaymentScreenshot: !!appointments[0].paymentScreenshot,
+      paymentScreenshotFile: appointments[0].paymentScreenshotFile
     } : 'No appointments');
 
     res.json({ 

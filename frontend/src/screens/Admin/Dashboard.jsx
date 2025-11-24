@@ -419,8 +419,13 @@ export default function Dashboard() {
                                   className="bg-green-600 hover:bg-green-700"
                                   onClick={async () => {
                                     try {
-                                      const id = l._id || l.id
-                                      if (!id) return
+                                      // Use userId (User ID) for approval, not Lawyer profile ID
+                                      const id = l.userId || l._id || l.id
+                                      if (!id) {
+                                        alert('Error: User ID not found')
+                                        return
+                                      }
+                                      console.log('Approving lawyer with User ID:', id)
                                       await api.post(`/lawyers/${id}/approve`)
                                       const [approved, pending] = await Promise.all([
                                         api.get('/lawyers?status=approved'),

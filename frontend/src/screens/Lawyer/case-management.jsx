@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -21,27 +21,157 @@ import {
   Download,
   AlertCircle,
 } from "lucide-react";
-
-const mockCases = [
-  { id: "1", caseNumber: "2024-001", title: "Mitchell vs. Mitchell - Divorce Proceedings", clientName: "Sarah Mitchell", clientEmail: "sarah.mitchell@email.com", clientPhone: "(555) 123-4567", caseType: "Family Law", status: "in-progress", priority: "high", createdDate: "2024-01-05", lastUpdated: "2024-01-12", nextCourtDate: "2024-01-25", description: "Divorce proceedings involving asset division and child custody arrangements.", estimatedValue: "$50,000", documents: [{ id: "1", name: "Divorce Petition.pdf", type: "PDF", uploadDate: "2024-01-05", size: "2.3 MB" }, { id: "2", name: "Financial Disclosure.xlsx", type: "Excel", uploadDate: "2024-01-08", size: "1.1 MB" }], notes: [{ id: "1", content: "Initial consultation completed. Client wants to proceed with divorce.", createdAt: "2024-01-05", createdBy: "Attorney Johnson" }, { id: "2", content: "Filed divorce petition with court. Awaiting response from opposing counsel.", createdAt: "2024-01-08", createdBy: "Attorney Johnson" }] },
-  { id: "2", caseNumber: "2024-002", title: "Chen Industries - Contract Dispute", clientName: "Robert Chen", clientEmail: "robert.chen@email.com", clientPhone: "(555) 234-5678", caseType: "Business Law", status: "in-progress", priority: "medium", createdDate: "2024-01-08", lastUpdated: "2024-01-14", description: "Contract dispute regarding breach of service agreement with vendor.", estimatedValue: "$25,000", documents: [{ id: "3", name: "Service Agreement.pdf", type: "PDF", uploadDate: "2024-01-08", size: "1.8 MB" }, { id: "4", name: "Email Correspondence.pdf", type: "PDF", uploadDate: "2024-01-10", size: "3.2 MB" }], notes: [{ id: "3", content: "Reviewed service agreement. Clear breach of contract by vendor.", createdAt: "2024-01-08", createdBy: "Attorney Johnson" }, { id: "4", content: "Sent demand letter to vendor. 30-day response period.", createdAt: "2024-01-12", createdBy: "Attorney Johnson" }] },
-  { id: "3", caseNumber: "2024-003", title: "Rodriguez Property Purchase", clientName: "Maria Rodriguez", clientEmail: "maria.rodriguez@email.com", clientPhone: "(555) 345-6789", caseType: "Real Estate", status: "completed", priority: "low", createdDate: "2024-01-03", lastUpdated: "2024-01-15", description: "Real estate transaction for residential property purchase.", estimatedValue: "$15,000", documents: [{ id: "5", name: "Purchase Agreement.pdf", type: "PDF", uploadDate: "2024-01-03", size: "2.1 MB" }, { id: "6", name: "Title Report.pdf", type: "PDF", uploadDate: "2024-01-10", size: "4.5 MB" }], notes: [{ id: "5", content: "Purchase agreement reviewed and approved.", createdAt: "2024-01-03", createdBy: "Attorney Johnson" }, { id: "6", content: "Closing completed successfully. All documents filed.", createdAt: "2024-01-15", createdBy: "Attorney Johnson" }] },
-];
+import { api } from '@/shared/api';
+import { toast } from '../../hooks/use-toast.js';
 
 export function CaseManagement() {
-  const [cases, setCases] = useState(mockCases);
+  const [cases, setCases] = useState([]);
   const [selectedCase, setSelectedCase] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [newNote, setNewNote] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [downloadingFile, setDownloadingFile] = useState(null);
+  const fileInputRef = useRef(null);
 
-  const handleStatusUpdate = (caseId, newStatus) => {
-    const today = new Date().toISOString().split("T")[0];
-    setCases((prev) =>
-      prev.map((c) =>
-        c.id === caseId ? { ...c, status: newStatus, lastUpdated: today } : c
-      )
-    );
+  // Fetch appointments and convert them to cases
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/appointments/');
+        const appointments = response?.data?.appointments || [];
+        
+        console.log('📋 Fetched appointments for cases:', appointments.length);
+        
+        // Convert appointments to cases format
+        const convertedCases = appointments.map((apt, index) => {
+          const appointmentDate = apt.appointmentDate ? new Date(apt.appointmentDate) : new Date(apt.createdAt || Date.now());
+          const createdDate = apt.createdAt ? new Date(apt.createdAt).toISOString().split('T')[0] : appointmentDate.toISOString().split('T')[0];
+          
+          // Map caseStatus to our status format
+          let status = 'in-progress';
+          if (apt.caseStatus) {
+            const caseStatus = apt.caseStatus.toLowerCase();
+            if (caseStatus === 'completed' || caseStatus === 'closed') {
+              status = 'completed';
+            } else if (caseStatus === 'new' || caseStatus === 'pending') {
+              status = 'new';
+            } else if (caseStatus === 'postponed' || caseStatus === 'cancelled') {
+              status = 'postponed';
+            }
+          } else if (apt.status) {
+            const aptStatus = apt.status.toLowerCase();
+            if (aptStatus === 'completed') {
+              status = 'completed';
+            } else if (aptStatus === 'rejected' || aptStatus === 'cancelled') {
+              status = 'postponed';
+            }
+          }
+          
+          // Map urgency to priority
+          let priority = 'medium';
+          if (apt.urgency) {
+            const urgency = apt.urgency.toLowerCase();
+            if (urgency === 'high' || urgency === 'urgent') {
+              priority = 'high';
+            } else if (urgency === 'low' || urgency === 'normal') {
+              priority = 'low';
+            }
+          }
+          
+          // Extract documents from appointment
+          const documents = [];
+          if (apt.documentFiles && Array.isArray(apt.documentFiles)) {
+            apt.documentFiles.forEach((file, idx) => {
+              documents.push({
+                id: `${apt._id}-doc-${idx}`,
+                name: file.name || 'Document',
+                type: file.type?.split('/')[1]?.toUpperCase() || 'FILE',
+                uploadDate: createdDate,
+                size: file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
+                url: file.url || null // Include URL for viewing/downloading
+              });
+            });
+          }
+          
+          // Create case title from client name and case type
+          const caseTitle = `${apt.clientName || 'Client'} - ${apt.caseType || 'Legal Case'}`;
+          
+          return {
+            id: apt._id || `case-${index}`,
+            caseNumber: `CASE-${String(apt._id || index).slice(-6).toUpperCase()}`,
+            title: caseTitle,
+            clientName: apt.clientName || apt.clientId?.firstname || 'Unknown Client',
+            clientEmail: apt.clientEmail || apt.clientId?.email || '',
+            clientPhone: apt.clientPhone || '',
+            caseType: apt.caseType || 'General',
+            status: status,
+            priority: priority,
+            createdDate: createdDate,
+            lastUpdated: apt.updatedAt ? new Date(apt.updatedAt).toISOString().split('T')[0] : createdDate,
+            nextCourtDate: apt.appointmentDate ? new Date(apt.appointmentDate).toISOString().split('T')[0] : null,
+            description: apt.caseDescription || apt.description || 'No description available.',
+            estimatedValue: apt.consultationFee ? `PKR ${apt.consultationFee.toLocaleString()}` : 'N/A',
+            documents: documents,
+            notes: [], // Notes can be added later
+            appointmentId: apt._id // Keep reference to original appointment
+          };
+        });
+        
+        setCases(convertedCases);
+        console.log('✅ Converted cases:', convertedCases.length);
+      } catch (error) {
+        console.error('❌ Error fetching cases:', error);
+        setCases([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCases();
+  }, []);
+
+  const handleStatusUpdate = async (caseId, newStatus) => {
+    try {
+      const caseToUpdate = cases.find(c => c.id === caseId);
+      if (!caseToUpdate?.appointmentId) {
+        // If no appointmentId, just update locally
+        const today = new Date().toISOString().split("T")[0];
+        setCases((prev) =>
+          prev.map((c) =>
+            c.id === caseId ? { ...c, status: newStatus, lastUpdated: today } : c
+          )
+        );
+        return;
+      }
+      
+      // Map our status to caseStatus
+      let caseStatus = 'In Progress';
+      if (newStatus === 'completed') {
+        caseStatus = 'Completed';
+      } else if (newStatus === 'new') {
+        caseStatus = 'New';
+      } else if (newStatus === 'postponed') {
+        caseStatus = 'Postponed';
+      }
+      
+      // Update appointment caseStatus via API
+      await api.patch(`/appointments/${caseToUpdate.appointmentId}`, {
+        caseStatus: caseStatus
+      });
+      
+      const today = new Date().toISOString().split("T")[0];
+      setCases((prev) =>
+        prev.map((c) =>
+          c.id === caseId ? { ...c, status: newStatus, lastUpdated: today } : c
+        )
+      );
+    } catch (error) {
+      console.error('❌ Error updating case status:', error);
+      alert('Failed to update case status. Please try again.');
+    }
   };
 
   const handleAddNote = (caseId) => {
@@ -55,6 +185,141 @@ export function CaseManagement() {
       )
     );
     setNewNote("");
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedCase) return;
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: `${file.name} is too large. Maximum size is 10MB.`,
+      });
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      // Upload file to backend
+      const formData = new FormData();
+      formData.append('file', file);
+      const apiBase = (import.meta.env?.VITE_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
+      const response = await fetch(`${apiBase}/api/v1/user/upload-local`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        headers: {
+          ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data?.url) {
+        throw new Error(data?.message || 'Upload failed');
+      }
+
+      // Add file to selected case
+      const newDoc = {
+        id: Date.now().toString(),
+        name: file.name,
+        type: file.type?.split('/')[1]?.toUpperCase() || 'FILE',
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        uploadDate: new Date().toISOString().split('T')[0],
+        url: data.url
+      };
+
+      setCases((prev) =>
+        prev.map((c) =>
+          c.id === selectedCase.id
+            ? { ...c, documents: [...(c.documents || []), newDoc], lastUpdated: new Date().toISOString().split("T")[0] }
+            : c
+        )
+      );
+
+      // Update selected case
+      setSelectedCase((prev) => ({
+        ...prev,
+        documents: [...(prev?.documents || []), newDoc]
+      }));
+
+      toast({
+        title: "Upload successful",
+        description: `File ${file.name} uploaded successfully!`,
+      });
+    } catch (error) {
+      console.error('❌ File upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: `Failed to upload ${file.name}: ${error.message}`,
+      });
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Handle file view
+  const handleViewFile = (file) => {
+    if (file.url) {
+      window.open(file.url, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        title: "File not available",
+        description: "File URL is not available for viewing.",
+      });
+    }
+  };
+
+  // Handle file download
+  const handleDownloadFile = async (file) => {
+    if (!file.url) {
+      toast({
+        title: "File not available",
+        description: "File URL is not available for download.",
+      });
+      return;
+    }
+
+    setDownloadingFile(file.name);
+    try {
+      const response = await fetch(file.url);
+      if (response.ok) {
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = file.name;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        window.URL.revokeObjectURL(downloadUrl);
+        
+        toast({
+          title: "Download successful",
+          description: `File ${file.name} downloaded successfully!`,
+        });
+      } else {
+        throw new Error('Failed to download file');
+      }
+    } catch (error) {
+      console.error('❌ Download error:', error);
+      // Fallback: open in new tab
+      window.open(file.url, '_blank', 'noopener,noreferrer');
+      toast({
+        title: "Download initiated",
+        description: `File ${file.name} opened in new tab.`,
+      });
+    } finally {
+      setDownloadingFile(null);
+    }
   };
 
   const filteredCases = cases.filter((c) => {
@@ -157,50 +422,54 @@ export function CaseManagement() {
             <CardTitle className="font-serif">Cases</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {filteredCases.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No cases found matching your criteria.</div>
-              ) : (
-                filteredCases.map((c) => (
-                  <div
-                    key={c.id}
-                    onClick={() => setSelectedCase(c)}
-                    className={`p-4 border border-border rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
-                      selectedCase?.id === c.id ? "bg-muted/50 border-primary" : ""
-                    }`}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-medium">{c.title}</h3>
-                          <p className="text-sm text-muted-foreground">Case #{c.caseNumber}</p>
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading cases...</div>
+            ) : (
+              <div className="space-y-4">
+                {filteredCases.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No cases found matching your criteria.</div>
+                ) : (
+                  filteredCases.map((c) => (
+                    <div
+                      key={c.id}
+                      onClick={() => setSelectedCase(c)}
+                      className={`p-4 border border-border rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
+                        selectedCase?.id === c.id ? "bg-muted/50 border-primary" : ""
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-medium">{c.title}</h3>
+                            <p className="text-sm text-muted-foreground">Case #{c.caseNumber}</p>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            {getStatusBadge(c.status)}
+                            {getPriorityBadge(c.priority)}
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          {getStatusBadge(c.status)}
-                          {getPriorityBadge(c.priority)}
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {c.clientName}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {c.createdDate}
+                          </span>
                         </div>
+                        {c.nextCourtDate && (
+                          <div className="flex items-center gap-1 text-sm text-primary">
+                            <Clock className="h-3 w-3" />
+                            Next court date: {c.nextCourtDate}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {c.clientName}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {c.createdDate}
-                        </span>
-                      </div>
-                      {c.nextCourtDate && (
-                        <div className="flex items-center gap-1 text-sm text-primary">
-                          <Clock className="h-3 w-3" />
-                          Next court date: {c.nextCourtDate}
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -274,26 +543,75 @@ export function CaseManagement() {
                 <TabsContent value="documents" className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">Case Documents</h3>
-                    <Button size="sm" variant="outline">
-                      <Upload className="h-4 w-4 mr-2" /> Upload
-                    </Button>
+                    <div>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        accept="image/*,application/pdf,.doc,.docx,.txt"
+                        disabled={uploadingFile}
+                      />
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingFile}
+                      >
+                        {uploadingFile ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2"></div>
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" /> Upload
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    {selectedCase.documents.map((doc) => (
-                      <div key={doc.id} className="p-3 border border-border rounded-lg flex justify-between">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">{doc.name}</p>
-                            <p className="text-xs text-muted-foreground">{`${doc.type} • ${doc.size} • ${doc.uploadDate}`}</p>
+                    {selectedCase.documents && selectedCase.documents.length > 0 ? (
+                      selectedCase.documents.map((doc) => (
+                        <div key={doc.id} className="p-3 border border-border rounded-lg flex justify-between">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{doc.name}</p>
+                              <p className="text-xs text-muted-foreground">{`${doc.type} • ${doc.size} • ${doc.uploadDate}`}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => handleViewFile(doc)}
+                              title="View file"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => handleDownloadFile(doc)}
+                              disabled={downloadingFile === doc.name}
+                              title="Download file"
+                            >
+                              {downloadingFile === doc.name ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="ghost"><Eye className="h-4 w-4" /></Button>
-                          <Button size="sm" variant="ghost"><Download className="h-4 w-4" /></Button>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground text-sm">
+                        No documents uploaded yet. Click Upload to add documents.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </TabsContent>
 

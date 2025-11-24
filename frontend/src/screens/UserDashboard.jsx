@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io as socketIO } from 'socket.io-client';
 import { toast } from '../hooks/use-toast.js';
 import { api } from '../shared/api.js';
+import LiveChat from './Lawyer/live-chat.jsx';
 
 export default function UserDashboard() {
   const navigate = useNavigate();
@@ -14,9 +15,80 @@ export default function UserDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const NOTIF_KEY = 'userNotifications';
 
+  // Memoize fetchUserProfile to prevent recreation on every render
+  // Note: navigate from react-router-dom is stable, but we'll use it directly to avoid dependency issues
+  
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      // Check userType from localStorage first
+      const userType = localStorage.getItem('userType');
+      if (userType === 'lawyer' || userType === 'Lawyer') {
+        console.log('❌ Lawyer trying to access user dashboard - redirecting');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userType');
+        toast({
+          title: "Access Denied",
+          description: "Lawyers cannot access user dashboard. Please use lawyer login.",
+          variant: "destructive",
+        });
+        navigate('/lawyer/login');
+        return;
+      }
+
+      const response = await api.get('/user/profile');
+      const userData = response.data?.user || response.data;
+      console.log('🔍 User profile data:', userData);
+      
+      // Double check userType from API response
+      const apiUserType = userData?.userType || userData?.role;
+      if (apiUserType === 'lawyer' || apiUserType === 'Lawyer') {
+        console.log('❌ API returned lawyer user - redirecting');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userType');
+        toast({
+          title: "Access Denied",
+          description: "Lawyers cannot access user dashboard. Please use lawyer login.",
+          variant: "destructive",
+        });
+        navigate('/lawyer/login');
+        return;
+      }
+      
+      setUser(userData);
+      
+      // Try to link any existing appointments to this user
+      try {
+        const linkResponse = await api.post('/appointments/link-to-user');
+        if (linkResponse.data?.linkedCount > 0) {
+          console.log(`🔗 Linked ${linkResponse.data.linkedCount} appointments to user`);
+          // Trigger a refresh of appointments if any were linked
+          window.dispatchEvent(new Event('appt:refetch'));
+        }
+      } catch (linkError) {
+        console.log('🔗 No appointments to link or error linking:', linkError.message);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        navigate('/login');
+      }
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // navigate is stable from react-router-dom, so we can safely omit it
+
   useEffect(() => {
     fetchUserProfile();
-  }, []);
+  }, [fetchUserProfile]);
 
   // Realtime via socket
   useEffect(() => {
@@ -29,13 +101,14 @@ export default function UserDashboard() {
         auth: { userId },
       });
       s.on('appointment:status', (payload) => {
-        setAppointments((prev) => prev.map((a) => (a._id === payload.id || a.id === payload.id ? { ...a, status: payload.status } : a)));
         toast({
           title: `Appointment ${payload.status?.toUpperCase()}`,
           description: `Your appointment status changed to ${payload.status}.`,
         });
         try {
           window.dispatchEvent(new CustomEvent('appt:notify', { detail: { title: 'Status Updated', description: `Appointment ${payload.status}`, time: Date.now() } }));
+          // Trigger appointment refetch
+          window.dispatchEvent(new Event('appt:refetch'));
         } catch (_) {}
       });
       return () => {
@@ -92,30 +165,6 @@ export default function UserDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchUserProfile = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      const response = await api.get('/user/profile');
-      const userData = response.data?.user || response.data;
-      console.log('🔍 User profile data:', userData);
-      setUser(userData);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        navigate('/login');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/');
@@ -127,6 +176,12 @@ export default function UserDashboard() {
         return <UserProfile user={user} onUpdate={fetchUserProfile} />;
       case "appointments":
         return (user?.id || user?._id) ? <UserAppointments userId={user.id || user._id} /> : <div>Loading...</div>;
+      case "chat":
+        return (
+          <div className="w-full" style={{ height: 'calc(100vh - 200px)', minHeight: '600px' }}>
+            <LiveChat />
+          </div>
+        );
       case "settings":
         return <UserSettings user={user} onUpdate={fetchUserProfile} />;
       default:
@@ -288,6 +343,21 @@ export default function UserDashboard() {
                     <span className="text-blue-600">⚖️</span>
                   </div>
                   <span>Find Lawyers</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("chat")}
+                  className={`w-full text-left px-6 py-4 rounded-2xl font-medium transition-all duration-300 flex items-center space-x-3 ${
+                    activeTab === "chat"
+                      ? "bg-gradient-to-r from-gray-600 to-gray-800 text-white shadow-lg transform scale-105"
+                      : "text-gray-700 hover:bg-white/50 hover:shadow-md"
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    activeTab === "chat" ? "bg-white/20" : "bg-green-100"
+                  }`}>
+                    <span className="text-lg">💬</span>
+                  </div>
+                  <span>Messages</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("settings")}

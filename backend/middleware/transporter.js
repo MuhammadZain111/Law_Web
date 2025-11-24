@@ -11,34 +11,50 @@ const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 const SMTP_SECURE = SMTP_PORT === 465;
 
+const hasCredentials = SMTP_USER && SMTP_PASS;
+
 console.log('🔧 SMTP Config:', {
   host: SMTP_HOST,
   port: SMTP_PORT,
   user: SMTP_USER,
   pass: SMTP_PASS ? '***' : 'MISSING',
-  secure: SMTP_SECURE
+  secure: SMTP_SECURE,
+  hasCredentials: hasCredentials
 });
 
-const transporter = nodemailer.createTransport({
+// Only create transporter with auth if credentials are provided
+const transporterConfig = {
   host: SMTP_HOST,
   port: SMTP_PORT,
   secure: SMTP_SECURE,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS,
-  },
   // Helps avoid TLS issues in dev/test; remove if using strict SMTP
   tls: { rejectUnauthorized: false },
-});
+};
 
-// Optional: verify connection on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Email transporter error:", error);
-  } else {
-    console.log(
-      `✅ Email transporter ready (host=${SMTP_HOST}, port=${SMTP_PORT}, secure=${SMTP_SECURE})`);
-  }
-});
+// Only add auth if credentials are provided
+if (hasCredentials) {
+  transporterConfig.auth = {
+    user: SMTP_USER,
+    pass: SMTP_PASS,
+  };
+}
+
+const transporter = nodemailer.createTransport(transporterConfig);
+
+// Only verify connection if credentials are provided
+if (hasCredentials) {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error("❌ Email transporter error:", error.message);
+      console.warn("⚠️  Email functionality will not work. Please set SMTP_USER and SMTP_PASS in .env");
+    } else {
+      console.log(
+        `✅ Email transporter ready (host=${SMTP_HOST}, port=${SMTP_PORT}, secure=${SMTP_SECURE})`);
+    }
+  });
+} else {
+  console.warn("⚠️  Email transporter not configured - SMTP credentials missing.");
+  console.warn("   Email functionality will be disabled. Set SMTP_USER and SMTP_PASS in .env to enable.");
+}
 
 export default transporter;

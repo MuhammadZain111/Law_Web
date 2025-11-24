@@ -179,6 +179,12 @@ function RegisterUser() {
     } catch (error) {
       console.error('Registration error:', error);
       
+      // Handle network errors (connection refused, timeout, etc.)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        alert('Connection Error: Cannot connect to server. Please ensure the backend server is running on http://localhost:5000');
+        return;
+      }
+      
       // Handle specific error cases
       if (error.message && error.message.includes("Email already exists")) {
         alert("This email address is already registered. Please use a different email or try logging in instead.");
@@ -202,7 +208,8 @@ function RegisterUser() {
     try {
       const loginData = {
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        loginType: 'user' // Specify this is user login
       };
 
       console.log('Sending login data:', loginData);
@@ -220,25 +227,63 @@ function RegisterUser() {
       if (response.ok) {
         // Determine role from multiple possible shapes
         const role = (result && (result.userType || result?.user?.userType)) || 'user';
+        
+        console.log('Login response - role:', role, 'result:', result);
+        
+        // STRICT CHECK: Lawyers cannot login from user login page
+        if (role === 'lawyer' || role === 'Lawyer' || result?.user?.userType === 'lawyer') {
+          alert('Lawyers cannot login from user login page. Please use lawyer login page.');
+          // Clear any token that might have been set
+          localStorage.removeItem('token');
+          localStorage.removeItem('userType');
+          navigate('/lawyer/login');
+          return;
+        }
+        
+        // STRICT CHECK: Admins cannot login from user login page
+        if (role === 'admin' || role === 'Admin' || result?.user?.userType === 'admin') {
+          alert('Admins cannot login from user login page. Please use admin login page.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('userType');
+          navigate('/admin/login');
+          return;
+        }
+        
+        // Only allow regular users (userType === 'user' or undefined/null)
+        if (role && role !== 'user' && role !== 'User') {
+          alert(`Invalid user type. Please use the correct login page for ${role}.`);
+          localStorage.removeItem('token');
+          localStorage.removeItem('userType');
+          return;
+        }
+        
         // Store token and role
         localStorage.setItem('token', result.token);
-        localStorage.setItem('userType', role);
+        localStorage.setItem('userType', 'user');
         alert('Login successful!');
         
-        // Redirect based on role
-        if (role === 'lawyer') {
-          navigate('/lawyerDashboard');
-        } else if (role === 'admin') {
-          navigate('/admin');
-        } else {
-          navigate('/');
-        }
+        // Redirect to user dashboard
+        navigate('/userDashboard');
       } else {
         alert(result.message || 'Login failed. Please check your credentials.');
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Network error. Please check your connection and try again.');
+      
+      // Handle network errors (connection refused, timeout, etc.)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        alert('Connection Error: Cannot connect to server. Please ensure the backend server is running on http://localhost:5000');
+        return;
+      }
+      
+      // Handle other errors
+      if (error.message && error.message.includes("401")) {
+        alert('Invalid credentials. Please check your email and password.');
+      } else if (error.message && error.message.includes("400")) {
+        alert('Invalid request. Please check your email and password format.');
+      } else {
+        alert(`Login failed: ${error.message || "Please check your connection and try again."}`);
+      }
     }
   };
 

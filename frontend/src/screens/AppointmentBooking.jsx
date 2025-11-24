@@ -8,6 +8,7 @@ import Label from '../components/common/Label.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/common/Select.jsx';
 import Textarea from '../components/common/TextArea.jsx';
 import { api } from '../shared/api.js';
+import { toast } from '../hooks/use-toast.js';
 
 const APPOINTMENT_TYPES = [
   "Criminal Law",
@@ -244,7 +245,10 @@ export default function AppointmentBooking() {
     for (const file of files) {
       // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+        toast({
+          title: "File too large",
+          description: `${file.name} is too large. Maximum size is 10MB.`,
+        });
         continue;
       }
       
@@ -259,7 +263,10 @@ export default function AppointmentBooking() {
         'text/plain'
       ];
       if (!allowedTypes.includes(file.type)) {
-        alert(`File ${file.name} is not a supported format. Please upload PDF, DOC, DOCX, JPG, PNG, or TXT files.`);
+        toast({
+          title: "Invalid file format",
+          description: `${file.name} is not a supported format. Please upload PDF, DOC, DOCX, JPG, PNG, or TXT files.`,
+        });
         continue;
       }
 
@@ -289,11 +296,17 @@ export default function AppointmentBooking() {
           documentFiles: [...prev.documentFiles, fileWithUrl]
         }));
         
-        alert(`File ${file.name} uploaded successfully!`);
+        toast({
+          title: "Upload successful",
+          description: `File ${file.name} uploaded successfully!`,
+        });
         
       } catch (error) {
         console.error('🔍 Debug - File upload error:', error);
-        alert(`Failed to upload ${file.name}: ${error.message}`);
+        toast({
+          title: "Upload failed",
+          description: `Failed to upload ${file.name}: ${error.message}`,
+        });
       }
     }
   };
@@ -305,7 +318,10 @@ export default function AppointmentBooking() {
 
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+      toast({
+        title: "File too large",
+        description: `${file.name} is too large. Maximum size is 10MB.`,
+      });
       return;
     }
     
@@ -317,7 +333,10 @@ export default function AppointmentBooking() {
       'image/jpg'
     ];
     if (!allowedTypes.includes(file.type)) {
-      alert(`File ${file.name} is not a supported format. Please upload JPG, PNG, or PDF files.`);
+      toast({
+        title: "Invalid file format",
+        description: `${file.name} is not a supported format. Please upload JPG, PNG, or PDF files.`,
+      });
       return;
     }
 
@@ -325,7 +344,60 @@ export default function AppointmentBooking() {
       console.log('🔍 Debug - Uploading payment screenshot to ImageKit:', file.name);
       
       // Get ImageKit authentication
-      const { data: sig } = await api.get('/user/imagekit-auth');
+      let sig;
+      try {
+        const response = await api.get('/user/imagekit-auth');
+        sig = response.data;
+        
+        // Validate signature data
+        if (!sig || !sig.signature || !sig.token || !sig.expire || !sig.publicKey) {
+          throw new Error('Invalid ImageKit authentication response');
+        }
+      } catch (authError) {
+        console.error('🔍 Debug - ImageKit auth error:', authError);
+        // Try fallback to local upload
+        console.log('🔄 Trying local upload fallback...');
+        try {
+          const localForm = new FormData();
+          localForm.append('file', file);
+          const apiBase = (import.meta.env?.VITE_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
+          const localResp = await fetch(`${apiBase}/api/v1/user/upload-local`, {
+            method: 'POST',
+            body: localForm,
+            credentials: 'include',
+            headers: {
+              ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {})
+            }
+          });
+          
+          const localData = await localResp.json();
+          if (!localResp.ok || !localData?.url) {
+            throw new Error(localData?.message || 'Local upload failed');
+          }
+          
+          const fileWithUrl = {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified,
+            url: localData.url
+          };
+          
+          setFormData(prev => ({
+            ...prev,
+            paymentScreenshotFile: fileWithUrl
+          }));
+          
+          toast({
+            title: "Upload successful",
+            description: `Payment screenshot ${file.name} uploaded successfully!`,
+          });
+          return;
+        } catch (localError) {
+          console.error('🔍 Debug - Local upload error:', localError);
+          throw new Error('Failed to upload file. ImageKit is not configured and local upload failed.');
+        }
+      }
       
       // Create form data for ImageKit upload
       const form = new FormData();
@@ -344,7 +416,7 @@ export default function AppointmentBooking() {
       const json = await resp.json();
       
       if (!resp.ok || !json?.url) {
-        throw new Error(json?.message || 'Upload failed');
+        throw new Error(json?.message || json?.error || 'Upload failed');
       }
       
       console.log('🔍 Debug - Payment screenshot upload successful:', json.url);
@@ -363,11 +435,18 @@ export default function AppointmentBooking() {
         paymentScreenshotFile: fileWithUrl
       }));
       
-      alert(`Payment screenshot ${file.name} uploaded successfully!`);
+      toast({
+        title: "Upload successful",
+        description: `Payment screenshot ${file.name} uploaded successfully!`,
+      });
       
-    } catch (fallbackErr) {
-      console.error('🔍 Debug - Payment screenshot upload error:', fallbackErr);
-      alert(`Failed to upload ${file.name}: ${fallbackErr.message}`);
+    } catch (error) {
+      console.error('🔍 Debug - Payment screenshot upload error:', error);
+      const errorMessage = error.message || 'Failed to upload file';
+      toast({
+        title: "Upload failed",
+        description: `Failed to upload ${file.name}: ${errorMessage}`,
+      });
     }
   };
 
@@ -410,7 +489,9 @@ export default function AppointmentBooking() {
         timeSlot: selectedTime,
         consultationFee: Number(formData.consultationFee),
         paymentMethod: formData.paymentMethod,
-        paymentScreenshot: formData.paymentScreenshot,
+        // Send both paymentScreenshot (URL) and paymentScreenshotFile (object with details)
+        paymentScreenshot: formData.paymentScreenshotFile?.url || formData.paymentScreenshot || null,
+        paymentScreenshotFile: formData.paymentScreenshotFile || null,
         // Additional fields
         clientAddress: formData.address,
         clientCity: formData.city,
@@ -437,6 +518,12 @@ export default function AppointmentBooking() {
         }),
         specialRequirements: formData.specialRequirements
       };
+      
+      console.log('🔍 Debug - Sending appointment data with payment screenshot:', {
+        hasPaymentScreenshotFile: !!appointmentData.paymentScreenshotFile,
+        hasPaymentScreenshot: !!appointmentData.paymentScreenshot,
+        paymentScreenshotFile: appointmentData.paymentScreenshotFile
+      });
 
       // Debug: Log the lawyerId and its format
       console.log('🔍 Debug - Lawyer ID from URL:', id);
@@ -548,7 +635,10 @@ export default function AppointmentBooking() {
         errorMessage = `Validation errors: ${fieldErrors}`;
       }
       
-      alert(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }

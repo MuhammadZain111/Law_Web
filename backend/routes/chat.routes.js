@@ -1,34 +1,32 @@
-import express from 'express';
+import { Router } from 'express';
+import auth from '../middleware/auth.js';
 import {
-    getClients,
-    getConversations,
-    getLawyers,
-    getMessages
+  getOrCreateChat,
+  getConversations,
+  getMessages,
+  sendMessage,
+  getAvailableUsers
 } from '../controllers/chatController.js';
-import { requireAuth } from '../middleware/auth.js';
-import { getChatEligibilityStatus, verifyChatEligibility } from '../middleware/chatEligibility.js';
 
-const router = express.Router();
+const router = Router();
 
 // All routes require authentication
-router.use(requireAuth);
+router.use(auth());
 
-// Get all conversations for the current user
+// Get or create chat
+router.post('/chat', getOrCreateChat);
+
+// Get all conversations
 router.get('/conversations', getConversations);
 
-// Get messages between current user and another user (with eligibility check)
-router.get('/messages/:otherUserId', verifyChatEligibility, getMessages);
+// Get messages for a chat
+router.get('/messages/:chatId', getMessages);
 
-// Get all clients for a lawyer
-router.get('/clients', getClients);
+// Send a message
+router.post('/message', sendMessage);
 
-// Get all lawyers for a client
-router.get('/lawyers', getLawyers);
-
-// Check chat eligibility for a specific lawyer (for clients)
-router.get('/eligibility/:lawyerId', getChatEligibilityStatus);
+// Get available users for starting conversation
+router.get('/users', getAvailableUsers);
 
 export default router;
-
-
 

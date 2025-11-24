@@ -3,9 +3,9 @@ import express from "express";
 
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import path from "path";
-import fs from "fs";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
 dotenv.config();
 // import rateLimit from "express-rate-limit";
 import http from "http";
@@ -18,12 +18,14 @@ import { Server as SocketIOServer } from "socket.io";
 // Import routes
 import appointmentRoute from "./routes/appointments.js";
 import authRoutes from "./routes/auth.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
+import chatbotRoutes from "./routes/chatbot.js";
 import lawyerRoutes from "./routes/lawyer.routes.js";
-import userRoute from "./routes/user.route.js";
-import reminderRoutes from "./routes/reminder.routes.js";
 import notificationRoutes from "./routes/notifications.js";
-import { registerSocket } from "./socket.js";
+import reminderRoutes from "./routes/reminder.routes.js";
+import userRoute from "./routes/user.route.js";
 import SchedulerService from "./services/schedulerService.js";
+import { registerSocket } from "./socket.js";
 
 // Load env
 dotenv.config();
@@ -38,7 +40,8 @@ app.use(
     origin: (origin, cb) => cb(null, true),
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["Content-Type"],
   })
 );
 app.options("*", cors());
@@ -64,6 +67,8 @@ app.use("/api/v1/reminders", reminderRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/lawyers", lawyerRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/chatbot", chatbotRoutes);
+app.use("/api/v1", chatRoutes);
 
 // 404 handler
 app.use((_req, _res, next) => next(createError(404, "Not found")));
@@ -94,7 +99,7 @@ const MONGO_URI =
   process.env.MONGODB_URI ||
   process.env.MONGO_URI ||
   "mongodb://127.0.0.1:27017/lawyer_admin";
-let PORT = Number(process.env.PORT) || 3000;
+let PORT = Number(process.env.PORT) || 5000;
 
 // Debug: print which DB URI will be used
 console.log("Attempting to connect to MongoDB at:", MONGO_URI);
