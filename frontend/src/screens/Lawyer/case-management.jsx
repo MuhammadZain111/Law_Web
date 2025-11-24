@@ -15,7 +15,6 @@ import {
   Clock,
   Upload,
   Eye,
-  Plus,
   Search,
   Filter,
   Download,
@@ -349,46 +348,62 @@ export function CaseManagement() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Case Management</h1>
-          <p className="text-muted-foreground">Track and manage your legal cases</p>
-        </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          New Case
-        </Button>
+      <div>
+        <h1 className="text-3xl font-serif font-bold text-foreground">Case Management</h1>
+        <p className="text-muted-foreground">Track and manage your legal cases</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {["in-progress", "completed", "postponed"].map((statusLabel, idx) => (
-          <Card key={statusLabel}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {statusLabel === "in-progress" ? "Active Cases" : statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}
-                  </p>
-                  <p className="text-2xl font-bold">{countByStatus(statusLabel)}</p>
-                </div>
-                {idx === 2 ? (
-                  <AlertCircle className="h-8 w-8 text-secondary" />
-                ) : (
-                  <FileText className="h-8 w-8 text-primary" />
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        <Card>
-          <CardContent className="p-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-l-4 border-l-amber-600 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-amber-50 to-white">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Cases</p>
-                <p className="text-2xl font-bold">{cases.length}</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Active Cases</p>
+                <p className="text-3xl font-bold text-gray-900">{countByStatus("in-progress")}</p>
               </div>
-              <FileText className="h-8 w-8 text-muted-foreground" />
+              <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center shadow-inner">
+                <FileText className="h-6 w-6 text-amber-700" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-amber-500 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-amber-50/80 to-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Completed</p>
+                <p className="text-3xl font-bold text-gray-900">{countByStatus("completed")}</p>
+              </div>
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shadow-inner">
+                <FileText className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-amber-400 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-amber-50/60 to-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Postponed</p>
+                <p className="text-3xl font-bold text-gray-900">{countByStatus("postponed")}</p>
+              </div>
+              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center shadow-inner">
+                <AlertCircle className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-amber-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-amber-50/40 to-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Cases</p>
+                <p className="text-3xl font-bold text-gray-900">{cases.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center shadow-inner">
+                <FileText className="h-6 w-6 text-amber-500" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -398,11 +413,16 @@ export function CaseManagement() {
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search cases by title, client, or case number..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <Input 
+            placeholder="Search cases by title, client, or case number..." 
+            className="pl-10 border-2 border-gray-300 hover:border-amber-500 focus:border-amber-500 shadow-sm hover:shadow-md transition-all duration-200" 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+          />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-40">
-            <Filter className="h-4 w-4 mr-2" />
+          <SelectTrigger className="w-48 border-2 border-gray-300 hover:border-amber-500 focus:border-amber-500 font-medium shadow-sm hover:shadow-md transition-all duration-200">
+            <Filter className="h-4 w-4 mr-2 text-amber-600" />
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -433,35 +453,48 @@ export function CaseManagement() {
                     <div
                       key={c.id}
                       onClick={() => setSelectedCase(c)}
-                      className={`p-4 border border-border rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
-                        selectedCase?.id === c.id ? "bg-muted/50 border-primary" : ""
+                      className={`group p-5 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
+                        selectedCase?.id === c.id 
+                          ? "bg-gradient-to-r from-amber-50 to-amber-100 border-amber-400 shadow-lg" 
+                          : "border-gray-200 hover:border-amber-300 hover:shadow-md bg-white"
                       }`}
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-medium">{c.title}</h3>
-                            <p className="text-sm text-muted-foreground">Case #{c.caseNumber}</p>
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-10 h-10 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center shadow-md">
+                                <FileText className="h-5 w-5 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-gray-900 text-lg">{c.title}</h3>
+                                <p className="text-sm text-gray-500 mt-0.5">Case #{c.caseNumber}</p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-2">
                             {getStatusBadge(c.status)}
                             {getPriorityBadge(c.priority)}
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {c.clientName}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {c.createdDate}
-                          </span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <User className="h-4 w-4 text-gray-600" />
+                            </div>
+                            <span className="font-medium">{c.clientName}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Calendar className="h-4 w-4 text-gray-600" />
+                            </div>
+                            <span className="font-medium">{c.createdDate}</span>
+                          </div>
                         </div>
                         {c.nextCourtDate && (
-                          <div className="flex items-center gap-1 text-sm text-primary">
-                            <Clock className="h-3 w-3" />
-                            Next court date: {c.nextCourtDate}
+                          <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border-l-4 border-l-amber-500">
+                            <Clock className="h-4 w-4 text-amber-600" />
+                            <span className="text-sm font-medium text-amber-700">Next court date: {c.nextCourtDate}</span>
                           </div>
                         )}
                       </div>

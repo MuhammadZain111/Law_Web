@@ -233,6 +233,7 @@ export const listAppointments = async (req, res) => {
     const q = {};
     const userId = req.user.userId || req.user.id; // Handle both userId and id
     const userRole = req.user.role || req.user.userType; // Handle both role and userType
+    const normalizedRole = (userRole || "").toLowerCase();
     
     console.log('🔍 listAppointments - User info:', {
       userId,
@@ -241,8 +242,10 @@ export const listAppointments = async (req, res) => {
     });
     
     // Treat normal portal users/clients and also match by email for legacy rows
-    if (userRole === "lawyer") {
+    if (normalizedRole === "lawyer") {
       q.lawyerId = userId;
+    } else if (normalizedRole === "admin") {
+      // admins can see all appointments; leave query empty
     } else {
       // fetch user email for fallback
       let userEmail;
@@ -260,7 +263,7 @@ export const listAppointments = async (req, res) => {
     const appointments = await Appointment.find(q)
       .populate("clientId", "firstname lastname email photoUrl")
       .populate("lawyerId", "firstname lastname email photoUrl")
-      .sort({ appointmentDate: -1, createdAt: -1 });
+      .sort({ createdAt: -1 }); // Sort by creation date (newest first)
 
     console.log('📋 Returning appointments:', appointments.length, 'appointments');
     console.log('📋 Sample appointment data:', appointments[0] ? {
@@ -416,7 +419,64 @@ export const cancelAppointment = async (req, res) => {
   return updateAppointmentStatus(req, res);
 };
 
-// Get all lawyers (simple)
+// Update payment status
+export const updatePaymentStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentStatus } = req.body;
+    const allowed = ["unpaid", "paid", "refunded"];
+
+    if (!allowed.includes(paymentStatus)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid payment status. Allowed: unpaid, paid, refunded" 
+      });
+    }
+
+    const appt = await Appointment.findById(id);
+    if (!appt) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Appointment not found" 
+      });
+    }
+
+    const userId = req.user.userId || req.user.id;
+    const userRole = req.user.role || req.user.userType;
+    
+    // Only lawyer can update payment status
+    if (userRole !== "lawyer" && userRole !== "Lawyer") {
+      return res.status(403).json({ 
+        success: false,
+        message: "Only lawyers can update payment status" 
+      });
+    }
+
+    if (appt.lawyerId.toString() !== userId) {
+      return res.status(403).json({ 
+        success: false,
+        message: "You can only update payment status for your own appointments" 
+      });
+    }
+
+    appt.paymentStatus = paymentStatus;
+    await appt.save();
+
+    res.json({ 
+      success: true,
+      message: "Payment status updated successfully",
+      appointment: appt 
+    });
+  } catch (err) {
+    console.error("updatePaymentStatus error:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error" 
+    });
+  }
+};
+
+// Get all lawyers
 export const getAllLawyers = async (req, res) => {
   try {
     const User = (await import("../models/user.model.js")).default;

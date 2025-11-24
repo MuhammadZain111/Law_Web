@@ -1,6 +1,11 @@
 // routes/appointment.route.js
 import express from "express";
 import {
+  createAppointment,
+  listAppointments,
+  getAppointment,
+  updateAppointmentStatus,
+  updatePaymentStatus,
   cancelAppointment,
   createAppointment,
   getAllLawyers,
@@ -31,6 +36,9 @@ router.get("/:id", auth(), getAppointment);
 
 // status updates (lawyer/admin or client cancel)
 router.patch("/:id/status", auth(), updateAppointmentStatus);
+
+// payment status updates (lawyer only)
+router.patch("/:id/payment-status", auth(), updatePaymentStatus);
 
 // convenience cancel
 router.post("/:id/cancel", auth(), cancelAppointment);

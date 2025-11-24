@@ -284,12 +284,12 @@ export default function LawyerProfile() {
                 )}
                 
                 {/* Cash on Meeting - Always Available */}
-                <div className="p-4 border border-green-200 rounded-lg bg-green-50">
+                <div className="p-4 border border-amber-200 rounded-lg bg-amber-50">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">💵</span>
-                    <h4 className="font-semibold text-green-900">Cash on Meeting</h4>
+                    <h4 className="font-semibold text-amber-900">Cash on Meeting</h4>
                   </div>
-                  <p className="text-sm text-green-700">
+                  <p className="text-sm text-amber-700">
                     You can also pay in cash when you meet the lawyer in person.
                   </p>
                 </div>

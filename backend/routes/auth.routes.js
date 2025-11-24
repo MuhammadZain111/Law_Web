@@ -48,7 +48,7 @@ router.post("/login", async (req, res) => {
     admin.lastLogin = new Date();
     await admin.save();
     const payload = { sub: admin._id, role: admin.role, email: admin.email, name: admin.name };
-    const secret = process.env.JWT_SECRET || "dev_secret_change_me";
+    const secret = process.env.JWT_SECRET || "dev_secret";
     const token = jwt.sign(payload, secret, { expiresIn: "7d" });
     return res.json({ token, admin: { id: admin._id, email: admin.email, name: admin.name, role: admin.role } });
   } catch (e) {

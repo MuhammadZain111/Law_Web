@@ -4,10 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import UpcomingAppointments from "../components/UpcomingAppointments"
 import { AppointmentManagement } from "./Lawyer/appointment-management"
 import { CaseManagement } from "./Lawyer/case-management"
-import { DashboardOverview } from "./Lawyer/dashboard-overview"
-import { LawyerSidebar } from "./Lawyer/lawyer-sidebar"
-import LiveChat from "./Lawyer/live-chat"
-import NotificationsPanel from "./Lawyer/notifications-panel"
+import  LiveChat  from "./Lawyer/live-chat"
 import { PaymentStatus } from "./Lawyer/payment-status"
 import ProfileManagement from "./Lawyer/profile-management"
 import RecordsAccess from "./Lawyer/records-access"
@@ -53,9 +50,12 @@ export default function LawyerDashboard() {
             })
           : response.appointments
         
-        // Debug payment screenshots
+        // Debug payment screenshots and status
         filtered.forEach((apt, idx) => {
           console.log(`📋 Appointment ${idx + 1} (${apt.clientName}):`, {
+            status: apt.status, // IMPORTANT: Check appointment status
+            clientId: apt.clientId?.toString() || apt.clientId || 'null',
+            clientEmail: apt.clientEmail,
             hasPaymentScreenshotFile: !!apt.paymentScreenshotFile,
             hasPaymentScreenshot: !!apt.paymentScreenshot,
             paymentScreenshotFile: apt.paymentScreenshotFile,
@@ -64,6 +64,13 @@ export default function LawyerDashboard() {
             documentFilesCount: apt.documentFiles?.length || 0
           });
         });
+        
+        // Log status breakdown
+        const statusCounts = filtered.reduce((acc, apt) => {
+          acc[apt.status] = (acc[apt.status] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('📊 Appointment status breakdown:', statusCounts);
         
         setAppointments(filtered)
         // Filter pending appointments for notifications
@@ -205,8 +212,6 @@ export default function LawyerDashboard() {
         return <CaseManagement />
       case "chat":
         return <LiveChat />
-      case "consultation":
-        return <VirtualConsultation />
       case "payments":
         return <PaymentStatus />
       case "upgrade":
@@ -276,13 +281,30 @@ export default function LawyerDashboard() {
             </button>
 
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                {(() => {
-                  const first = (user?.firstname || user?.firstName || (user?.fullName || user?.name || '').split(' ')[0] || '').trim()
-                  const last = (user?.lastname || user?.lastName || (user?.fullName || user?.name || '').split(' ')[1] || '').trim()
-                  const initials = `${first?.[0] || ''}${last?.[0] || ''}` || (user?.username?.slice(0,2) || user?.email?.slice(0,2) || '').toUpperCase()
-                  return <span className="text-white text-sm font-medium">{initials}</span>
-                })()}
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 flex items-center justify-center bg-primary relative">
+                {user?.photoUrl ? (
+                  <img 
+                    src={user.photoUrl} 
+                    alt={user?.firstname || user?.firstName || 'Lawyer'} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Hide image and show initials fallback
+                      e.target.style.display = 'none'
+                      const fallback = e.target.parentElement.querySelector('.initials-fallback')
+                      if (fallback) fallback.style.display = 'flex'
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className={`initials-fallback w-full h-full flex items-center justify-center absolute inset-0 ${user?.photoUrl ? 'hidden' : ''}`}
+                >
+                  {(() => {
+                    const first = (user?.firstname || user?.firstName || (user?.fullName || user?.name || '').split(' ')[0] || '').trim()
+                    const last = (user?.lastname || user?.lastName || (user?.fullName || user?.name || '').split(' ')[1] || '').trim()
+                    const initials = `${first?.[0] || ''}${last?.[0] || ''}` || (user?.username?.slice(0,2) || user?.email?.slice(0,2) || '').toUpperCase()
+                    return <span className="text-white text-sm font-medium">{initials}</span>
+                  })()}
+                </div>
               </div>
               {(() => {
                 const display = (user?.fullName || user?.name || [user?.firstname || user?.firstName, user?.lastname || user?.lastName].filter(Boolean).join(' ') || user?.username || user?.email || '')

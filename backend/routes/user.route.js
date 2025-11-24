@@ -3,16 +3,22 @@ import fs from "fs";
 import ImageKit from "imagekit";
 import multer from "multer";
 import path from "path";
-import { getUserById, login, logout, register } from "../controllers/user.controller.js";
+import fs from "fs";
+import { getAllLawyers, getAllUsers, getProfile, getUserById, login, logout, register, updateProfile, updatePaymentMethods } from "../controllers/user.controller.js";
 import auth from "../middleware/auth.js";
 // import { isAuthenticated } from "../middleware/isAuthenticated.js";
 // import { singleUpload } from "../middleware/multer.js";
 
 const router = express.Router();
 
-router.route("/register").post(register);
-router.route("/login").post(login);
-router.route("/logout").get(logout);
+router.route("/register").post(register)
+router.route("/login").post(login)
+router.route("/logout").get(logout)
+router.route("/lawyers").get(getAllLawyers)
+router.route("/").get(getAllUsers)
+router.route("/profile").get(auth(), getProfile)
+router.route("/profile").put(auth(), updateProfile)
+router.route("/payment-methods").put(auth(), updatePaymentMethods)
 
 // Fetch single user by id (used by profile/booking lookups)
 router.route("/:id").get(getUserById);
