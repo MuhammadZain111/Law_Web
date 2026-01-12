@@ -1,4 +1,4 @@
-import { Activity, AlertCircle, BarChart3, Bell, Calendar, FileText, Search, Settings, Shield, UserCheck, Users } from "lucide-react"
+import { Activity, AlertCircle, BarChart3, Bell, Calendar, FileText, Search, Settings, Shield, UserCheck, Users, Download, Eye, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { api, setAuthToken } from "../../shared/api.js"
@@ -6,6 +6,7 @@ import { Button } from "../Lawyer/ui/button.jsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Lawyer/ui/card.jsx"
 import { Skeleton } from "../Lawyer/ui/skeleton.jsx"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../Lawyer/ui/table.jsx"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../Lawyer/ui/dialog.jsx"
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -26,6 +27,9 @@ export default function Dashboard() {
   // These must be declared before any early returns to keep hooks order stable
   const [activeSection, setActiveSection] = useState("overview")
   const [searchQuery, setSearchQuery] = useState("")
+  const [showDocumentModal, setShowDocumentModal] = useState(false)
+  const [selectedLawyerData, setSelectedLawyerData] = useState(null)
+  const [loadingDocuments, setLoadingDocuments] = useState(false)
 
   useEffect(() => {
     const loadData = async () => {
@@ -700,28 +704,30 @@ export default function Dashboard() {
                                   variant="outline"
                                   onClick={async () => {
                                     try {
-                                      const id = l._id || l.id
-                                      if (!id) return
-                                      const { data } = await api.get(`/appointments/lawyers/${id}/review`)
-                                      const lines = [
-                                        `Name: ${data.fullName}`,
-                                        `Email: ${l.userId?.email || l.email || ''}`,
-                                        `Bar #: ${data.barNumber}`,
-                                        `Specialization: ${data.specialization}`,
-                                        `Experience: ${data.yearsOfExperience} years`,
-                                        `Firm: ${data.firmName || '-'}`,
-                                        `City: ${data.city || '-'}`,
-                                        `CNIC: ${data.cnicNumber || '-'}`,
-                                        `Licenses: ${(data.licenses || []).length}`,
-                                        `Documents: ${(data.documents || []).length}`,
-                                      ]
-                                      alert(lines.join('\n'))
+                                      // Use userId for the review endpoint
+                                      const userId = typeof l.userId === 'object' ? l.userId?._id || l.userId?.id : l.userId || l._id || l.id
+                                      if (!userId) {
+                                        alert('Error: User ID not found')
+                                        return
+                                      }
+                                      setLoadingDocuments(true)
+                                      const { data } = await api.get(`/lawyers/${userId}/review`)
+                                      setSelectedLawyerData({
+                                        ...data,
+                                        email: l.userId?.email || l.email || '',
+                                        lawyerId: l._id || l.id
+                                      })
+                                      setShowDocumentModal(true)
                                     } catch (err) {
                                       console.error(err)
+                                      alert(err?.response?.data?.error || err?.message || 'Failed to load documents. The lawyer profile may not exist yet.')
+                                    } finally {
+                                      setLoadingDocuments(false)
                                     }
                                   }}
+                                  disabled={loadingDocuments}
                                 >
-                                  Review Documents
+                                  {loadingDocuments ? 'Loading...' : 'Review Documents'}
                                 </Button>
                                 <Button
                                   variant="destructive"
@@ -927,8 +933,35 @@ export default function Dashboard() {
                                 >
                                   Approve & Create Profile
                                 </Button>
-                                <Button size="sm" variant="outline">
-                                  Review Documents
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      // Use userId for the review endpoint
+                                      const userId = typeof l.userId === 'object' ? l.userId?._id || l.userId?.id : l.userId || l._id || l.id
+                                      if (!userId) {
+                                        alert('Error: User ID not found')
+                                        return
+                                      }
+                                      setLoadingDocuments(true)
+                                      const { data } = await api.get(`/lawyers/${userId}/review`)
+                                      setSelectedLawyerData({
+                                        ...data,
+                                        email: l.userId?.email || l.email || '',
+                                        lawyerId: l._id || l.id
+                                      })
+                                      setShowDocumentModal(true)
+                                    } catch (err) {
+                                      console.error(err)
+                                      alert(err?.response?.data?.error || err?.message || 'Failed to load documents. The lawyer profile may not exist yet.')
+                                    } finally {
+                                      setLoadingDocuments(false)
+                                    }
+                                  }}
+                                  disabled={loadingDocuments}
+                                >
+                                  {loadingDocuments ? 'Loading...' : 'Review Documents'}
                                 </Button>
                                 <Button size="sm" variant="destructive">
                                   Reject
@@ -1407,6 +1440,186 @@ export default function Dashboard() {
             )}
           </div>
         </main>
+
+        {/* Document Review Modal */}
+        <Dialog open={showDocumentModal} onOpenChange={setShowDocumentModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review Lawyer Documents</DialogTitle>
+            <DialogDescription>
+              Review all submitted documents and information for {selectedLawyerData?.fullName || 'this lawyer'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedLawyerData && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div>
+                  <div className="text-xs uppercase text-amber-700 font-semibold mb-1">Full Name</div>
+                  <div className="text-sm text-gray-800">{selectedLawyerData.fullName || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-amber-700 font-semibold mb-1">Email</div>
+                  <div className="text-sm text-gray-800">{selectedLawyerData.email || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-amber-700 font-semibold mb-1">Bar Number</div>
+                  <div className="text-sm text-gray-800">{selectedLawyerData.barNumber || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-amber-700 font-semibold mb-1">Specialization</div>
+                  <div className="text-sm text-gray-800">{selectedLawyerData.specialization || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-amber-700 font-semibold mb-1">Experience</div>
+                  <div className="text-sm text-gray-800">{selectedLawyerData.yearsOfExperience ? `${selectedLawyerData.yearsOfExperience} years` : '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-amber-700 font-semibold mb-1">Firm Name</div>
+                  <div className="text-sm text-gray-800">{selectedLawyerData.firmName || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-amber-700 font-semibold mb-1">City</div>
+                  <div className="text-sm text-gray-800">{selectedLawyerData.city || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-amber-700 font-semibold mb-1">CNIC Number</div>
+                  <div className="text-sm text-gray-800">{selectedLawyerData.cnicNumber || '—'}</div>
+                </div>
+              </div>
+
+              {/* Documents Section */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-amber-600" />
+                  Submitted Documents ({selectedLawyerData.documents?.length || 0})
+                </h3>
+                {selectedLawyerData.documents && selectedLawyerData.documents.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedLawyerData.documents.map((doc, idx) => (
+                      <div key={idx} className="p-4 border border-gray-200 rounded-lg bg-white flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                            <FileText className="h-5 w-5 text-amber-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{doc.name || doc.filename || `Document ${idx + 1}`}</div>
+                            <div className="text-xs text-gray-500">
+                              {doc.type || doc.mimetype || 'Document'} 
+                              {doc.size && ` • ${(doc.size / 1024).toFixed(2)} KB`}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          {doc.url && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(doc.url, '_blank')}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const link = document.createElement('a')
+                                  link.href = doc.url
+                                  link.download = doc.name || doc.filename || 'document'
+                                  link.click()
+                                }}
+                              >
+                                <Download className="h-4 w-4 mr-1" />
+                                Download
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-center text-gray-500">
+                    No documents submitted
+                  </div>
+                )}
+              </div>
+
+              {/* Licenses Section */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-amber-600" />
+                  Licenses ({selectedLawyerData.licenses?.length || 0})
+                </h3>
+                {selectedLawyerData.licenses && selectedLawyerData.licenses.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedLawyerData.licenses.map((license, idx) => (
+                      <div key={idx} className="p-4 border border-gray-200 rounded-lg bg-white flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                            <FileText className="h-5 w-5 text-amber-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{license.name || license.filename || `License ${idx + 1}`}</div>
+                            <div className="text-xs text-gray-500">
+                              {license.type || license.mimetype || 'License'}
+                              {license.issueDate && ` • Issued: ${new Date(license.issueDate).toLocaleDateString()}`}
+                              {license.expiryDate && ` • Expires: ${new Date(license.expiryDate).toLocaleDateString()}`}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          {license.url && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(license.url, '_blank')}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const link = document.createElement('a')
+                                  link.href = license.url
+                                  link.download = license.name || license.filename || 'license'
+                                  link.click()
+                                }}
+                              >
+                                <Download className="h-4 w-4 mr-1" />
+                                Download
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-center text-gray-500">
+                    No licenses submitted
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button 
+              onClick={() => setShowDocumentModal(false)}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     );
   }
